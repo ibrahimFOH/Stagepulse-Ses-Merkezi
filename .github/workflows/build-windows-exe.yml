@@ -48,7 +48,7 @@ jobs:
           $values = @(
             [regex]::Match($android, "versionName\s+'([^']+)'").Groups[1].Value,
             [regex]::Match($windows, 'APP_VERSION\s*=\s*"([^"]+)"').Groups[1].Value,
-            [regex]::Match($installer, "\$version\s*=\s*'([^']+)'").Groups[1].Value,
+            [regex]::Match($installer, ([regex]::Escape('$version') + "\s*=\s*'([^']+)'")).Groups[1].Value,
             [regex]::Match($adminAndroid, "versionName\s+'([^']+)'").Groups[1].Value,
             [regex]::Match($adminDesktop, 'APP_VERSION\s*=\s*"([^"]+)"').Groups[1].Value
           )
