@@ -1,0 +1,91 @@
+name: Stagepulse Windows EXE kalite ve derleme
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "windows/**"
+      - "android/app/build.gradle"
+      - ".github/workflows/build-windows-exe.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "windows/**"
+      - "android/app/build.gradle"
+      - ".github/workflows/build-windows-exe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-exe-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        name: Kaynak kodunu al
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: x64
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Tüm uygulama sürümlerini doğrula
+        shell: pwsh
+        run: |
+          $android = Get-Content android/app/build.gradle -Raw
+          $windows = Get-Content windows/Merkez.py -Raw
+          $installer = Get-Content windows/EXE_OLUSTUR.ps1 -Raw
+          $adminAndroid = Get-Content admin-app/android/app/build.gradle -Raw
+          $adminDesktop = Get-Content admin-app/desktop/main.py -Raw
+          $values = @(
+            [regex]::Match($android, "versionName\s+'([^']+)'").Groups[1].Value,
+            [regex]::Match($windows, 'APP_VERSION\s*=\s*"([^"]+)"').Groups[1].Value,
+            [regex]::Match($installer, "\$version\s*=\s*'([^']+)'").Groups[1].Value,
+            [regex]::Match($adminAndroid, "versionName\s+'([^']+)'").Groups[1].Value,
+            [regex]::Match($adminDesktop, 'APP_VERSION\s*=\s*"([^"]+)"').Groups[1].Value
+          )
+          if ($values -contains '') { throw "Uygulama sürümlerinden biri bulunamadı." }
+          if (($values | Select-Object -Unique).Count -ne 1) { throw "Ana ve yönetim uygulamaları aynı sürümde değil: $($values -join ', ')" }
+          if ($values[0] -ne '3.8.9') { throw "Beklenen kararlı sürüm 3.8.9, bulunan: $($values[0])" }
+          "version=$($values[0])" >> $env:GITHUB_OUTPUT
+        id: version
+      - name: Android ortak varlıklarını doğrula
+        run: python android/scripts/verify_assets.py
+      - name: JavaScript ve regresyon testleri
+        shell: pwsh
+        run: |
+          node --check windows/ui/app.js
+          node --check windows/ui/first_party_tools.js
+          node windows/tests/test_first_party_tools.js
+      - name: Python testleri
+        shell: pwsh
+        working-directory: windows
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pytest tests -q
+      - name: Kurulum EXE'sini derle
+        shell: pwsh
+        run: ./windows/EXE_OLUSTUR.ps1
+      - name: EXE çıktısını ve SHA-256 değerini doğrula
+        shell: pwsh
+        run: |
+          $files = @(Get-ChildItem windows/dist -Filter "*.exe" -File)
+          if ($files.Count -ne 1) { throw "Tam olarak bir kurulum EXE'si bekleniyordu." }
+          if ($files[0].Name -ne "StagepulseSesMerkezi-Kurulum-3.8.9.exe") { throw "EXE adı sürümle eşleşmiyor." }
+          if ($files[0].Length -lt 1000000) { throw "EXE boyutu beklenenden küçük." }
+          Get-FileHash -Algorithm SHA256 $files[0].FullName
+      - uses: actions/upload-artifact@v4
+        name: Windows kararlı EXE artifact
+        with:
+          name: Stagepulse-Ses-Merkezi-Windows-3.8.9
+          path: windows/dist/StagepulseSesMerkezi-Kurulum-3.8.9.exe
+          if-no-files-found: error
+          retention-days: 30
