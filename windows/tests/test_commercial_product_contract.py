@@ -134,8 +134,8 @@ def test_private_source_actions_are_scoped_and_manually_runnable():
     release = (ROOT.parent / '.github/workflows/trigger-ses-merkezi-release.yml').read_text('utf-8')
 
     assert 'workflow_dispatch:' in windows and 'pull_request:' in windows
-    assert 'branches: [research/android-engineering-tools-parity]' in windows
-    assert 'push:' not in windows
+    assert 'branches: [main]' in windows
+    assert 'push:' in windows
     assert 'workflow_dispatch:' in admin
     assert 'push:' in release and 'workflow_dispatch:' in release
 
