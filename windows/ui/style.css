@@ -260,3 +260,15 @@ html,body{font-size:15px;line-height:1.55}
  .rta-controls .rta-main-actions #rtaStart{grid-column:1/-1}
  .rta-controls .rta-main-actions .btn{width:100%;min-width:0}
 }
+
+
+/* RTA 3.8.8 parity: Android ile aynı canlı ölçer ve spektrum görünümü */
+.rta-diagnostics{background:linear-gradient(145deg,#101a2a,#0b1421);border-color:#2b405b;margin-bottom:12px}
+.rta-meter-row{display:grid;grid-template-columns:52px minmax(0,1fr) 88px;gap:10px;align-items:center;margin:9px 0;color:#b8c9df;font:700 9px/1.2 "Segoe UI",Arial,sans-serif;letter-spacing:1px}
+.rta-meter-row strong{font-size:10px;text-align:right;color:#f0d28b;font-variant-numeric:tabular-nums;letter-spacing:0}
+.rta-meter-track{height:12px;border-radius:3px;background:#080e18;border:1px solid #344965;overflow:hidden;box-shadow:inset 0 1px 4px rgba(0,0,0,.55)}
+.rta-meter-track i{display:block;width:0;height:100%;background:linear-gradient(90deg,#20a86d 0%,#a6d64b 58%,#ffc14c 82%,#e65d50 100%);transition:width .08s linear}
+.rta-meter-track.rms i{background:linear-gradient(90deg,#1b8e70,#46c9b4,#7ca8ff)}
+#rtaCanvas{height:440px;background:#09111f;border:1px solid #30445f;border-radius:8px;box-shadow:inset 0 0 32px rgba(25,64,111,.16)}
+.rta-diagnostics .rta-input-meter{margin-top:10px;color:#c6d5e8}
+@media(max-width:800px){#rtaCanvas{height:340px}.rta-meter-row{grid-template-columns:42px minmax(0,1fr) 76px;gap:7px}.rta-meter-track{height:10px}}
