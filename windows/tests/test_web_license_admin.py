@@ -1,7 +1,7 @@
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PANEL = ROOT / "website_release" / "ses-merkezi-lisans"
+PANEL = ROOT / "ses-merkezi-lisans"
 
 
 def test_mobile_web_panel_has_secure_login_and_core_actions():
