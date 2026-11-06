@@ -43,8 +43,9 @@ jobs:
         run: deno check supabase/functions/sesm-education-admin/index.ts
 
       - name: Yönetici paneli HTML kimliklerini doğrula
-        shell: python
+        shell: bash
         run: |
+          python3 - <<'PY'
           from html.parser import HTMLParser
           from pathlib import Path
 
@@ -73,3 +74,4 @@ jobs:
           if parser.duplicates or missing:
               raise SystemExit(f"HTML doğrulama hatası: yinelenen={parser.duplicates}, eksik={missing}")
           print(f"HTML OK: {len(parser.ids)} benzersiz kimlik")
+          PY
