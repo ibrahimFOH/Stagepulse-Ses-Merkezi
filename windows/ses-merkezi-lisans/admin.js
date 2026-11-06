@@ -115,7 +115,7 @@
   function renderDocuments(){
     const node=el('documentList');if(!node)return;
     if(!educationDocuments.length){node.innerHTML='<div class="empty-state">Henüz PDF yüklenmedi.</div>';return;}
-    node.innerHTML=educationDocuments.map(d=>'<article class="education-card"><div class="education-card-head"><div><h3>'+esc(d.title)+'</h3><p class="customer-email">'+esc(d.description||d.file_name)+'</p></div><span class="status-badge '+(d.is_published?'status-active':'status-pending')+'">'+(d.is_published?'Yayında':'Taslak')+'</span></div><div class="education-meta"><span>'+esc(d.category)+'</span><span>'+Number(d.file_size/1024/1024).toFixed(2)+' MB</span><span>Sürüm '+Number(d.version||1)+'</span><span>'+esc(date(d.updated_at))+'</span></div><div class="education-actions"><button class="button button-outline button-small" data-document-action="edit" data-id="'+esc(d.id)+'">Bilgileri düzenle</button><button class="button button-outline button-small" data-document-action="preview" data-id="'+esc(d.id)+'">Önizle</button><button class="button button-success button-small" data-document-action="publish" data-published="'+(!d.is_published)+'" data-id="'+esc(d.id)+'">'+(d.is_published?'Yayından kaldır':'Yayınla')+'</button><button class="button button-outline button-small" data-document-action="analytics" data-id="'+esc(d.id)+'">Analiz</button><button class="button button-danger button-small" data-document-action="delete" data-id="'+esc(d.id)+'">Sil</button></div></article>').join('');
+    node.innerHTML=educationDocuments.map(d=>'<article class="education-card"><div class="education-card-head"><div><h3>'+esc(d.title)+'</h3><p class="customer-email">'+esc(d.description||d.file_name)+'</p></div><span class="status-badge '+(d.is_published?'status-active':'status-pending')+'">'+(d.is_published?'Yayında':'Taslak')+'</span></div><div class="education-meta"><span>'+esc(d.category)+'</span><span>'+Number(d.file_size/1024/1024).toFixed(2)+' MB</span><span>Sürüm '+Number(d.version||1)+'</span><span>'+esc(date(d.updated_at))+'</span></div><div class="education-actions"><button class="button button-outline button-small" data-document-action="edit" data-id="'+esc(d.id)+'">Bilgileri düzenle</button><button class="button button-outline button-small" data-document-action="replace" data-id="'+esc(d.id)+'">Yeni PDF sürümü</button><button class="button button-outline button-small" data-document-action="preview" data-id="'+esc(d.id)+'">Önizle</button><button class="button button-success button-small" data-document-action="publish" data-published="'+(!d.is_published)+'" data-id="'+esc(d.id)+'">'+(d.is_published?'Yayından kaldır':'Yayınla')+'</button><button class="button button-outline button-small" data-document-action="analytics" data-id="'+esc(d.id)+'">Analiz</button><button class="button button-danger button-small" data-document-action="delete" data-id="'+esc(d.id)+'">Sil</button></div></article>').join('');
   }
   async function refreshEducation(){
     try{
@@ -184,6 +184,21 @@
     const b=ev.target.closest('button[data-document-action]');if(!b)return;const id=b.dataset.id,d=educationDocuments.find(x=>x.id===id);if(!d)return;
     try{b.disabled=true;const action=b.dataset.documentAction;
       if(action==='publish'){await educationInvoke('document_publish',{document_id:id,published:b.dataset.published==='true'});await refreshEducation();}
+      else if(action==='replace'){
+        const picker=document.createElement('input');picker.type='file';picker.accept='application/pdf,.pdf';
+        picker.onchange=async()=>{
+          const file=picker.files&&picker.files[0];if(!file)return;
+          if((file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf'))||file.size<1||file.size>52428800){showMessage(globalMessage,'Yeni PDF dosyası geçerli olmalı ve 50 MB sınırını aşmamalı.','error');return;}
+          let path='';
+          try{const auth=await getClient().auth.getUser();if(!auth.data.user)throw new Error('Yönetici oturumu gerekli.');
+            path=auth.data.user.id+'/'+Date.now()+'-'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+            const up=await getClient().storage.from(EDUCATION_BUCKET).upload(path,file,{contentType:'application/pdf',upsert:false});if(up.error)throw up.error;
+            await educationInvoke('document_replace',{document_id:id,storage_path:path,file_name:file.name,file_size:file.size});
+            await refreshEducation();showMessage(globalMessage,'PDF yeni sürümle değiştirildi. Yeniden yayınlaman gerekir.','success');
+          }catch(e){if(path)await getClient().storage.from(EDUCATION_BUCKET).remove([path]);showMessage(globalMessage,errorText(e),'error');}
+        };
+        picker.click();
+      }
       else if(action==='preview'){const r=await educationInvoke('document_signed_url',{document_id:id});window.open(r.url,'_blank','noopener');}
       else if(action==='analytics'){const r=await educationInvoke('document_analytics',{document_id:id});const x=(r.summary||[])[0];showMessage(globalMessage,x?('PDF analizi: '+x.views+' görüntüleme, '+x.downloads+' indirme, '+x.unique_users+' tekil öğrenci.'):'Bu PDF için henüz kullanım kaydı yok.','success');}
       else if(action==='edit'){const title=prompt('Belge başlığı:',d.title);if(title===null)return;const description=prompt('Belge açıklaması:',d.description||'');if(description===null)return;const category=prompt('Kategori:',d.category||'genel');if(category===null)return;await educationInvoke('document_update',{document_id:id,title,description,category});await refreshEducation();showMessage(globalMessage,'Belge bilgileri güncellendi. Yayın durumu taslağa alındı.','success');}
