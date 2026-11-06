@@ -18,8 +18,8 @@ android {
         applicationId 'com.stagepulse.sesmerkezi'
         minSdk 26
         targetSdk 35
-        versionCode 30808
-        versionName '3.8.8'
+        versionCode 30809
+        versionName '3.8.9'
         buildConfigField 'String', 'UPDATE_CHANNEL', '"' + updateChannel + '"'
     }
 
