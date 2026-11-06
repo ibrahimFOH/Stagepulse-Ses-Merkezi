@@ -6,11 +6,11 @@ Stagepulse Ses Merkezi; Windows masaüstü uygulaması, Android uygulaması ve a
 
 | Bileşen | Kaynak sürümü | Sürümün yönetildiği yer |
 |---|---:|---|
-| Windows Ses Merkezi | 3.8.6 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
-| Android Ses Merkezi | 3.8.6 (30806) | android/app/build.gradle |
+| Windows Ses Merkezi | 3.8.8 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
+| Android Ses Merkezi | 3.8.8 (30808) | android/app/build.gradle |
 | Yönetici uygulaması | Ayrı proje sürümü | admin-app/ |
 
-Windows ve Android Ses Merkezi 3.8.6 sürümleri birlikte doğrulanır ve aynı kararlı yayın paketinde yayımlanır. Platform sürümleri bağımsız doğrulanır. Windows kurucusu ve Android APK'sı kendi sürüm kaynağına göre üretilir; Windows kaynakları Android düzeltmeleri için değiştirilmez. Android APK kalıcı Android imza anahtarıyla imzalanır; geçici CI anahtarı üretim APK'sı için kullanılmaz.
+Windows ve Android Ses Merkezi 3.8.8 sürümleri birlikte doğrulanır ve aynı kararlı yayın paketinde yayımlanır. Platform sürümleri bağımsız doğrulanır. Windows kurucusu ve Android APK'sı kendi sürüm kaynağına göre üretilir; Windows kaynakları Android düzeltmeleri için değiştirilmez. Android APK kalıcı Android imza anahtarıyla imzalanır; geçici CI anahtarı üretim APK'sı için kullanılmaz.
 
 ## Depo düzeni
 
