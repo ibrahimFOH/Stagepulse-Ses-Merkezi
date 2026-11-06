@@ -161,7 +161,7 @@ def test_app_auto_provider_uses_local_ollama_before_any_groq_fallback(monkeypatc
 
     app = AppApi.__new__(AppApi)
     calls = []
-    def fake_chat(provider, model, api_key, prompt, endpoint):
+    def fake_chat(provider, model, api_key, prompt, endpoint, *args, **kwargs):
         calls.append(provider)
         return {"ok": True, "provider": provider, "model": "huihui_ai/qwen2.5-abliterate:latest", "content": "Yerel yanıt"}
     monkeypatch.setattr(ai_providers, "chat", fake_chat)
@@ -177,7 +177,7 @@ def test_app_auto_provider_uses_groq_only_after_local_failure_and_license(monkey
     app = AppApi.__new__(AppApi)
     app._cached_license_status = lambda: {"active": True}
     calls = []
-    def fake_chat(provider, model, api_key, prompt, endpoint):
+    def fake_chat(provider, model, api_key, prompt, endpoint, *args, **kwargs):
         calls.append(provider)
         if provider == "ollama":
             raise RuntimeError("Ollama kapalı")
@@ -195,7 +195,7 @@ def test_app_auto_provider_does_not_send_to_groq_without_license(monkeypatch):
     app = AppApi.__new__(AppApi)
     app._cached_license_status = lambda: {"active": False}
     calls = []
-    def fake_chat(provider, model, api_key, prompt, endpoint):
+    def fake_chat(provider, model, api_key, prompt, endpoint, *args, **kwargs):
         calls.append(provider)
         raise RuntimeError("Ollama kapalı")
     monkeypatch.setattr(ai_providers, "chat", fake_chat)
