@@ -60,7 +60,7 @@ Deno.serve(async(req:Request)=>{
     let b:any;try{b=raw?JSON.parse(raw):{};}catch{return bad(req,"INVALID_JSON",400);}
     if(!b||typeof b!=="object"||Array.isArray(b))return bad(req,"INVALID_REQUEST",400);
     const action=text(b.action,50);
-    const adminActions=new Set(["students_list","student_create","student_delete","student_password_reset","exams_list","exam_save","exam_delete","exam_publish","questions_list","question_save","question_delete","exam_attempts","documents_list","document_register","document_update","document_publish","document_delete","document_analytics","document_signed_url"]);
+    const adminActions=new Set(["students_list","student_create","student_delete","student_password_reset","exams_list","exam_save","exam_delete","exam_publish","questions_list","question_save","question_delete","exam_attempts","documents_list","document_register","document_update","document_replace","document_publish","document_delete","document_analytics","document_signed_url"]);
     if(adminActions.has(action)&&!(await owner(user.id)))return bad(req,"FORBIDDEN_OWNER_ONLY",403);
 
     if(action==="students_list"){
@@ -203,6 +203,24 @@ Deno.serve(async(req:Request)=>{
       const id=text(b.document_id,80),title=text(b.title,180);if(!id||title.length<2)return bad(req,"DOCUMENT_INPUT_INVALID",400);
       const r=await supabase.from("sesm_education_documents").update({title,description:text(b.description,3000),category:text(b.category,80)||"genel",updated_at:new Date().toISOString(),is_published:false,published_at:null}).eq("id",id).select().maybeSingle();
       if(r.error||!r.data)return bad(req,"DOCUMENT_NOT_FOUND",404);await audit(user.id,"education_document_updated",null,{document_id:id,title});return send(req,{ok:true,document:r.data});
+    }
+
+    if(action==="document_replace"){
+      const id=text(b.document_id,80),path=text(b.storage_path,500),file=text(b.file_name,255),size=Number(b.file_size);
+      if(!id||!path.startsWith(user.id+"/")||!file.toLowerCase().endsWith(".pdf")||!Number.isInteger(size)||size<1||size>52428800)return bad(req,"DOCUMENT_INPUT_INVALID",400);
+      const doc=await supabase.from("sesm_education_documents").select("id,storage_path,version").eq("id",id).maybeSingle();
+      if(doc.error||!doc.data)return bad(req,"DOCUMENT_NOT_FOUND",404);
+      const parts=path.split("/"),folder=parts.slice(0,-1).join("/"),name=parts.at(-1);
+      const objects=await supabase.storage.from(BUCKET).list(folder,{search:name,limit:100});
+      if(objects.error||!(objects.data??[]).some((x:any)=>x.name===name))return bad(req,"DOCUMENT_FILE_NOT_FOUND",404);
+      const updated=await supabase.from("sesm_education_documents").update({
+        storage_path:path,file_name:file,file_size:size,version:Number(doc.data.version||1)+1,
+        is_published:false,published_at:null,updated_at:new Date().toISOString()
+      }).eq("id",id).select().single();
+      if(updated.error)throw new Error("DOCUMENT_REPLACE_FAILED");
+      await supabase.storage.from(BUCKET).remove([doc.data.storage_path]);
+      await audit(user.id,"education_document_replaced",null,{document_id:id,file_name:file,version:updated.data.version});
+      return send(req,{ok:true,document:updated.data});
     }
     if(action==="document_publish"){
       const id=text(b.document_id,80),publish=b.published===true;if(!id)return bad(req,"DOCUMENT_NOT_FOUND",404);
