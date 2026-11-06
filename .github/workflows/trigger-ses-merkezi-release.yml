@@ -1,4 +1,4 @@
-name: Stagepulse Ses Merkezi 3.8.9 kararlı yayın tetikleyicisi
+name: Stagepulse Ses Merkezi ana dal kararlı yayın tetikleyicisi
 
 on:
   push:
@@ -10,6 +10,10 @@ on:
       - "windows/setup/StagepulseSesMerkezi.nsi"
       - "admin-app/android/app/build.gradle"
       - "admin-app/desktop/main.py"
+      - "windows/ui/app.js"
+      - "windows/ui/index.html"
+      - "android/app/src/main/assets/ui/app.js"
+      - "android/app/src/main/assets/ui/index.html"
       - ".github/workflows/trigger-ses-merkezi-release.yml"
   workflow_dispatch:
 
@@ -37,10 +41,6 @@ jobs:
           RELEASE_REPO_DISPATCH_TOKEN: ${{ secrets.RELEASE_REPO_DISPATCH_TOKEN }}
         run: |
           set -euo pipefail
-          if [[ -z "${RELEASE_REPO_DISPATCH_TOKEN:-}" ]]; then
-            echo "::error::RELEASE_REPO_DISPATCH_TOKEN deposu sırrı tanımlı değil."
-            exit 1
-          fi
           RELEASE_VERSION="$(python3 - <<'PY'
           import re
           from pathlib import Path
@@ -58,17 +58,22 @@ jobs:
                   raise SystemExit(f"{label} sürüm alanı bulunamadı.")
               values[label] = match.group(1)
           unique = set(values.values())
-          if unique != {"3.8.9"}:
-              raise SystemExit("Bütün uygulamalar 3.8.9 olmalı: " + repr(values))
+          if len(unique) != 1:
+              raise SystemExit("Bütün uygulamaların sürümleri eşleşmiyor: " + repr(values))
+          version = next(iter(unique))
+          match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", version)
+          if not match:
+              raise SystemExit("Sürüm X.Y.Z biçiminde olmalı: " + version)
+          expected_code = int(match.group(1))*10000 + int(match.group(2))*100 + int(match.group(3))
           gradle = Path("android/app/build.gradle").read_text(encoding="utf-8")
           code = re.search(r"versionCode\s+(\d+)", gradle)
-          if not code or int(code.group(1)) != 30809:
-              raise SystemExit("Ana Android versionCode 30809 değil.")
+          if not code or int(code.group(1)) != expected_code:
+              raise SystemExit("Ana Android versionCode sürümle eşleşmiyor.")
           admin = Path("admin-app/android/app/build.gradle").read_text(encoding="utf-8")
           admin_code = re.search(r"versionCode\s+(\d+)", admin)
-          if not admin_code or int(admin_code.group(1)) != 30809:
-              raise SystemExit("Yönetim Android versionCode 30809 değil.")
-          print("3.8.9")
+          if not admin_code or int(admin_code.group(1)) != expected_code:
+              raise SystemExit("Yönetim Android versionCode sürümle eşleşmiyor.")
+          print(version)
           PY
           )"
           TAG="ses-merkezi-v$RELEASE_VERSION"
@@ -80,6 +85,10 @@ jobs:
             git push origin "refs/tags/$TAG"
           elif [[ "$EXISTING_SHA" != "$GITHUB_SHA" ]]; then
             git push --force origin "refs/tags/$TAG"
+          fi
+          if [[ -z "${RELEASE_REPO_DISPATCH_TOKEN:-}" ]]; then
+            echo "::warning::RELEASE_REPO_DISPATCH_TOKEN tanımlı değil. Kaynak etiketi oluşturuldu; yayın deposundaki workflow_dispatch ile derleme başlatılmalı."
+            exit 0
           fi
           PAYLOAD="$(python3 - "$RELEASE_VERSION" "refs/tags/$TAG" <<'PY'
           import json, sys
