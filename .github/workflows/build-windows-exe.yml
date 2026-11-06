@@ -75,10 +75,13 @@ jobs:
         run: ./windows/EXE_OLUSTUR.ps1
       - name: EXE çıktısını ve SHA-256 değerini doğrula
         shell: pwsh
+        env:
+          EXPECTED_VERSION: ${{ steps.version.outputs.version }}
         run: |
           $files = @(Get-ChildItem windows/dist -Filter "*.exe" -File)
           if ($files.Count -ne 1) { throw "Tam olarak bir kurulum EXE'si bekleniyordu." }
-          if ($files[0].Name -ne "StagepulseSesMerkezi-Kurulum-$((Get-Content windows/Merkez.py -Raw | Select-String -Pattern 'APP_VERSION\s*=\s*"([^"]+)"' -AllMatches).Matches[0].Groups[1].Value).exe") { throw "EXE adı sürümle eşleşmiyor." }
+          $expectedName = "StagepulseSesMerkezi-Kurulum-$env:EXPECTED_VERSION.exe"
+          if ($files[0].Name -ne $expectedName) { throw "EXE adı sürümle eşleşmiyor: $($files[0].Name)" }
           if ($files[0].Length -lt 1000000) { throw "EXE boyutu beklenenden küçük." }
           Get-FileHash -Algorithm SHA256 $files[0].FullName
       - uses: actions/upload-artifact@v4
