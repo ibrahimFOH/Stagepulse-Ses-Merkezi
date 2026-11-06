@@ -4,6 +4,8 @@ import sys
 from pathlib import Path
 import webview
 
+APP_VERSION = "3.8.9"
+
 
 def resource_path(relative: str) -> str:
     base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
@@ -12,7 +14,7 @@ def resource_path(relative: str) -> str:
 
 def main() -> None:
     webview.create_window(
-        "Stagepulse | Usta Öğretmen Yönetim Paneli",
+        f"Stagepulse | Usta Öğretmen Yönetim Paneli v{APP_VERSION}",
         resource_path("assets/index.html"),
         width=1280,
         height=820,
