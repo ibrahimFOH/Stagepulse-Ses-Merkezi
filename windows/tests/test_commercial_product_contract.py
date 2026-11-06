@@ -130,13 +130,12 @@ def test_repository_readme_versions_match_windows_and_android_builds():
 
 def test_private_source_actions_are_scoped_and_manually_runnable():
     windows = (ROOT.parent / '.github/workflows/build-windows-exe.yml').read_text('utf-8')
-    admin = (ROOT.parent / '.github/workflows/build-admin-apps.yml').read_text('utf-8')
     release = (ROOT.parent / '.github/workflows/trigger-ses-merkezi-release.yml').read_text('utf-8')
 
     assert 'workflow_dispatch:' in windows and 'pull_request:' in windows
     assert 'branches: [main]' in windows
     assert 'push:' in windows
-    assert 'workflow_dispatch:' in admin
+    assert not (ROOT.parent / '.github/workflows/build-admin-apps.yml').exists()
     assert 'push:' in release and 'workflow_dispatch:' in release
 
 def test_stagepulse_release_version_is_consistent_across_platforms():
