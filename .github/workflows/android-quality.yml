@@ -1,6 +1,18 @@
 name: Android kalite ve test APK
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - "windows/ui/first_party_tools.js"
+      - ".github/workflows/android-quality.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "android/**"
+      - "windows/ui/first_party_tools.js"
+      - ".github/workflows/android-quality.yml"
   workflow_dispatch:
 
 permissions:
