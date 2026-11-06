@@ -95,7 +95,61 @@
         <div class="section-head"><div><p class="eyebrow">İZLENEBİLİRLİK</p><h2 id="auditHeading">Son yönetici işlemleri</h2><p class="muted">Lisans oluşturma, ödeme değişikliği ve iptal geçmişi.</p></div><span class="section-number">03</span></div>
         <div id="auditList" class="audit-list"><p class="empty-state">İşlem geçmişi yükleniyor…</p></div>
       </section>
-      <footer class="page-footer"><span>STAGEPULSE · SES MÜHENDİSLİĞİ MERKEZİ</span><span>Bu panel yalnızca lisans yönetimi içindir.</span></footer>
+
+      <section class="panel education-panel" aria-labelledby="studentsHeading">
+        <div class="section-head"><div><p class="eyebrow">EĞİTİM YÖNETİMİ · 04</p><h2 id="studentsHeading">Öğrenci hesapları</h2><p class="muted">Öğrenci hesabı oluştur, parolasını yenile veya hesabı tamamen sil.</p></div><span class="section-number">04</span></div>
+        <form id="studentForm" class="form-grid">
+          <div class="field"><label for="studentName">Öğrenci adı</label><input id="studentName" maxlength="120" required></div>
+          <div class="field"><label for="studentEmail">E-posta</label><input id="studentEmail" type="email" maxlength="320" required></div>
+          <div class="field"><label for="studentPassword">İlk parola</label><input id="studentPassword" type="password" minlength="10" required><small class="hint">En az 10 karakter, harf ve rakam.</small></div>
+          <div class="field"><label for="studentLicense">Ödenmiş aktif lisans</label><select id="studentLicense" required><option value="">Önce lisansları yükle</option></select></div>
+          <div class="field span-2 form-footer"><button class="button button-primary" id="studentCreateButton" type="submit">Öğrenci hesabı oluştur</button></div>
+        </form>
+        <div id="studentList" class="license-grid"><div class="empty-state">Öğrenci kayıtları yükleniyor…</div></div>
+      </section>
+
+      <section class="panel education-panel" aria-labelledby="examsHeading">
+        <div class="section-head"><div><p class="eyebrow">ÖLÇME VE DEĞERLENDİRME · 05</p><h2 id="examsHeading">Sınavlar ve soru bankası</h2><p class="muted">Sınav oluştur, soruları düzenle, yayınla ve otomatik notlandırma sonuçlarını incele.</p></div><span class="section-number">05</span></div>
+        <form id="examForm" class="form-grid">
+          <div class="field span-2"><label for="examTitle">Sınav adı</label><input id="examTitle" maxlength="180" required></div>
+          <div class="field span-2"><label for="examDescription">Açıklama</label><textarea id="examDescription" rows="2" maxlength="3000"></textarea></div>
+          <div class="field"><label for="examModule">Eğitim modülü</label><input id="examModule" maxlength="80" placeholder="Örn. frequency"></div>
+          <div class="field"><label for="examDuration">Süre (dakika)</label><input id="examDuration" type="number" min="1" max="600" placeholder="Boş = süresiz"></div>
+          <div class="field"><label for="examPass">Geçme notu (%)</label><input id="examPass" type="number" min="0" max="100" value="70" required></div>
+          <div class="field"><label for="examAttempts">Deneme hakkı</label><input id="examAttempts" type="number" min="1" max="20" value="1" required></div>
+          <div class="field span-2 form-footer"><button class="button button-primary" type="submit">Sınav oluştur</button></div>
+        </form>
+        <div id="examList" class="license-grid"><div class="empty-state">Sınavlar yükleniyor…</div></div>
+        <div class="education-subpanel">
+          <h3>Soru bankası</h3>
+          <form id="questionForm" class="form-grid">
+            <div class="field span-2"><label for="questionExam">Sınav</label><select id="questionExam" required><option value="">Sınav seç</option></select></div>
+            <div class="field span-2"><label for="questionText">Soru</label><textarea id="questionText" rows="3" maxlength="4000" required></textarea></div>
+            <div class="field"><label for="questionType">Soru türü</label><select id="questionType"><option value="single_choice">Tek seçenekli</option><option value="multiple_choice">Çok seçenekli</option><option value="true_false">Doğru / yanlış</option><option value="short_answer">Kısa cevap</option></select></div>
+            <div class="field"><label for="questionPoints">Puan</label><input id="questionPoints" type="number" min="0.01" max="1000" step="0.01" value="1"></div>
+            <div class="field span-2"><label for="questionOptions">Seçenekler (her satıra bir seçenek)</label><textarea id="questionOptions" rows="3" placeholder="A seçeneği&#10;B seçeneği&#10;C seçeneği"></textarea></div>
+            <div class="field span-2"><label for="questionCorrect">Doğru cevap</label><input id="questionCorrect" placeholder="Tek cevap, çoklu cevap için virgülle ayır, doğru/yanlış için true veya false" required></div>
+            <div class="field span-2"><label for="questionExplanation">Açıklama (isteğe bağlı)</label><textarea id="questionExplanation" rows="2" maxlength="2000"></textarea></div>
+            <div class="field span-2 form-footer"><button class="button button-primary" type="submit">Soruyu kaydet</button></div>
+          </form>
+          <div id="questionList" class="license-grid"><div class="empty-state">Soru görmek için sınav seç.</div></div>
+        </div>
+        <div class="education-subpanel"><h3>Otomatik notlandırma sonuçları</h3><div id="examAttemptsList" class="audit-list"><p class="empty-state">Bir sınavın sonuçlarını aç.</p></div></div>
+      </section>
+
+      <section class="panel education-panel" aria-labelledby="documentsHeading">
+        <div class="section-head"><div><p class="eyebrow">EĞİTİM İÇERİKLERİ · 06</p><h2 id="documentsHeading">PDF kütüphanesi</h2><p class="muted">PDF yükle, açıklamasını düzenle, öğrencilere yayınla ve kullanım verilerini takip et.</p></div><span class="section-number">06</span></div>
+        <form id="documentForm" class="form-grid">
+          <div class="field"><label for="documentTitle">Belge başlığı</label><input id="documentTitle" maxlength="180" required></div>
+          <div class="field"><label for="documentCategory">Kategori</label><input id="documentCategory" maxlength="80" value="genel" required></div>
+          <div class="field span-2"><label for="documentDescription">Açıklama</label><textarea id="documentDescription" rows="2" maxlength="3000"></textarea></div>
+          <div class="field span-2"><label for="documentFile">PDF dosyası (en fazla 50 MB)</label><input id="documentFile" type="file" accept="application/pdf,.pdf" required></div>
+          <div class="field span-2 form-footer"><button class="button button-primary" id="documentUploadButton" type="submit">PDF yükle</button></div>
+        </form>
+        <div id="documentList" class="license-grid"><div class="empty-state">PDF kayıtları yükleniyor…</div></div>
+        <div class="education-subpanel"><h3>PDF kullanım analizleri</h3><div id="documentAnalytics" class="audit-list"><p class="empty-state">Analiz verileri yükleniyor…</p></div></div>
+      </section>
+      <footer class="page-footer"><span>STAGEPULSE · SES MÜHENDİSLİĞİ MERKEZİ</span><span>Lisans, öğrenci, sınav ve eğitim içeriği yönetimi.</span></footer>
     </section>
   </main>
 
