@@ -8,8 +8,6 @@ on:
       - "windows/Merkez.py"
       - "windows/EXE_OLUSTUR.ps1"
       - "windows/setup/StagepulseSesMerkezi.nsi"
-      - "admin-app/android/app/build.gradle"
-      - "admin-app/desktop/main.py"
       - "windows/ui/app.js"
       - "windows/ui/index.html"
       - "android/app/src/main/assets/ui/app.js"
@@ -30,7 +28,7 @@ concurrency:
 
 jobs:
   trigger-release:
-    name: Beş sürüm alanını doğrula ve yayın deposunu tetikle
+    name: Ana uygulama sürümünü doğrula ve yayın deposunu tetikle
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -52,8 +50,6 @@ jobs:
               "ana Android": ("android/app/build.gradle", r"versionName\s+'([^']+)'"),
               "ana Windows": ("windows/Merkez.py", r'APP_VERSION\s*=\s*"([^"]+)"'),
               "Windows kurucu": ("windows/EXE_OLUSTUR.ps1", r"\$version\s*=\s*'([^']+)'"),
-              "yönetim Android": ("admin-app/android/app/build.gradle", r"versionName\s+'([^']+)'"),
-              "yönetim Windows": ("admin-app/desktop/main.py", r'APP_VERSION\s*=\s*"([^"]+)"'),
           }
           values = {}
           for label, (filename, pattern) in files.items():
@@ -63,7 +59,7 @@ jobs:
               values[label] = match.group(1)
           unique = set(values.values())
           if len(unique) != 1:
-              raise SystemExit("Bütün uygulamaların sürümleri eşleşmiyor: " + repr(values))
+              raise SystemExit("Ana uygulama sürümleri eşleşmiyor: " + repr(values))
           version = next(iter(unique))
           match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", version)
           if not match:
@@ -73,10 +69,6 @@ jobs:
           code = re.search(r"versionCode\s+(\d+)", gradle)
           if not code or int(code.group(1)) != expected_code:
               raise SystemExit("Ana Android versionCode sürümle eşleşmiyor.")
-          admin = Path("admin-app/android/app/build.gradle").read_text(encoding="utf-8")
-          admin_code = re.search(r"versionCode\s+(\d+)", admin)
-          if not admin_code or int(admin_code.group(1)) != expected_code:
-              raise SystemExit("Yönetim Android versionCode sürümle eşleşmiyor.")
           print(version)
           PY
           )"
