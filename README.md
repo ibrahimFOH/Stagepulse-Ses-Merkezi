@@ -1,6 +1,6 @@
 # Stagepulse Ses Merkezi
 
-Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasından oluşan Türkçe ses mühendisliği platformudur. Yönetici hesabı ve yetkileri ana uygulama içindeki giriş/oturum akışıyla yönetilir. Son kullanıcıya dağıtılan paketler ayrı Stagepulse-Releases deposunun GitHub Actions iş akışında üretilir.
+Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasından oluşan Türkçe ses mühendisliği platformudur. Yönetici hesabı ve yetkileri ana uygulama içindeki giriş/oturum akışıyla yönetilir. Son kullanıcı paketleri ayrı Stagepulse-Releases deposunda üretilir.
 
 ## Platform sürümleri
 
@@ -8,17 +8,16 @@ Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasında
 |---|---:|---|
 | Windows Ses Merkezi | 3.8.9 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
 | Android Ses Merkezi | 3.8.9 (30809) | android/app/build.gradle |
-| Yönetici girişi | Ana uygulama içinde | Android ve Windows kimlik doğrulaması |
+| Yönetici girişi | Ana uygulama içinde | Ana uygulamanın kimlik doğrulama ve yetki kontrolü |
 
-Windows ve Android Ses Merkezi ile Yönetim Paneli EXE/APK 3.8.9 sürümünde birlikte doğrulanır ve aynı kararlı yayın paketinde yayımlanır. Platform sürümleri bağımsız doğrulanır. Windows kurucusu ve Android APK'sı kendi sürüm kaynağına göre üretilir; Windows kaynakları Android düzeltmeleri için değiştirilmez. Android APK kalıcı Android imza anahtarıyla imzalanır; geçici CI anahtarı üretim APK'sı için kullanılmaz.
+Windows EXE ve Android APK aynı kararlı sürümde doğrulanır ve yayımlanır. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz. Android APK kalıcı Android imza anahtarıyla imzalanır.
 
-Windows EXE ve Android APK aynı kararlı sürümde doğrulanır ve yayımlanır. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz. Windows kurucusu ve Android APK'sı kendi sürüm kaynağına göre üretilir. Android APK kalıcı Android imza anahtarıyla imzalanır.
+## Depo düzeni
 
-- windows/: Windows uygulaması, Python ses motorları, yerel Ollama/Groq bağlantısı, eğitim belgeleri, testler ve kurucu.
+- windows/: Windows uygulaması, Python ses motorları, eğitim belgeleri, testler ve kurucu.
 - android/: Kotlin ana uygulaması, WebView arayüzü, çevrimdışı eğitim içeriği, Android köprüsü ve Android kalite denetimleri.
-- admin-app/: Öğretmen/yönetici için öğrenci uygulamasından ayrı masaüstü ve Android uygulamaları.
+- admin-app/: Önceki ayrı yönetim istemcisi kaynakları; kararlı yayın iş akışına dahil değildir.
 - shared/: Platformlar arası ortak çalışma notları.
-- Yönetici yetkileri: Ayrı paketler yerine ana uygulama içindeki oturum ve yetki kontrolü üzerinden yürütülür.
 
 Stagepulse ana web sitesi içeriği bu çalışma kapsamında değiştirilmedi.
 
