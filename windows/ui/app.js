@@ -70,6 +70,7 @@ let rtaSampleRate = 0;
 let rtaFftSize = 16384;
 let rtaSmoothed = null;
 let rtaPeak = null;
+let rtaTraceHistory = [];
 let rtaFreqs = [];
 let rtaOptimizerHistory = [];
 let rtaDeviceName = '';
@@ -458,7 +459,7 @@ function rtaEffectiveSampleRate(){return rtaSampleRate||48000;}
 function rtaFullBandCenters(){return RtaMath.supportedCenters(rtaEffectiveSampleRate(),$('rtaBands').value,20,20000);}
 function rtaBounds(){const opts={'20-20000':[20,20000],'31.5-16000':[31.5,16000],'63-8000':[63,8000],'125-4000':[125,4000]};const v=$('rtaRange')?.value||'auto';const bands=rtaFullBandCenters();const supportedMax=bands.length?bands[bands.length-1]:8000;let range;if(v==='auto')range=[20,Math.max(20,supportedMax)];else if(v==='custom'){let low=Number($('rtaCustomMin')?.value||20),high=Number($('rtaCustomMax')?.value||20000);low=Math.max(20,Math.min(20000,Number.isFinite(low)?low:20));high=Math.max(20,Math.min(20000,Number.isFinite(high)?high:20000));if(high<=low)high=Math.min(20000,low*2);if(high<=low){low=Math.max(20,high/2);}range=[low,high];}else range=opts[v]||[20,20000];return rtaSampleRate>0?RtaMath.clampRangeToSupported(rtaSampleRate,$('rtaBands').value,range[0],range[1]):range;}
 function rtaFormatHz(f){return f>=1000?(f/1000).toLocaleString('tr-TR',{maximumFractionDigits:1})+' kHz':f.toLocaleString('tr-TR',{maximumFractionDigits:1})+' Hz';}
-function resetRtaHistory(){rtaSmoothed=null;rtaPeak=null;rtaLastTime=0;rtaOptimizerHistory=[];if($('rtaOptimizerOutput'))$('rtaOptimizerOutput').textContent='Kararlı spektrum örneği bekleniyor.';}
+function resetRtaHistory(){rtaSmoothed=null;rtaPeak=null;rtaTraceHistory=[];rtaLastTime=0;rtaOptimizerHistory=[];if($('rtaOptimizerOutput'))$('rtaOptimizerOutput').textContent='Kararlı spektrum örneği bekleniyor.';}
 function initRtaControls(){
  $('rtaStart').addEventListener('click',startRta);$('rtaStop').addEventListener('click',()=>stopRta(true));
  $('rtaResetPeak').addEventListener('click',()=>{rtaPeak=null;if(rtaSmoothed)drawRta(rtaSmoothed);});
@@ -559,9 +560,9 @@ async function tickRta(token){
    const centers=snapshot.centers||[],values=snapshot.band_dbfs||[];
    const changed=centers.length!==rtaFreqs.length||centers.some((f,i)=>f!==rtaFreqs[i]);
    if(changed){rtaFreqs=centers.slice();resetRtaHistory();}
-   if(snapshot.ready){const now=performance.now(),dt=rtaLastTime?Math.max(.001,(now-rtaLastTime)/1000):.1;rtaLastTime=now;const tau={fast:.12,medium:.18,slow:.5}[$('rtaSmooth').value]||.18;rtaSmoothed=RtaMath.smooth(rtaSmoothed,values,dt,tau);rtaPeak=rtaPeak&&rtaPeak.length===rtaSmoothed.length?rtaPeak.map((v,i)=>Math.max(v,rtaSmoothed[i])):rtaSmoothed.slice();drawRta(rtaSmoothed);updateRtaOptimizer(centers,rtaSmoothed);}
+   if(snapshot.ready){const now=performance.now(),dt=rtaLastTime?Math.max(.001,(now-rtaLastTime)/1000):.1;rtaLastTime=now;const tau={fast:.12,medium:.18,slow:.5}[$('rtaSmooth').value]||.18;rtaSmoothed=RtaMath.smooth(rtaSmoothed,values,dt,tau);rtaPeak=rtaPeak&&rtaPeak.length===rtaSmoothed.length?rtaPeak.map((v,i)=>Math.max(v,rtaSmoothed[i])):rtaSmoothed.slice();rtaTraceHistory.push(rtaSmoothed.slice());if(rtaTraceHistory.length>4)rtaTraceHistory.shift();drawRta(rtaSmoothed);updateRtaOptimizer(centers,rtaSmoothed);}
    const peak=Number(snapshot.peak_dbfs??-120),rms=Number(snapshot.rms_dbfs??-120),peakWarn=peak>-1?' · Kırpılmaya çok yakın!':peak<-60?' · Çok düşük giriş; kazancı kontrol et.':' · Giriş alınıyor.';
-   $('rtaInputMeter').textContent=`Giriş peak: ${peak.toFixed(1)} dBFS · RMS: ${rms.toFixed(1)} dBFS${peakWarn}`;
+   $('rtaInputMeter').textContent=`Giriş peak: ${peak.toFixed(1)} dBFS · RMS: ${rms.toFixed(1)} dBFS${peakWarn}`;updateRtaMeters(peak,rms);
    const bin=snapshot.sample_rate/snapshot.fft_size;
    const status=snapshot.stream_status?`\nSürücü uyarısı: ${snapshot.stream_status}`:'';
    const bandNote=rtaAvailableMax&&rtaViewMax>rtaAvailableMax?`\nTam bandın üst merkezi: ${rtaFormatHz(rtaAvailableMax)}; daha üst bantlar akış örnekleme hızında eksik kalır.`:'';
@@ -572,9 +573,64 @@ async function tickRta(token){
  }catch(err){$('rtaStatus').textContent='RTA okuması başarısız: '+(err.message||String(err));}
  finally{rtaBusy=false;if(rtaRunning&&activeRoute==='rta'&&token===rtaGeneration)rtaPollTimer=setTimeout(()=>tickRta(token),100);}
 }
-function drawRtaPlaceholder(){const c=$('rtaCanvas');if(!c)return;const ctx=c.getContext('2d');const rect=c.getBoundingClientRect();const dpr=window.devicePixelRatio||1;c.width=Math.max(400,Math.floor(rect.width*dpr));c.height=Math.floor(Math.max(240,rect.height)*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);const w=c.width/dpr,h=c.height/dpr;drawRtaGrid(ctx,w,h);if(rtaSmoothed)drawRta(rtaSmoothed);}
-function drawRta(values){const c=$('rtaCanvas');if(!c)return;const ctx=c.getContext('2d');const dpr=window.devicePixelRatio||1;const rect=c.getBoundingClientRect();const w=Math.max(400,rect.width),h=Math.max(240,rect.height);if(c.width!==Math.floor(w*dpr)||c.height!==Math.floor(h*dpr)){c.width=Math.floor(w*dpr);c.height=Math.floor(h*dpr);}ctx.setTransform(dpr,0,0,dpr,0,0);drawRtaGrid(ctx,w,h);const pad={l:65,r:18,t:18,b:35},offset=Math.max(-60,Math.min(60,Number($('rtaOffset').value||0)));function xy(f,v){const x=pad.l+Math.log(Math.max(rtaViewMin,f)/rtaViewMin)/Math.log(rtaViewMax/rtaViewMin)*(w-pad.l-pad.r);const db=Math.max(-100,Math.min(-20,v+offset));return [x,pad.t+(-20-db)/80*(h-pad.t-pad.b)];}function line(vals,color,width,dash){if(!vals||!vals.length||vals.length!==rtaFreqs.length)return;ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=width;ctx.setLineDash(dash||[]);vals.forEach((v,i)=>{const [x,y]=xy(rtaFreqs[i],v);if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.stroke();ctx.setLineDash([]);}line(rtaPeak,'#80b9ef',1,[3,4]);line(values,'#e6c574',2,[]);ctx.fillStyle='#8996a6';ctx.font='10px Segoe UI';ctx.textAlign='center';const ticks=rtaTicks.filter(f=>f>=rtaViewMin&&f<=rtaViewMax);for(const f of ticks){const [x]=xy(f,-90);ctx.fillText(f>=1000?(f/1000).toLocaleString('tr-TR',{maximumFractionDigits:1})+'k':String(f).replace('.',','),x,h-12);}}
-function drawRtaGrid(ctx,w,h){ctx.clearRect(0,0,w,h);ctx.fillStyle='#0b1016';ctx.fillRect(0,0,w,h);const pad={l:65,r:18,t:18,b:35};ctx.strokeStyle='#2a3542';ctx.lineWidth=1;ctx.fillStyle='#8895a5';ctx.font='10px Segoe UI';ctx.textAlign='right';for(let db=-20;db>=-100;db-=20){const y=pad.t+(6-db)/126*(h-pad.t-pad.b);ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(w-pad.r,y);ctx.stroke();ctx.fillText(String(db),pad.l-8,y+3);}ctx.textAlign='center';ctx.fillText('Bant gücü · dBFS RMS · SPL/mikrofon kalibrasyonu yok',pad.l+180,11);for(const f of rtaTicks.filter(f=>f>=rtaViewMin&&f<=rtaViewMax)){const x=pad.l+Math.log(f/rtaViewMin)/Math.log(rtaViewMax/rtaViewMin)*(w-pad.l-pad.r);ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,h-pad.b);ctx.stroke();}}
+function drawRtaPlaceholder(){const c=$('rtaCanvas');if(!c)return;const rect=c.getBoundingClientRect();if(rect.width<32)return;const dpr=Math.min(2,Math.max(1,window.devicePixelRatio||1)),ctx=c.getContext('2d');c.width=Math.max(280,Math.floor(rect.width*dpr));c.height=Math.floor(Math.max(240,rect.height)*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);const w=c.width/dpr,h=c.height/dpr;drawRtaGrid(ctx,w,h);if(rtaSmoothed)drawRta(rtaSmoothed);}
+function drawRta(values){
+ const c=$('rtaCanvas');if(!c||!Array.isArray(values)||!rtaFreqs.length)return;
+ const ctx=c.getContext('2d'),dpr=Math.min(2,Math.max(1,window.devicePixelRatio||1)),rect=c.getBoundingClientRect();
+ if(rect.width<32)return;
+ const w=Math.max(320,rect.width),h=Math.max(300,rect.height);
+ if(c.width!==Math.floor(w*dpr)||c.height!==Math.floor(h*dpr)){c.width=Math.floor(w*dpr);c.height=Math.floor(h*dpr);}
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ const pad={l:54,r:18,t:24,b:42},floor=-96,ceil=0,offset=Math.max(-60,Math.min(60,Number($('rtaOffset').value||0)));
+ const x=f=>pad.l+Math.log(Math.max(rtaViewMin,f)/rtaViewMin)/Math.log(rtaViewMax/rtaViewMin)*(w-pad.l-pad.r);
+ const y=v=>pad.t+(ceil-Math.max(floor,Math.min(ceil,v+offset)))/(ceil-floor)*(h-pad.t-pad.b);
+ drawRtaGrid(ctx,w,h);
+ const valid=rtaFreqs.map((f,i)=>({f,v:Number(values[i])})).filter(p=>p.f>=rtaViewMin&&p.f<=rtaViewMax&&Number.isFinite(p.v));
+ if(!valid.length)return;
+ const colors=['#42d6b0','#78a9ff','#e77be7','#ff9c57'];
+ rtaTraceHistory.slice(-4).forEach((row,ri)=>{
+  if(row.length!==rtaFreqs.length)return;
+  ctx.beginPath();ctx.strokeStyle=colors[ri%colors.length];ctx.globalAlpha=.58;ctx.lineWidth=1.35;
+  row.forEach((v,i)=>{const px=x(rtaFreqs[i]);if(i===0)ctx.moveTo(px,y(v));else ctx.lineTo(px,y(v));});ctx.stroke();
+ });
+ ctx.globalAlpha=1;
+ const step=valid.length>1?Math.max(2,(x(valid[1].f)-x(valid[0].f))*.78):8;
+ valid.forEach(p=>{
+  const px=x(p.f),py=y(p.v),base=y(floor),grad=ctx.createLinearGradient(0,py,0,base);
+  grad.addColorStop(0,'#ffe6a0');grad.addColorStop(.42,'#d7ad50');grad.addColorStop(1,'rgba(211,163,61,.12)');
+  ctx.fillStyle=grad;ctx.fillRect(px-step/2,py,Math.max(2,step),Math.max(1,base-py));
+ });
+ ctx.beginPath();ctx.strokeStyle='#f5d98d';ctx.lineWidth=2.15;ctx.lineJoin='round';
+ valid.forEach((p,i)=>{if(i===0)ctx.moveTo(x(p.f),y(p.v));else ctx.lineTo(x(p.f),y(p.v));});ctx.stroke();
+ if(rtaPeak&&rtaPeak.length===rtaFreqs.length){
+  ctx.beginPath();ctx.strokeStyle='#e9f1ff';ctx.lineWidth=1.1;ctx.setLineDash([4,4]);
+  rtaFreqs.forEach((f,i)=>{if(i===0)ctx.moveTo(x(f),y(rtaPeak[i]));else ctx.lineTo(x(f),y(rtaPeak[i]));});
+  ctx.stroke();ctx.setLineDash([]);
+ }
+ const peakPoint=valid.reduce((best,p)=>p.v>best.v?p:best,valid[0]);
+ if(peakPoint){
+  const px=x(peakPoint.f),py=y(peakPoint.v);ctx.fillStyle='#ffbd66';ctx.beginPath();ctx.arc(px,py,3.2,0,Math.PI*2);ctx.fill();
+  ctx.font='600 10px Segoe UI';ctx.textAlign=px>w*.72?'right':'left';ctx.fillStyle='#fff0c9';
+  ctx.fillText(rtaFormatHz(peakPoint.f)+' · '+peakPoint.v.toFixed(1)+' dBFS',px+(px>w*.72?-7:7),Math.max(14,py-9));
+ }
+}
+function drawRtaGrid(ctx,w,h){
+ ctx.clearRect(0,0,w,h);
+ const bg=ctx.createLinearGradient(0,0,0,h);bg.addColorStop(0,'#101d32');bg.addColorStop(1,'#09111f');ctx.fillStyle=bg;ctx.fillRect(0,0,w,h);
+ const pad={l:54,r:18,t:24,b:42},floor=-96,ceil=0;
+ ctx.strokeStyle='rgba(117,151,194,.18)';ctx.lineWidth=1;ctx.fillStyle='#a9bad0';ctx.font='10px Segoe UI';ctx.textAlign='right';
+ for(let db=0;db>=floor;db-=12){const yy=pad.t+(ceil-db)/(ceil-floor)*(h-pad.t-pad.b);ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.fillText(String(db),pad.l-8,yy+3);}
+ ctx.textAlign='center';
+ for(const f of rtaTicks.filter(f=>f>=rtaViewMin&&f<=rtaViewMax)){const xx=pad.l+Math.log(f/rtaViewMin)/Math.log(rtaViewMax/rtaViewMin)*(w-pad.l-pad.r);ctx.beginPath();ctx.moveTo(xx,pad.t);ctx.lineTo(xx,h-pad.b);ctx.stroke();ctx.fillStyle='#a9bad0';ctx.fillText(f>=1000?(f/1000).toLocaleString('tr-TR',{maximumFractionDigits:1})+'k':String(f).replace('.',','),xx,h-17);}
+ ctx.textAlign='left';ctx.fillStyle='#9db2ce';ctx.font='9px Segoe UI';ctx.fillText('dBFS',8,14);
+}
+function updateRtaMeters(peak,rms){
+ const p=Math.max(0,Math.min(100,(Number(peak)+72)/72*100)),r=Math.max(0,Math.min(100,(Number(rms)+72)/72*100));
+ const pf=$('rtaPeakMeterFill'),rf=$('rtaRmsMeterFill');
+ if(pf)pf.style.width=p.toFixed(1)+'%';if(rf)rf.style.width=r.toFixed(1)+'%';
+ if($('rtaPeakMeterValue'))$('rtaPeakMeterValue').textContent=Number(peak).toFixed(1)+' dBFS';
+ if($('rtaRmsMeterValue'))$('rtaRmsMeterValue').textContent=Number(rms).toFixed(1)+' dBFS';
+}
 
 // --- WAV local native analysis ---
 function initWav(){$('wavChoose').addEventListener('click',async()=>{if(!api()){ $('wavReport').textContent='Bu düğme masaüstü EXE içinde çalışır. Tarayıcı önizlemesinde native dosya iletişim kutusu bulunmaz.';return;}try{const path=await api().pick_wav();if(!path)return;$('wavReport').textContent='Analiz ediliyor…';const r=await api().analyze_wav(path);lastWavReport=r;renderWavReport(r);$('wavSaveReport').disabled=false;setStatus('WAV analizi tamamlandı: '+r.file);}catch(err){$('wavReport').textContent='Analiz başarısız: '+(err.message||String(err));}});$('wavSaveReport').addEventListener('click',()=>{if(!lastWavReport)return;const text=Object.entries(lastWavReport).map(([k,v])=>`${k}: ${v===null?'ölçülmedi':typeof v==='number'?fmt(v,3):v}`).join('\n');downloadBlob(new Blob([text],{type:'text/plain;charset=utf-8'}),'WAV_Analiz_Raporu.txt');});}
