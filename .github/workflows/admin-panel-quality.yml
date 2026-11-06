@@ -1,0 +1,75 @@
+name: Stagepulse yönetici paneli kalite kontrolü
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "windows/ses-merkezi-lisans/**"
+      - "supabase/functions/sesm-education-admin/**"
+      - "supabase/migrations/20261106*_sesm_education*.sql"
+      - ".github/workflows/admin-panel-quality.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admin-panel-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Panel JavaScript, HTML ve Edge Function
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Kaynak kodunu al
+        uses: actions/checkout@v4
+
+      - name: Node.js 22 kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Yönetici paneli JavaScript sözdizimini doğrula
+        run: node --check windows/ses-merkezi-lisans/admin.js
+
+      - name: Deno 2 kur
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Eğitim yönetimi Edge Function türlerini doğrula
+        run: deno check supabase/functions/sesm-education-admin/index.ts
+
+      - name: Yönetici paneli HTML kimliklerini doğrula
+        shell: python
+        run: |
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          class Check(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.ids = set()
+                  self.duplicates = []
+              def handle_starttag(self, tag, attrs):
+                  attrs = dict(attrs)
+                  value = attrs.get("id")
+                  if value:
+                      if value in self.ids:
+                          self.duplicates.append(value)
+                      self.ids.add(value)
+
+          path = Path("windows/ses-merkezi-lisans/index.html")
+          parser = Check()
+          parser.feed(path.read_text(encoding="utf-8"))
+          required = {
+              "studentForm", "studentList", "examForm", "examList",
+              "questionForm", "questionList", "examAttemptsList",
+              "documentForm", "documentList", "documentAnalytics"
+          }
+          missing = sorted(required - parser.ids)
+          if parser.duplicates or missing:
+              raise SystemExit(f"HTML doğrulama hatası: yinelenen={parser.duplicates}, eksik={missing}")
+          print(f"HTML OK: {len(parser.ids)} benzersiz kimlik")
