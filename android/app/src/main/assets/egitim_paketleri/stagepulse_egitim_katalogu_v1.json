@@ -1,0 +1,378 @@
+{
+  "version": "1.0.0",
+  "currency": "TRY",
+  "pricing_status": "Önerilen başlangıç fiyatları; yayın öncesi vergi, eğitmen emeği, donanım/saha maliyeti ve rakip araştırmasıyla onaylanmalı.",
+  "levels": [
+    {
+      "id": "L0",
+      "name": "Başlangıç",
+      "pass": "%70 bilgi sınavı; güvenlik modülü zorunlu",
+      "gate": "Temel kavramlar ve ekipman tanıma"
+    },
+    {
+      "id": "L1",
+      "name": "Temel uygulayıcı",
+      "pass": "Kontrol listesinin %80'i ve kritik hata yok",
+      "gate": "Tek başına güvenli hazırlık ve kablo/patch kontrolü"
+    },
+    {
+      "id": "L2",
+      "name": "Saha uygulayıcısı",
+      "pass": "Uygulama rubriği en az 80/100",
+      "gate": "Gerçek senaryoda kurulum, test, raporlama"
+    },
+    {
+      "id": "L3",
+      "name": "İleri uygulayıcı",
+      "pass": "En az 3 arıza senaryosu ve proje dosyası",
+      "gate": "Sistem optimizasyonu, koordinasyon ve bağımsız teşhis"
+    },
+    {
+      "id": "L4",
+      "name": "Usta adayı",
+      "pass": "İki farklı senaryoda başarılı uygulama ve sözlü savunma",
+      "gate": "Baştan sona iş planı, risk analizi, teslim ve ekip iletişimi"
+    },
+    {
+      "id": "L5",
+      "name": "Usta / eğitmen onayı",
+      "pass": "Eğitmen imzası, %85 sınav ve sıfır kritik güvenlik hatası",
+      "gate": "Gerçek donanımda bağımsız yeterlilik; öğrenci kendisi onaylayamaz"
+    }
+  ],
+  "tracks": [
+    {
+      "id": "live_sound",
+      "name": "Canlı Ses / FOH / Monitör",
+      "audience": "Konser, festival, tiyatro, otel ve etkinlik ses ekipleri",
+      "modules": [
+        "Sinyal akışı, dB, gain staging ve headroom",
+        "Mikrofon seçimi, polarite, DI ve stage patch",
+        "Midas M32 Live üzerinde input, bus, DCA, FX ve scene",
+        "FOH denge, monitör miksleri, IEM ve soundcheck",
+        "PA yerleşimi, sub hizalama, delay ve SPL güvenliği",
+        "Rider, stageplot, input list, arıza teşhisi ve show dosyası"
+      ],
+      "practicals": [
+        "32 kanallı sanal/kağıt patch planını hazırla ve eğitmenle doğrula",
+        "M32 üzerinde line-check, gain ve 4 monitör mix'i kur",
+        "Soundcheck senaryosunda 5 arızayı ölçülebilir sırayla teşhis et",
+        "Etkinlik sonrası show dosyası ve teknik rapor teslim et"
+      ],
+      "master_gate": "Eğitmen gözetiminde eksiksiz kurulum, güvenli soundcheck ve arıza senaryosu; 85/100 teorik sınav ve tüm kritik güvenlik maddeleri geçer."
+    },
+    {
+      "id": "rf_wireless",
+      "name": "RF / Kablosuz Mikrofon ve IEM",
+      "audience": "Kablosuz el/yaka mikrofonu, IEM ve RF koordinasyonu yapanlar",
+      "modules": [
+        "RF temel kavramları, bantlar ve ülke mevzuatını doğrulama",
+        "Tarama, intermodülasyon ve frekans koordinasyonu",
+        "Anten çeşitleri, yön, dağıtım, kablo kaybı ve yerleşim",
+        "Shure ULX-D/PSM ve benzeri sistemlerde koordinasyon iş akışı",
+        "Pil yönetimi, yedek planı, drop-out ve parazit teşhisi"
+      ],
+      "practicals": [
+        "Gerçek cihaz modeli/bölgesi için üretici aralığını doğrula",
+        "RF tarama raporu ve kanal koordinasyon tablosu oluştur",
+        "Mikrofon + IEM kanallarını birlikte test edip kesilme günlüğü tut",
+        "Yedek frekans ve arıza kurtarma planını canlı test et"
+      ],
+      "master_gate": "Bant uygunluğu doğrulanmadan yayın açmama, çakışmasız planı kanıtla ve en az 3 arıza senaryosunu çöz."
+    },
+    {
+      "id": "pa_system",
+      "name": "PA Sistem Tasarımı / DSP / Array",
+      "audience": "Sistem teknisyeni, sistem mühendisi ve PA sorumluları",
+      "modules": [
+        "Hoparlör verisi, polarite, empedans ve bağlantı güvenliği",
+        "Aktif/pasif sistemler, crossover, gain structure ve limiter",
+        "Sub dizilimi, polarite, zaman hizalama ve ölçüm mantığı",
+        "Kapsama, SPL tahmini, mekan geometrisi ve çevresel etki",
+        "Üretici yazılımı, preset ve güvenli rigging sınırları"
+      ],
+      "practicals": [
+        "Mekan ölçülerinden kapsama ve dinleme noktaları planı çıkar",
+        "Üretici verileriyle SPL tahmin tablosu oluştur ve belirsizlikleri yaz",
+        "Sub/ana sistem hizalamasını ölçüm mikrofonu ile doğrula",
+        "Önce/sonra ölçüm ve limiter/clip güvenlik kontrolü raporla"
+      ],
+      "master_gate": "Üretici verisi, ölçüm ve model varsayımları açıkça ayrılmış sistem raporu; gerçek saha doğrulaması ve güvenlik kontrolü."
+    },
+    {
+      "id": "studio_post",
+      "name": "Stüdyo / Kayıt / Düzenleme / Miks",
+      "audience": "Stüdyo, podcast, içerik ve müzik prodüksiyonu",
+      "modules": [
+        "Akustik oda, mikrofon tekniği ve kayıt seviyesi",
+        "DAW oturumu, routing, editing, comping ve dosya yönetimi",
+        "EQ, kompresör, gate, de-esser, reverb ve otomasyon",
+        "Faz/polarite, mono uyumu, gürültü ve artefakt kontrolü",
+        "Loudness, peak/true-peak sınırları ve teslim formatları"
+      ],
+      "practicals": [
+        "Kuru kaynakları düzenle, dosya isimlendirme ve oturum arşivi kur",
+        "Konuşma kaydını temizle; artefakt öncesi/sonrası A/B kanıtı al",
+        "Miks ve alternatif teslimleri doğru örnekleme/bit derinliğiyle dışa aktar",
+        "Dosyayı yeniden açıp QC formunu doldur"
+      ],
+      "master_gate": "Oturum dosyası, ham kaynak, miks, teslim formatı ve kalite kontrol raporu eksiksiz; kör A/B dinleme sınavı."
+    },
+    {
+      "id": "spl_acoustics",
+      "name": "SPL / Akustik / Gürültü Ölçümü",
+      "audience": "Saha ölçümü, raporlama, mekan ve çevresel gürültü işi",
+      "modules": [
+        "dB SPL, dBA/dBC/dBZ, LAeq ve zaman ağırlıkları",
+        "Kalibrasyon, cihaz sınıfı ve ölçüm belirsizliği",
+        "Mesafe, yansıma, oda modları, RT60 ve soğurma",
+        "Ölçüm noktası, süre, arka plan ve tekrar ölçümü",
+        "Saha raporu, sınırlamalar ve resmi mevzuat doğrulama"
+      ],
+      "practicals": [
+        "Kalibratör ve ölçer bilgilerini ölçüm formuna kaydet",
+        "En az 5 noktada ölçüm yap; konum ve koşulları belgeleyip haritala",
+        "Arka plan ölçümü ve tekrar ölçümünü karşılaştır",
+        "Varsayım ve ölçülmüş veriyi ayıran teknik rapor teslim et"
+      ],
+      "master_gate": "Kalibrasyon ve ölçüm koşulları belgeli rapor; dBFS/RTA verisini dB SPL diye sunmama; ölçüm belirsizliği ve sınırlar doğru yazılmalı."
+    },
+    {
+      "id": "digital_console",
+      "name": "Dijital Konsol Uzmanlığı",
+      "audience": "Midas M32 Live, Yamaha CL5, Allen & Heath Avantis ve benzerleri",
+      "modules": [
+        "Input patch, preamp, phantom, HPF ve kanal dinamiği",
+        "Bus, subgroup, matrix, DCA, mute group ve FX routing",
+        "Scene/safe/recall scope, show dosyası ve yedekleme",
+        "FOH/monitör/IEM iş akışı ve konsol arızaları",
+        "Dante/ağ sesinin temelleri ve saat/örnekleme mantığı"
+      ],
+      "practicals": [
+        "M32 üzerinde sıfırdan show dosyası kur",
+        "FOH + 6 monitor + 2 IEM bus planı oluştur",
+        "Scene recall sırasında güvenli parametreleri test et",
+        "Konsol yedeğini dışa aktar ve geri yükle"
+      ],
+      "master_gate": "Gerçek konsolda görev kontrol listesi, doğru routing, güvenli recall ve bağımsız arıza çözümü."
+    },
+    {
+      "id": "speech_broadcast",
+      "name": "Konuşma / Podcast / Yayın Sesi",
+      "audience": "Sunucu, konferans, podcast ve canlı yayın ses zinciri",
+      "modules": [
+        "Konuşma mikrofonlama, mesafe ve oda tonu",
+        "Anlaşılabilirlik, EQ, de-esser, kompresyon ve gate",
+        "Hibrit/uzaktan bağlantı, mix-minus ve geri besleme önleme",
+        "Yayın loudness ve kayıt teslim standartları",
+        "Konuşma QC, telaffuz ve edit notları"
+      ],
+      "practicals": [
+        "60 saniyelik konuşma kaydı ve oda tonu al",
+        "İşlenmiş/işlenmemiş A/B örneği üret",
+        "Mix-minus sinyal akış şeması çiz ve test et",
+        "Teslim loudness/QC raporu oluştur"
+      ],
+      "master_gate": "Kesintisiz konuşma zinciri, anlaşılabilirlik değerlendirmesi ve teknik teslim standardı."
+    },
+    {
+      "id": "maintenance",
+      "name": "Kablolama / Bakım / Arıza Teşhisi",
+      "audience": "Saha teknisyeni ve sistem bakım personeli",
+      "modules": [
+        "Balanced/unbalanced, XLR/TRS/SpeakON ve pinout",
+        "Kablo test, lehimleme, süreklilik ve kısa devre",
+        "Güç, topraklama ve elektrik güvenliği sınırları",
+        "Hum/buzz, RF, dijital clock ve network arızaları",
+        "Bakım kaydı, etiketleme, yedek ve envanter"
+      ],
+      "practicals": [
+        "XLR 3 pin kabloyu şemaya göre test et",
+        "Arızalı kabloda sorunu bul ve onarım sonrası yeniden test et",
+        "Hum/buzz için güvenli teşhis ağacı uygula",
+        "Envanter ve bakım formu oluştur"
+      ],
+      "master_gate": "Kablo test cihazı sonuçları, güvenli arıza teşhisi ve bakım kayıtları; elektrik panosu/şebeke müdahalesi yalnız yetkili personelde."
+    }
+  ],
+  "packages": [
+    {
+      "code": "START",
+      "name": "Temel Başlangıç",
+      "price_try": 2490,
+      "term": "8 hafta erişim",
+      "includes": "Temel ses, dB, sinyal akışı, araçlar, başlangıç testleri",
+      "license": "start"
+    },
+    {
+      "code": "LIVE",
+      "name": "Canlı Ses / FOH",
+      "price_try": 7490,
+      "term": "12 hafta erişim",
+      "includes": "Canlı ses dalı, Midas M32 Live uygulama, FOH/monitör, sahne görevleri",
+      "license": "live_sound"
+    },
+    {
+      "code": "RF",
+      "name": "RF / Kablosuz Sistemler",
+      "price_try": 5990,
+      "term": "10 hafta erişim",
+      "includes": "RF tarama, koordinasyon, IEM, anten ve arıza testleri",
+      "license": "rf_wireless"
+    },
+    {
+      "code": "PA",
+      "name": "PA / Sistem Tasarımı",
+      "price_try": 8990,
+      "term": "12 hafta erişim",
+      "includes": "SPL tahminleri, DSP, sub hizalama, saha raporu ve doğrulama",
+      "license": "pa_system"
+    },
+    {
+      "code": "STUDIO",
+      "name": "Stüdyo / Post Prodüksiyon",
+      "price_try": 6990,
+      "term": "12 hafta erişim",
+      "includes": "Kayıt, düzenleme, miks, loudness ve teslim QC",
+      "license": "studio_post"
+    },
+    {
+      "code": "SPL",
+      "name": "SPL / Akustik Ölçüm",
+      "price_try": 6490,
+      "term": "10 hafta erişim",
+      "includes": "Ölçüm yöntemi, kalibrasyon, akustik, raporlama ve güvenlik",
+      "license": "spl_acoustics"
+    },
+    {
+      "code": "CONSOLE",
+      "name": "Dijital Konsol Uzmanlığı",
+      "price_try": 5490,
+      "term": "8 hafta erişim",
+      "includes": "Midas M32 Live, Yamaha CL5 ve Avantis modülleri; fiziksel konsol erişimi ayrıca planlanır",
+      "license": "digital_console"
+    },
+    {
+      "code": "MASTER",
+      "name": "Usta Yolu Full Paket",
+      "price_try": 24900,
+      "term": "6 ay erişim",
+      "includes": "Tüm dallar, seviye sınavları, proje portföyü, öğretmen değerlendirmesi; saha/donanım oturumları takvime bağlı",
+      "license": "full_master"
+    },
+    {
+      "code": "INSTITUTION",
+      "name": "Kurum / Ekip Lisansı",
+      "price_try": 49900,
+      "term": "12 ay, 10 kullanıcıya kadar",
+      "includes": "Tüm eğitim dalları, öğretmen görünümü, ekip raporları ve kurum içi kullanım",
+      "license": "institution"
+    }
+  ],
+  "evaluation_policy": {
+    "student_can_mark_mastery": false,
+    "teacher_approval_required": true,
+    "critical_safety_error_means_fail": true,
+    "evidence_examples": [
+      "Fotoğraf veya dosya kanıtı",
+      "Ölçüm CSV/PDF raporu",
+      "Show dosyası veya routing planı",
+      "Eğitmen kontrol listesi",
+      "Sözlü savunma notu"
+    ]
+  },
+  "website_workflows": [
+    {
+      "service": "Ses sistemi kiralama",
+      "workflow": [
+        "Talep: etkinlik türü, tarih, şehir, alan ve katılımcı sayısı",
+        "Rider ve teknik ihtiyaç analizi",
+        "Ekipman/teknik ekip listesi ve alternatifler",
+        "Kurulum, soundcheck, etkinlik operasyonu ve söküm planı",
+        "Teklif, lojistik ve risk notları"
+      ]
+    },
+    {
+      "service": "FOH / monitör / IEM",
+      "workflow": [
+        "Input list ve stage plot doğrulama",
+        "Patch ve mikrofon/DI planı",
+        "FOH, monitor, IEM bus planı",
+        "Line-check ve soundcheck",
+        "Show dosyası, olay kaydı ve teslim raporu"
+      ]
+    },
+    {
+      "service": "Stage Plot / teknik rider",
+      "workflow": [
+        "Rider maddelerini ekipman ve kanal ihtiyacına ayır",
+        "Eksik/çelişkili maddeleri işaretle",
+        "Sahne ölçüsü, sanatçı yerleşimi ve monitörleri çiz",
+        "Input list, patch list ve ekipman listesi üret",
+        "Eğitmen/teknik sorumlu onayı al"
+      ]
+    },
+    {
+      "service": "SPL / sistem tasarımı / tuning",
+      "workflow": [
+        "Mekân ölçüleri ve dinleme alanı tanımı",
+        "Hoparlör üretici verisi ve yerleşim varsayımları",
+        "Kapsama ve SPL tahminleri; sınırlar açıkça belirtilir",
+        "Uygun ölçüm mikrofonu/analizör ile saha ölçümü",
+        "Önce/sonra raporu ve çevresel etki notları"
+      ]
+    },
+    {
+      "service": "3D sahne ve görselleştirme",
+      "workflow": [
+        "Ölçülü saha krokisi ve sahne ölçüleri",
+        "PA, sub, monitör, sahne ve seyirci yerleşimi",
+        "Görsel ile teknik planın ölçülerini karşılaştır",
+        "Revizyon kaydı ve onaylı teslim"
+      ]
+    },
+    {
+      "service": "Ses, ışık, LED ve teknik prodüksiyon koordinasyonu",
+      "workflow": [
+        "Etkinlik brief'i ve tedarik sorumluluklarını netleştir",
+        "Ses sistemiyle sahne/ışık/LED gereksinimlerini aynı plan üzerinde eşleştir",
+        "Güç, kablo yolu, güvenlik mesafesi ve kurulum zamanını koordine et",
+        "Ses mühendisliği görevlerini ilgili ışık/LED uzmanına devret ve kontrol et",
+        "Teklifte ekipman, ekip, ulaşım, kurulum/söküm ve hava riski kalemlerini ayır"
+      ]
+    },
+    {
+      "service": "Teknik teklif ve keşif",
+      "workflow": [
+        "Tarih, şehir, mekan, süre ve seyirci kapasitesi",
+        "Kapsam, varsayımlar, dahil/hariç kalemleri",
+        "Ekipman, personel, nakliye, konaklama ve kurulum maliyetleri",
+        "Alternatif paket ve risk/iptal koşulları",
+        "Müşteri onayı ve teknik doküman teslimi"
+      ]
+    },
+    {
+      "service": "Dante / Network Audio",
+      "workflow": [
+        "Cihaz uyumluluğu, kanal ihtiyacı ve ağ topolojisi",
+        "IP adresleme, saat/clock ve örnekleme planı",
+        "Yedeklilik ve port/hat etiketleri",
+        "Bağlantı, routing ve senkronizasyon testleri",
+        "Ağ diyagramı ve arıza kurtarma planı"
+      ]
+    }
+  ],
+  "service_pricing_method": {
+    "status": "Quote-based; no fixed public service price asserted",
+    "cost_items": [
+      "Ekipman modeli/adedi ve kiralama süresi",
+      "Teknik ekip sayısı ve çalışma saatleri",
+      "Kurulum/prova/söküm günleri",
+      "Nakliye, şehir dışı ulaşım ve konaklama",
+      "Saha keşfi, çizim, SPL analizi ve raporlama emeği",
+      "Ek tedarik, güç altyapısı, hava koruması ve risk payı"
+    ],
+    "formula": "Teklif = ekipman + personel/saat + kurulum/söküm + lojistik + mühendislik/dokümantasyon + ek tedarik + vergi + açıkça belirtilmiş risk/iptal koşulları",
+    "source_note": "Website service pages describe quote-based pricing depending on equipment, event duration, venue, setup/teardown and technical crew; the app must not invent a final service quote without project inputs."
+  }
+}

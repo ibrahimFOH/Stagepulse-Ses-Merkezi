@@ -1,0 +1,67 @@
+name: Android CodeQL güvenlik analizi
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    name: CodeQL / Android Java-Kotlin
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Kaynak kodu al
+        uses: actions/checkout@v4
+
+      - name: Java 17 kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Android SDK paketlerini hazırla
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager 2>/dev/null | sort -V | tail -n 1)"
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --sdk_root="$SDK_ROOT" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$SDK_ROOT" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Gradle 8.9 kur
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: CodeQL başlat
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java-kotlin
+          queries: security-extended
+          build-mode: manual
+
+      - name: Android kodunu CodeQL izleme altında derle
+        run: gradle -p android --no-daemon :app:assembleDebug --stacktrace
+
+      - name: CodeQL analizini tamamla
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:java-kotlin"
+          output: codeql-results
+          upload: never
+
+      - name: CodeQL raporunu sakla
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-android-sarif
+          path: codeql-results/
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,31 @@
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+build/
+# Windows build outputs and downloaded build tools
+windows/build_support/
+windows/build/
+windows/dist/
+windows/ogrenciye_gonder/
+windows/website_release/
+*.log
+# Android/Gradle
+.gradle/
+**/build/
+local.properties
+.idea/
+*.iml
+.cxx/
+.externalNativeBuild/
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.keystore
+*.jks

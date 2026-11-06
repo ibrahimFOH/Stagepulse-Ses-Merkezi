@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><meta name="theme-color" content="#0b0d11"><link rel="icon" type="image/png" href="assets/stagepulse-icon.png">
+<title>Stagepulse | Ses Mühendisliği Merkezi</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<button class="mobile-menu-backdrop" id="mobileMenuBackdrop" aria-label="Menüyü kapat" tabindex="-1"></button><div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img class="brand-logo" src="assets/stagepulse-logo-full.png" alt="Stagepulse Ses Mühendisliği Merkezi logosu"></div><button class="btn btn-secondary mobile-menu-close" id="mobileMenuClose" type="button">✕ Menüyü kapat</button>
+    <div class="profile-mini"><span class="profile-dot"></span><div><strong id="activeStudentName">Öğrenci profili seçilmedi</strong><small>Yerel çalışma alanı</small></div></div>
+    <nav id="mainNav" aria-label="Ana menü">
+      <p class="nav-label">MERKEZ</p>
+      <button class="nav-item active" data-route="home"><span>⌂</span>Ana sayfa</button>
+      <p class="nav-label">ARAÇLAR</p>
+      <button class="nav-item" data-route="frequency"><span>♫</span>Frekans bulucu</button>
+      <button class="nav-item" data-route="ear"><span>◖</span>Kulak eğitimi</button>
+      <button class="nav-item" data-route="calculators"><span>∑</span>Hesaplayıcılar</button>
+      <button class="nav-item" data-route="acoustics"><span>⌂</span>SPL / alan planı</button>
+      <button class="nav-item" data-route="rta"><span>⌁</span>Canlı RTA</button>
+      <button class="nav-item" data-route="mixer"><span>▥</span>Ses katmanı atölyesi</button>
+      <button class="nav-item" data-route="wav"><span>∿</span>WAV kalite analizi</button>
+      <button class="nav-item" data-route="lufs"><span>◉</span>LUFS normalizasyonu</button>
+      <button class="nav-item" data-route="cues"><span>▤</span>Cue ve video notları</button>
+      <p class="nav-label">SAHA VE SİSTEM ARAÇLARI</p>
+      <button class="nav-item" data-route="systemplan"><span>▦</span>Sahne ve ses-görüntü planı</button>
+      <button class="nav-item" data-route="patch"><span>☷</span>Mikser kanal bağlantı raporu</button>
+      <button class="nav-item" data-route="rf"><span>⌁</span>Kablosuz frekans planı</button>
+      <button class="nav-item" data-route="distribution"><span>∿</span>70/100 V hoparlör hattı</button>
+      <button class="nav-item" data-route="roommap"><span>▧</span>Oda ses basınç seviyesi haritası</button>
+      <button class="nav-item" data-route="speaker"><span>◈</span>Hoparlör ve sayısal sinyal işleme</button>
+      <button class="nav-item" data-route="wavelab"><span>∿</span>Dalga / faz / gecikme laboratuvarı</button>
+      <p class="nav-label">EĞİTİM</p>
+      <button class="nav-item" data-route="checklists"><span>☑</span>Kontrol listeleri</button>
+      <button class="nav-item" data-route="curriculum"><span>◇</span>Eğitim dalları / usta yolu</button>
+      <button class="nav-item" data-route="docs"><span>▣</span>Ders kılavuzları</button>
+      <button class="nav-item" data-route="pdf"><span>▧</span>Öğrenci PDF kitaplığı</button>
+      <button class="nav-item" data-route="student"><span>◌</span>Öğrenci ilerlemesi</button>
+      <button class="nav-item" data-route="assistant"><span>✳</span>AI / çalışma asistanı</button>
+      <button class="nav-item" data-route="account"><span>♙</span>Hesap / lisans</button>
+      <button class="nav-item" data-route="settings"><span>⚙</span>Ayarlar ve gizlilik</button>
+    </nav>
+    <div class="sidebar-foot"><div class="foot-line"><span class="status-dot"></span><span id="connectionText">Yerel mod hazır</span></div><small>v3.8.8 · Stagepulse · Dallara ayrılmış eğitim sistemi</small></div>
+  </aside>
+
+  <main class="main-area">
+    <header class="topbar"><button class="btn btn-secondary btn-small mobile-menu-toggle" id="mobileMenuToggle" aria-expanded="false" aria-controls="mainNav" type="button">☰ Menü</button><div class="topbar-title"><div class="eyebrow">EĞİTİM • ANALİZ • SAHA İŞ AKIŞI</div><h1 id="pageHeading">Ana sayfa</h1></div><div class="top-actions"><span id="runtimeBadge" class="badge"><i></i>Yerel motor</span><button class="btn btn-secondary btn-small" data-route="student">Profil</button></div></header>
+
+    <section class="page active" data-page="home">
+      <div class="hero"><div class="hero-copy"><span class="kicker">STAGEPULSE AUDIO WORKSPACE</span><h2>Ses mühendisliği araçları,<br><em>tek çalışma alanında.</em></h2><p>Yerel hesaplama, ses analizi, miks denemeleri ve ders materyalleri. İnternet yokken temel araçlar çalışmaya devam eder.</p><div class="hero-actions"><button class="btn btn-gold" data-route="mixer">Atölyeyi aç <span>↗</span></button><button class="btn btn-secondary" data-route="rta">Canlı RTA</button></div></div><div class="hero-graphic"><div class="ring ring-a"></div><div class="ring ring-b"></div><div class="wave-bars" id="heroWave"></div><div class="graphic-caption">AUDIO / DSP / LIVE SOUND</div></div></div>
+      <div class="metric-grid"><div class="metric-card"><span>ARAÇLAR</span><strong>10+</strong><small>Tek pencere içinde</small></div><div class="metric-card"><span>ÇALIŞMA MODU</span><strong>Offline</strong><small>Temel işlevler yerel</small></div><div class="metric-card"><span>ÖĞRENCİ KAYDI</span><strong id="homeProgressValue">0%</strong><small>Seçili profilin ilerlemesi</small></div><div class="metric-card"><span>SES GİRDİSİ</span><strong id="homeMicStatus">Bekliyor</strong><small>Android mikrofon izni gerekir</small></div></div>
+      <div class="section-heading"><div><span class="eyebrow">HIZLI ERİŞİM</span><h3>Çalışma alanları</h3></div><span class="muted">Bir araç seç. Başka bir program açılmaz.</span></div>
+      <div class="tool-grid">
+       <button class="tool-card" data-route="frequency"><span class="tool-icon">♫</span><strong>Frekans bulucu</strong><p>Nota, frekans ve referans ton.</p><span class="tool-link">Aracı aç →</span></button>
+       <button class="tool-card" data-route="ear"><span class="tool-icon">◖</span><strong>Kulak eğitimi</strong><p>Frekans tanıma ve EQ karşılaştırma alıştırmaları.</p><span class="tool-link">Alıştırmaya başla →</span></button>
+       <button class="tool-card" data-route="calculators"><span class="tool-icon">∑</span><strong>Teknik hesaplayıcılar</strong><p>Gerilim, dB, gecikme, empedans ve oda modları.</p><span class="tool-link">Hesapla →</span></button>
+       <button class="tool-card" data-route="acoustics"><span class="tool-icon">⌂</span><strong>SPL / alan planı</strong><p>Mesafe kaybı, kapsama geometrisi ve maruziyet tahmini.</p><span class="tool-link">Planla →</span></button>
+       <button class="tool-card" data-route="rta"><span class="tool-icon">⌁</span><strong>Canlı RTA</strong><p>Mikrofon girişinden anlık spektrum.</p><span class="tool-link">Analizi aç →</span></button>
+       <button class="tool-card" data-route="mixer"><span class="tool-icon">▥</span><strong>Ses katmanı atölyesi</strong><p>Çoklu WAV, gain/pan, filtre, cue ve dışa aktarma.</p><span class="tool-link">Atölyeyi aç →</span></button>
+       <button class="tool-card" data-route="wav"><span class="tool-icon">∿</span><strong>Dosya kalite kontrolü</strong><p>PCM formatı, peak, RMS ve clipping taraması.</p><span class="tool-link">Dosyayı incele →</span></button>
+      </div>
+      <div class="notice"><strong>Ölçüm notu</strong><span>RTA ekranı tek başına kalibre edilmiş dB SPL, faz, transfer-function veya standartlara uygun 1/3 oktav ölçümü değildir. Donanım ve kalibrasyon gerektiren sonuçlar sahada doğrulanmalıdır.</span></div>
+    </section>
+
+    <section class="page" data-page="frequency"><div class="page-intro"><div><span class="eyebrow">TON / NOTA / FREKANS</span><h2>Frekans bulucu</h2><p>Bu araç aynı uygulama penceresinin içinde açılır; internet ve ayrı bir yerel sunucu uygulaması gerekmez.</p></div></div><div class="embedded-frame-wrap"><iframe id="frequencyFrame" class="tool-frame" title="Frekans Bulucu" allow="autoplay" src="araclar/Frekans_Bulucu/index.html"></iframe></div></section>
+
+    <section class="page" data-page="ear"><div class="page-intro"><div><span class="eyebrow">İŞİTSEL ALGILAMA</span><h2>Kulak eğitimi</h2><p>Özgün yerel alıştırmalar. Üretilen tonlar tarayıcı motorunda çalışır, ses dosyanız yüklenmez.</p></div><span class="badge badge-gold">Çevrimdışı</span></div><div class="two-col"><div class="panel"><div class="panel-head"><div><span class="eyebrow">ALISTIRMA 01</span><h3>Frekansı tanı</h3></div><span class="chip" id="earRound">Tur 0</span></div><p class="muted">Tonu dinle ve duyduğun frekans bölgesini seç. Ses düzeyini düşük başlat.</p><div class="tone-display"><div id="earToneLabel">? Hz</div><small>Hedef tonu çal ve tahmin et</small></div><div class="row-actions"><button class="btn btn-gold" id="playEarTone">Tonu dinle</button><button class="btn btn-secondary" id="newEarTone">Yeni soru</button></div><div class="choice-grid" id="earChoices"></div><div id="earFeedback" class="feedback" aria-live="polite">Hazır. Önce tonu dinle.</div></div><div class="panel"><div class="panel-head"><div><span class="eyebrow">ALISTIRMA 02</span><h3>EQ farkını duy</h3></div><span class="chip">A / B</span></div><p class="muted">Pembe olmayan temel gürültü yerine güvenli seviyeli test gürültüsü kullanılır. İki örnek arasındaki ton farkını duy.</p><div class="eq-visual"><svg viewBox="0 0 600 160" role="img" aria-label="EQ karşılaştırma eğrisi"><g stroke="#303844" stroke-width="1"><path d="M20 20H580M20 60H580M20 100H580M20 140H580"/><path d="M20 20V140M160 20V140M300 20V140M440 20V140M580 20V140"/></g><path id="eqCurve" d="M20 80 Q140 80 210 80 T580 80" fill="none" stroke="#d6b05b" stroke-width="3"/></svg></div><div class="row-actions"><button class="btn btn-secondary" id="playEqA">A'yı dinle</button><button class="btn btn-secondary" id="playEqB">B'yi dinle</button></div><div class="row-actions"><button class="btn btn-gold" id="newEqQuestion">Yeni EQ sorusu</button></div><div class="choice-grid two" id="eqChoices"><button class="choice" data-eq="low">Bas bölgesi değişti</button><button class="choice" data-eq="mid">Orta frekans değişti</button><button class="choice" data-eq="high">Tiz bölgesi değişti</button><button class="choice" data-eq="flat">Belirgin değişim yok</button></div><div id="eqFeedback" class="feedback" aria-live="polite">A ve B örneklerini karşılaştır.</div><div class="score-line"><span>Doğru yanıt</span><strong id="earScore">0 / 0</strong></div></div></div></section>
+
+    <section class="page" data-page="calculators"><div class="page-intro"><div><span class="eyebrow">SİNYAL / AKUSTİK / ELEKTRİK</span><h2>Teknik hesaplayıcılar</h2><p>Hesaplar başlangıç tahminidir; ölçüm ve üretici verilerinin yerine geçmez.</p></div></div><div class="calc-grid">
+      <article class="panel calc-card"><h3>dBu ↔ Vrms</h3><div class="field-row"><label for="dbuInput">dBu</label><input id="dbuInput" type="number" value="0" step="0.1"></div><div class="field-row"><label for="vrmsInput">Vrms</label><input id="vrmsInput" type="number" value="0.775" step="0.001"></div><div class="row-actions"><button class="btn btn-gold" id="fromDbU">dBu → V</button><button class="btn btn-secondary" id="fromVrms">V → dBu</button></div><output id="dbuResult">0 dBu = 0,775 Vrms</output></article>
+      <article class="panel calc-card"><h3>dB toplamı</h3><div class="field-row"><label for="dbA">A (dB)</label><input id="dbA" type="number" value="90" step="0.1"></div><div class="field-row"><label for="dbB">B (dB)</label><input id="dbB" type="number" value="90" step="0.1"></div><button class="btn btn-gold" id="sumDb">Enerji toplamını hesapla</button><output id="dbSumResult">93,0 dB</output><small class="muted">Eşit ve bağımsız iki kaynağın toplamı ≈ +3 dB.</small></article>
+      <article class="panel calc-card"><h3>Mesafe gecikmesi</h3><div class="field-row"><label for="distanceM">Mesafe (m)</label><input id="distanceM" type="number" value="10" min="0" step="0.1"></div><div class="field-row"><label for="soundSpeed">Ses hızı (m/s)</label><input id="soundSpeed" type="number" value="343" min="300" max="360" step="0.1"></div><button class="btn btn-gold" id="calcDelay">Gecikmeyi hesapla</button><output id="delayResult">29,15 ms</output></article>
+      <article class="panel calc-card"><h3>Dalga boyu ve sub dizisi aralığı</h3><div class="field-row"><label for="efFreq">Frekans (Frequency, Hz)</label><input id="efFreq" type="number" value="80" min="20" max="250" step="1"></div><div class="field-row"><label for="efSpeed">Ses hızı (m/s)</label><input id="efSpeed" type="number" value="343" min="300" max="360" step="0.1"></div><button class="btn btn-gold" id="calcEndfire">Dalga boyunu hesapla</button><output id="endfireResult">—</output><small class="muted">λ/4 veya λ/2 tek başına end-fire/gradient gecikmesi ve polaritesi değildir. Dizi geometrisi, DSP kılavuzu ve ölçüm gerekir.</small></article>
+      <article class="panel calc-card"><h3>Seri / paralel empedans</h3><div class="field-row"><label for="ohmA">Hoparlör A (Ω)</label><input id="ohmA" type="number" value="8" min="0.1" step="0.1"></div><div class="field-row"><label for="ohmB">Hoparlör B (Ω)</label><input id="ohmB" type="number" value="8" min="0.1" step="0.1"></div><div class="row-actions"><button class="btn btn-secondary" id="ohmSeries">Seri</button><button class="btn btn-gold" id="ohmParallel">Paralel</button></div><output id="ohmResult">Seri 16 Ω / paralel 4 Ω</output></article>
+      <article class="panel calc-card"><h3>BPM ↔ nota gecikmesi</h3><div class="field-row"><label for="bpm">Tempo (BPM)</label><input id="bpm" type="number" value="120" min="1" max="400" step="1"></div><label class="field-label" for="noteDivision">Nota bölümü</label><select id="noteDivision"><option value="1">Çeyrek</option><option value="0.5">Sekizlik</option><option value="0.25">Onaltılık</option><option value="1.5">Noktalı çeyrek</option><option value="0.75">Noktalı sekizlik</option><option value="2">Yarım</option></select><button class="btn btn-gold" id="calcBpm">Gecikme süresi</button><output id="bpmResult">500 ms</output></article>
+      <article class="panel calc-card"><h3>Nota → frekans</h3><div class="field-row"><label for="noteName">Nota MIDI numarası</label><input id="noteName" type="number" value="69" min="0" max="127"></div><div class="field-row"><label for="referenceA">Referans A4 (Hz)</label><input id="referenceA" type="number" value="440" min="400" max="480" step="0.1"></div><button class="btn btn-gold" id="calcNote">Frekansı hesapla</button><output id="noteResult">A4 · 440,00 Hz</output></article>
+      <article class="panel calc-card"><h3>Oda eksenel modları</h3><div class="field-row"><label for="roomLength">Uzunluk (m)</label><input id="roomLength" type="number" value="6" min="0.1" step="0.1"></div><div class="field-row"><label for="roomWidth">Genişlik (m)</label><input id="roomWidth" type="number" value="4" min="0.1" step="0.1"></div><div class="field-row"><label for="roomHeight">Yükseklik (m)</label><input id="roomHeight" type="number" value="2.8" min="0.1" step="0.1"></div><button class="btn btn-gold" id="calcModes">Eksenel modları göster</button><output id="roomResult">—</output></article>
+    </div></section>
+
+    <section class="page" data-page="acoustics">
+      <div class="page-intro"><div><span class="eyebrow">AKUSTİK / SPL / KAPSAMA / GÜVENLİK</span><h2>SPL ve alan planı</h2><p>Ön hesaplar ve eğitim. Gerçek PA kapsaması, çevresel gürültü veya yasal uygunluk raporu üretmez.</p></div><span class="badge badge-gold">Varsayımlar görünür</span></div>
+      <div class="calc-grid">
+        <article class="panel calc-card"><h3>Mesafeye göre SPL kestirimi</h3>
+          <div class="field-row"><label for="splReferenceLevel">Referans seviye (dB SPL)</label><input id="splReferenceLevel" type="number" min="-20" max="160" value="100" step="0.1"></div>
+          <div class="field-row"><label for="splReferenceDistance">Referans mesafe (m)</label><input id="splReferenceDistance" type="number" min="0.1" max="10000" value="1" step="0.1"></div>
+          <div class="field-row"><label for="splTargetDistance">Hedef mesafe (m)</label><input id="splTargetDistance" type="number" min="0.1" max="10000" value="20" step="0.1"></div>
+          <div class="field-row"><label for="splSourceCount">Eşit kaynak sayısı (N)</label><input id="splSourceCount" type="number" min="1" max="128" value="2" step="1"></div>
+          <button class="btn btn-gold" id="calcSplDistance">Mesafe ve toplam seviyeyi hesapla</button><output id="splDistanceResult">Hesap bekleniyor.</output>
+          <small class="muted">Serbest alan noktasal kaynak ve enerji toplamı varsayımı. Array, faz etkileşimi, oda, hava, engel ve limiter davranışı modellenmez.</small>
+        </article>
+        <article class="panel calc-card"><h3>Dinleyici alanı boyutlandırma</h3>
+          <div class="field-row"><label for="audienceWidth">Genişlik (m)</label><input id="audienceWidth" type="number" min="0.1" max="1000" value="20" step="0.1"></div>
+          <div class="field-row"><label for="audienceDepth">Derinlik (m)</label><input id="audienceDepth" type="number" min="0.1" max="1000" value="30" step="0.1"></div>
+          <div class="field-row"><label for="audienceHeight">Ortalama hacim yüksekliği (m)</label><input id="audienceHeight" type="number" min="0.1" max="1000" value="6" step="0.1"></div>
+          <div class="field-row"><label for="speakerCoverageAngle">Yatay nominal kapsama (°)</label><input id="speakerCoverageAngle" type="number" min="1" max="179" value="90" step="1"></div>
+          <button class="btn btn-gold" id="calcAudienceArea">Alan ve geometrik kapsama</button><button class="btn btn-secondary" id="useFarDistance" disabled>Uzak köşe mesafesini SPL hesabına aktar</button><output id="audienceAreaResult">Hesap bekleniyor.</output>
+          <small class="muted">PA ön kenarın ortasında varsayılır. Nominal açı, gerçek polar grafiği, yüksekliği veya array modellemesini temsil etmez.</small>
+        </article>
+        <article class="panel calc-card"><h3>Ses basıncı ↔ dB SPL</h3>
+          <div class="field-row"><label for="pressurePa">Etkin ses basıncı (Pa RMS)</label><input id="pressurePa" type="number" min="0.000002" max="2000" value="0.1" step="0.001"></div>
+          <button class="btn btn-gold" id="calcPressureSpl">Pa → dB SPL</button><output id="pressureSplResult">0,1 Pa ≈ 74 dB SPL</output>
+          <div class="field-row"><label for="pressureSplLevel">Ses basıncı seviyesi (dB SPL)</label><input id="pressureSplLevel" type="number" min="-20" max="160" value="94" step="0.1"></div>
+          <button class="btn btn-secondary" id="calcSplPressure">dB SPL → Pa RMS</button><output id="splPressureResult">94 dB SPL ≈ 1 Pa RMS</output>
+          <small class="muted">Referans basınç havada 20 µPa RMS'tir. dBFS veya dBu ile doğrudan aynı büyüklük değildir.</small>
+        </article>
+        <article class="panel calc-card"><h3>Sabine yankılanma süresi (T60)</h3>
+          <div class="field-row"><label for="rt60Volume">Oda hacmi (m³)</label><input id="rt60Volume" type="number" min="0.1" max="1000000000" value="360" step="1"></div>
+          <div class="field-row"><label for="rt60Absorption">Eşdeğer soğurma alanı A (m² sabin)</label><input id="rt60Absorption" type="number" min="0.1" max="100000000" value="20" step="0.1"></div>
+          <button class="btn btn-secondary" id="useAudienceVolume" disabled>Alan hacmini buraya aktar</button><button class="btn btn-gold" id="calcRt60">T60 kestir</button><output id="rt60Result">Hesap bekleniyor.</output>
+          <small class="muted">T60 ≈ 0,161 × V/A. Eşdeğer soğurma bilinmelidir. Bu basit tahmin, ölçülmüş RT60 veya düşük frekans akustik modeli değildir.</small>
+        </article>
+        <article class="panel calc-card"><h3>Yüzeylerden eşdeğer soğurma alanı</h3>
+          <p class="muted">A = Σ(αᵢ × Sᵢ). Katsayılar malzeme ve frekansa bağlıdır. Aşağıdaki varsayılanlar yalnızca 500 Hz örneğidir; seçilen frekans için gerçek yüzey malzemesi verisiyle değiştir.</p>
+          <div class="field-row"><label for="absWidth">Oda genişliği (m)</label><input id="absWidth" type="number" min="0.1" max="100" value="6" step="0.1"></div>
+          <div class="field-row"><label for="absDepth">Oda uzunluğu (m)</label><input id="absDepth" type="number" min="0.1" max="100" value="4" step="0.1"></div>
+          <div class="field-row"><label for="absHeight">Oda yüksekliği (m)</label><input id="absHeight" type="number" min="0.1" max="30" value="2.8" step="0.1"></div>
+          <div class="field-row"><label for="absFrequency">Soğurma katsayılarının merkez frekansı</label><select id="absFrequency"><option value="125">125 Hz</option><option value="250">250 Hz</option><option value="500" selected>500 Hz</option><option value="1000">1 kHz</option><option value="2000">2 kHz</option><option value="4000">4 kHz</option><option value="8000">8 kHz</option></select></div>
+          <div class="field-row"><label for="absFloorAlpha">Zemin α (0–1)</label><input id="absFloorAlpha" type="number" min="0" max="1" value="0.20" step="0.01"></div>
+          <div class="field-row"><label for="absCeilingAlpha">Tavan α (0–1)</label><input id="absCeilingAlpha" type="number" min="0" max="1" value="0.50" step="0.01"></div>
+          <div class="field-row"><label for="absLongWallAlpha">Uzun duvarlar α (0–1)</label><input id="absLongWallAlpha" type="number" min="0" max="1" value="0.15" step="0.01"></div>
+          <div class="field-row"><label for="absShortWallAlpha">Kısa duvarlar α (0–1)</label><input id="absShortWallAlpha" type="number" min="0" max="1" value="0.15" step="0.01"></div>
+          <button class="btn btn-gold" id="calcAbsorption">Eşdeğer A alanını hesapla</button><button class="btn btn-secondary" id="useAbsorptionResult" disabled>Hacim ve A değerini Sabine’ye aktar</button><output id="absorptionResult">Örnek yüzey değerleri hesaplanmadı.</output>
+          <small class="muted">Bu hesap yüzeylerin aynı varsayılan katsayıyla temsil edildiği basit eğitim yaklaşımıdır; frekanslara göre gerçek soğurma datası, kapı/pencere, mobilya, insan ve difüz alan varsayımları ayrıca gereklidir.</small>
+        </article>
+        <article class="panel calc-card"><h3>Mesleki maruziyet kestirimi</h3>
+          <p class="muted">1–3 farklı seviyeyi ayrı bloklar olarak gir. Boş bırakılan 2. ve 3. blok hesaba katılmaz.</p>
+          <div class="field-row"><label for="exposureLevel">Blok 1 · LAeq (dBA)</label><input id="exposureLevel" type="number" min="70" max="140" value="85" step="0.1"></div>
+          <div class="field-row"><label for="exposureMinutes">Blok 1 · süre (dakika)</label><input id="exposureMinutes" type="number" min="0.1" max="10080" value="240" step="1"></div>
+          <div class="field-row"><label for="exposureLevel2">Blok 2 · LAeq (dBA, isteğe bağlı)</label><input id="exposureLevel2" type="number" min="70" max="140" placeholder="Boş bırakılabilir" step="0.1"></div>
+          <div class="field-row"><label for="exposureMinutes2">Blok 2 · süre (dakika)</label><input id="exposureMinutes2" type="number" min="0.1" max="10080" placeholder="Boş bırakılabilir" step="1"></div>
+          <div class="field-row"><label for="exposureLevel3">Blok 3 · LAeq (dBA, isteğe bağlı)</label><input id="exposureLevel3" type="number" min="70" max="140" placeholder="Boş bırakılabilir" step="0.1"></div>
+          <div class="field-row"><label for="exposureMinutes3">Blok 3 · süre (dakika)</label><input id="exposureMinutes3" type="number" min="0.1" max="10080" placeholder="Boş bırakılabilir" step="1"></div>
+          <button class="btn btn-gold" id="calcExposure">Toplam NIOSH doz kestirimi</button><output id="exposureResult">Hesap bekleniyor.</output>
+          <small class="muted">NIOSH mesleki eğitim referansı: 85 dBA / 8 saat / 3 dB değişim oranı. Yalnızca uygun ölçüm cihazıyla belirlenen LAeq değerlerini kullan. Kalibrasyonsuz PC mikrofonu, genel halk veya Türkiye mevzuatı uygunluk kararı için kullanma.</small>
+        </article>
+      </div>
+
+      <div class="spl-visuals">
+        <div class="section-heading"><div><span class="eyebrow">SPL HARİTASI / dB GÖRSELLEŞTİRME</span><h3>Alan üstünde hesaplanan ses seviyesi</h3></div><span class="badge">Basitleştirilmiş fizik modeli</span></div>
+        <div class="spl-visual-grid">
+          <article class="panel spl-map-panel">
+            <div class="panel-head"><div><span class="eyebrow">PLAN GÖRÜNÜMÜ</span><h3>2D SPL ısı haritası</h3></div><span class="chip" id="splMapRange">50–100 dB SPL</span></div>
+            <canvas id="splMap2d" height="390" role="img" aria-label="Serbest alan noktasal kaynak varsayımıyla hesaplanan 2D SPL haritası"></canvas>
+            <div class="spl-map-caption" id="splMapSummary">Alan girdileri değiştikçe hesaplanan model güncellenir.</div>
+          </article>
+          <article class="panel spl-map-panel">
+            <div class="panel-head"><div><span class="eyebrow">İZOMETRİK GÖRÜNÜM</span><h3>3D hesap yüzeyi</h3></div><span class="chip">Aynı model / farklı görünüm</span></div>
+            <canvas id="splMap3d" height="390" role="img" aria-label="Aynı serbest alan noktasal kaynak modelinin 3D projeksiyonu"></canvas>
+            <div class="spl-map-caption">Dikey yükseklik yalnızca seviye farklılığını görünür kılmak içindir; fiziksel mekân yüksekliği değildir.</div>
+          </article>
+        </div>
+        <div class="panel db-visual-panel">
+          <div class="panel-head"><div><span class="eyebrow">dB DEĞİŞİMİ NE ANLAMA GELİR?</span><h3>Seviye farkı, basınç ve yoğunluk ilişkisi</h3></div><span class="chip">Aynı ortam / referans koşulu</span></div>
+          <div class="db-effect-grid">
+            <div class="db-effect"><strong>+3 dB</strong><div class="db-bar-lines"><div><span>Basınç</span><i style="width:44.7%"></i></div><div><span>Güç</span><i style="width:20%"></i></div></div><span>Basınç ×1,41</span><small>Yoğunluk/güç ×2</small></div>
+            <div class="db-effect"><strong>+6 dB</strong><div class="db-bar-lines"><div><span>Basınç</span><i style="width:63.2%"></i></div><div><span>Güç</span><i style="width:39.8%"></i></div></div><span>Basınç ×2</span><small>Yoğunluk/güç ×4</small></div>
+            <div class="db-effect"><strong>+10 dB</strong><div class="db-bar-lines"><div><span>Basınç</span><i style="width:100%"></i></div><div><span>Güç</span><i style="width:100%"></i></div></div><span>Basınç ×3,16</span><small>Yoğunluk/güç ×10</small></div>
+          </div>
+          <p class="muted">Bu oranlar fiziksel seviye ilişkileridir. Algılanan ses yüksekliği program içeriğine, frekansa, süreye ve dinleyiciye bağlıdır; +10 dB her durumda öznel olarak tam iki kat yüksek algılanacağı anlamına gelmez.</p>
+        </div>
+        <div class="panel spl-concept-panel">
+          <div class="panel-head"><div><span class="eyebrow">GERÇEKÇİ 3D KAVRAMSAL GÖRSEL</span><h3>PA ve dinleyici alanında SPL dağılımı nasıl okunur?</h3></div><span class="badge badge-gold">İllüstrasyon</span></div>
+          <img src="/assets/ui/assets/spl-3d-konsept.png" alt="PA sistemi ve oturma alanı üzerinde kavramsal renkli SPL ısı haritası">
+          <p class="notice-caption">Bu fotogerçekçi görsel teknik anlatım içindir; üretici hoparlör verisinden hesaplanmış gerçek bir tahmin veya ölçüm değildir. Üstündeki sayı ve renkler saha raporunda kanıt olarak kullanılmamalıdır.</p>
+        </div>
+      </div>
+
+      <div class="notice notice-warn"><strong>Saha kararı güvenlik kuralı</strong><span>Alan m²'si veya tek bir hassasiyet değeri, gerekli hoparlör sayısını ve güvenli SPL'yi tek başına belirlemez. Gerçek üretici polar verisi, uzak alan koşulu, limiter/tepe payı, ölçüm ızgarası, A/C/Z ağırlığı, LAeq süreleri ve yerel mevzuat ayrıca değerlendirilmelidir. Yüksek seviyeli test tonu kalabalık önünde çalınmamalıdır.</span></div>
+    </section>
+
+    <section class="page" data-page="rta"><div class="page-intro"><div><span class="eyebrow">GERÇEK ZAMANLI SPEKTRUM</span><h2>Canlı RTA</h2><p>Mikrofon veya ses kartı girişini seç. Analiz bu bilgisayarda yapılır; ses kaydedilmez ve sunucuya gönderilmez.</p></div><span class="badge badge-gold">Yerel mikrofon</span></div>
+      <div class="panel rta-controls">
+        <div class="field"><label for="rtaDevice">Giriş cihazı</label><select id="rtaDevice"><option value="">Varsayılan giriş</option></select></div>
+        <div class="field field-actions rta-refresh-actions"><label>&nbsp;</label><button class="btn btn-secondary" id="rtaRefreshDevices">Girişleri yenile</button></div>
+        <div class="field"><label for="rtaBands">Bant çözünürlüğü</label><select id="rtaBands"><option value="third">1/3 oktav</option><option value="octave">1 oktav</option></select></div>
+        <div class="field"><label for="rtaFftSize">FFT boyutu</label><select id="rtaFftSize"><option value="8192">8192 · düşük CPU</option><option value="16384" selected>16384 · dengeli</option><option value="32768">32768 · yüksek çözünürlük</option></select></div>
+        <div class="field"><label for="rtaRange">Görüntülenen frekans aralığı</label><select id="rtaRange"><option value="auto" selected>Girişin desteklediği tam bant</option><option value="20-20000">20 Hz - 20 kHz</option><option value="31.5-16000">31,5 Hz - 16 kHz</option><option value="63-8000">63 Hz - 8 kHz</option><option value="125-4000">125 Hz - 4 kHz</option><option value="custom">Özel frekans aralığı…</option></select></div>
+        <div class="field hidden" id="rtaCustomRangeFields"><label>Özel aralık (20 Hz–20 kHz)</label><div class="rta-custom-range-inputs"><input id="rtaCustomMin" type="number" min="20" max="20000" value="20" step="1" aria-label="Alt frekans Hz"><span>–</span><input id="rtaCustomMax" type="number" min="20" max="20000" value="20000" step="1" aria-label="Üst frekans Hz"></div></div>
+        <div class="field"><label for="rtaSmooth">Tepki / yumuşatma</label><select id="rtaSmooth"><option value="fast">Hızlı (0,12 s)</option><option value="medium" selected>Orta (0,5 s)</option><option value="slow">Yavaş (1,5 s)</option></select></div>
+        <div class="field"><label for="rtaOffset">Göreli grafik kaydırma (dB)</label><input id="rtaOffset" type="number" value="0" min="-60" max="60" step="0.5"></div>
+        <div class="field field-actions rta-main-actions"><label>&nbsp;</label><button class="btn btn-gold" id="rtaStart">Mikrofonu başlat</button><button class="btn btn-secondary" id="rtaStop" disabled>Durdur</button><button class="btn btn-secondary" id="rtaResetPeak">Peak sıfırla</button></div>
+      </div>
+      <div class="panel rta-diagnostics"><div class="chart-header"><h3>Giriş seviyesi</h3><small class="muted">Canlı peak / RMS · dBFS</small></div><div class="rta-meter-row"><span>PEAK</span><div class="rta-meter-track"><i id="rtaPeakMeterFill"></i></div><strong id="rtaPeakMeterValue">−∞ dBFS</strong></div><div class="rta-meter-row"><span>RMS</span><div class="rta-meter-track rms"><i id="rtaRmsMeterFill"></i></div><strong id="rtaRmsMeterValue">−∞ dBFS</strong></div><div id="rtaInputMeter" class="rta-input-meter">Giriş seviyesi: henüz ölçülmedi.</div><div id="rtaCaptureInfo" class="rta-capture-info">Aygıt, örnekleme hızı, FFT ve ölçüm sınırları burada gösterilir. Ses kaydedilmez.</div></div>
+      <div class="panel"><div class="chart-header"><div><h3>Gerçek zamanlı spektrum analizörü</h3><small id="rtaStatus" class="muted">Başlatılmadı.</small></div><div class="legend"><span><i class="legend-live"></i> Canlı spektrum</span><span><i class="legend-peak"></i> Tepe tutma</span></div></div><canvas id="rtaCanvas" height="360" aria-label="Göreli ses spektrum grafiği"></canvas><div class="chart-footer"><span id="rtaAxisMin">20 Hz</span><span>Logaritmik frekans · canlı spektrum / Peak Hold / iz geçmişi</span><span id="rtaAxisMax">20 kHz</span></div></div>
+      <div class="panel rta-optimizer"><div class="panel-head"><div><span class="eyebrow">YARDIMCI ANALİZ</span><h3>Canlı spektrumdan EQ adayları</h3></div><label class="toggle-label"><input type="checkbox" id="rtaOptimizeEnabled" checked> Canlı önerileri güncelle</label></div>
+        <label class="toggle-label rta-test-signal-confirm"><input type="checkbox" id="rtaOptimizerTestSignalConfirm"> Pembe gürültü veya sabit bantlı test sinyali kullanıyorum (müzik/konuşma sırasında EQ önerisi üretme)</label>
+        <div class="field-row"><label for="rtaPeakThreshold">Yerel tepe eşiği (dB)</label><select id="rtaPeakThreshold"><option value="4">4 dB · hassas</option><option value="6" selected>6 dB · varsayılan</option><option value="8">8 dB · seçici</option><option value="10">10 dB · çok seçici</option><option value="12">12 dB · yalnızca güçlü tepe</option></select><button class="btn btn-secondary btn-small" id="rtaClearOptimize">Öneri geçmişini sıfırla</button></div>
+        <div id="rtaOptimizerOutput" class="report-box" aria-live="polite">Mikrofon başlatıldığında kararlı spektrum örneklerinden yalnızca aday kesimler gösterilir.</div>
+        <div class="notice notice-warn"><strong>Otomatik EQ uygulanmaz</strong><span>Öneriler sadece pembe gürültü veya kararlı bantlı test sinyali onayı verilince üretilir; müzik/konuşma spektrumundan oda EQ’su çıkarılamaz. Bu analiz dBFS bant gücünü, mikrofonun renklenmesini ve ölçüm konumunu ayıramaz. Yalnızca yaklaşık 1/3 oktav yerel tepe adayları üretir; en fazla 3 dB kesim önerir, boost önermez ve miksere komut göndermez. Düz frekans yanıtı bilinen mikrofon, birden fazla konum, kalibrasyon/transfer-function ve dinleme kontrolü olmadan bu önerileri uygulama.</span></div>
+      </div>
+      <div class="notice notice-warn"><strong>PC mikrofonu ve tiz frekanslar</strong><span>Dizüstü bilgisayar mikrofonları konuşma için tasarlanmış olabilir; fiziksel frekans cevabı, mikrofon dizisi, Windows ses geliştirmeleri, gürültü bastırma ve otomatik kazanç tiz/bas yanıtını değiştirebilir. Ses aygıtının 48 kHz akışa izin vermesi 20 kHz bandının tam bant olarak hesaplanmasını mümkün kılabilir, ancak mikrofon kapsülünün 20 kHz yanıtını garanti etmez. Bu etkiler yazılımla geri kazanılamaz. Mümkünse düz frekans cevabı bilinen ölçüm mikrofonu ve ses kartı kullan. Windows'ta Ayarlar → Sistem → Ses → Giriş altında doğru aygıtı seç; Ses Denetim Masası → Kayıt → Mikrofon Özellikleri bölümünde mevcutsa ses geliştirmelerini kapat. Masaüstü uygulamalarının mikrofon erişimine izin ver.</span></div>
+      <div class="notice"><strong>Ölçüm sınırı</strong><span>Bu araç, uygulamaya yerel PortAudio girişinden alınan örnekler üzerinde FFT ve oktav/1/3 oktav güç bantları hesaplar. IEC 61260 sınıf 1/2 analizörü, kalibre edilmiş dB SPL ölçer, ölçülmüş mikrofon frekans cevabı, faz veya transfer-function analizinin yerine geçmez. Üst bantlar gerçek örnekleme frekansı/Nyquist sınırına göre otomatik dışlanır; offset yalnızca çizimi kaydırır, kalibrasyon değildir.</span></div>
+    </section>
+
+    <section class="page" data-page="mixer"><div class="page-intro"><div><span class="eyebrow">YEREL DSP / ÇOK KATMANLI MİKS</span><h2>Ses katmanı atölyesi</h2><p>Diyalog, müzik, efekt ve ambiyans katmanlarını aynı pencere içinde düzenle. Kaynak dosyaları değiştirilmez.</p></div><span class="badge badge-gold">Yerel işleme</span></div><div class="mixer-toolbar panel"><label class="btn btn-gold file-button">Ses dosyaları ekle<input id="trackFiles" type="file" accept="audio/*,.wav,.flac,.mp3,.aiff,.aif,.ogg" multiple hidden></label><button class="btn btn-secondary" id="mixPreview">Miksi dinle</button><button class="btn btn-secondary" id="mixStop" disabled>Durdur</button><button class="btn btn-secondary" id="mixExportProject">Projeyi JSON kaydet</button><button class="btn btn-gold" id="mixRender">Stereo WAV üret</button><span class="muted" id="mixStatus">Henüz ses katmanı yok.</span></div><div id="trackList" class="track-list"><div class="empty-state"><div class="empty-symbol">＋</div><strong>Ses katmanı ekle</strong><p>Bir veya daha fazla yerel ses dosyası seç. Her dosya ayrı bir kanal şeridi olur.</p></div></div><div class="two-col mixer-lower"><div class="panel"><div class="panel-head"><div><span class="eyebrow">CUE SHEET</span><h3>Ses işaretleri</h3></div><button class="btn btn-secondary btn-small" id="addCue">+ Cue ekle</button></div><p class="muted">Zaman, tür ve not bilgileri projeye kaydedilebilir. Cue listesi ses dosyalarını otomatik kesmez.</p><div id="mixerCueList" class="cue-list"></div></div><div class="panel"><div class="panel-head"><div><span class="eyebrow">DOSYA İNCELEME</span><h3>Yerel video</h3></div><label class="btn btn-secondary btn-small file-button">Video seç<input id="videoFile" type="file" accept="video/*" hidden></label></div><video id="localVideo" class="local-video" controls playsinline></video><div class="row-actions"><button class="btn btn-secondary btn-small" id="captureVideoFrame">Geçerli kareyi cue'ya ekle</button><button class="btn btn-secondary btn-small" id="addVideoCue">Video zamanına işaret ekle</button></div><small class="muted">Video yalnızca yerel oynatılır. Burada görüntü render veya video yeniden dışa aktarma yapılmaz.</small><div id="framePreview" class="frame-preview"></div></div></div><div class="panel project-panel"><div class="panel-head"><div><span class="eyebrow">PROJE KURTARMA</span><h3>Tek proje dosyası</h3></div><div class="row-actions"><button class="btn btn-secondary btn-small" id="mixLoadProject">Proje JSON yükle</button><input type="file" id="mixProjectFile" accept="application/json,.json" hidden><button class="btn btn-secondary btn-small" id="exportEvidenceReport">QC kanıt raporu dışa aktar</button></div></div><p class="muted">Proje JSON dosyası kanal ayarlarını, klip isimlerini, cue ve sahne işaretlerini saklar; ses/video örneklerini gömmez. Projeyi geri açarken kaynak medyayı yeniden seçmelisin.</p><div id="projectStatus" class="report-box">Proje aktarımı bekliyor.</div></div>
+      <div class="two-col workspace-advanced">
+        <div class="panel"><div class="panel-head"><div><span class="eyebrow">KALİTE KONTROLÜ</span><h3>Yerel ses kanıtı</h3></div><label class="btn btn-secondary btn-small file-button">Ses seç<input type="file" id="evidenceAudioFile" accept="audio/*,.wav,.flac,.mp3,.aiff,.aif,.ogg" hidden></label></div><div class="row-actions"><button class="btn btn-gold btn-small" id="analyzeAudioEvidence">Ölç ve raporla</button><button class="btn btn-secondary btn-small" id="clearAudioEvidence">Temizle</button></div><div id="audioEvidenceReport" class="report-box">Dosya seçilmedi. İşlem bu bilgisayarda yapılır.</div><p class="muted">Sample peak/RMS, yakın clipping örnekleri ve kanal uyumu taranır. Bu rapor LUFS, dBTP veya kalibreli SPL ölçümü değildir.</p></div>
+        <div class="panel"><div class="panel-head"><div><span class="eyebrow">YEREL SES KÜTÜPHANESİ</span><h3>Kaynakları indeksle</h3></div><label class="btn btn-secondary btn-small file-button">Dosyaları seç<input type="file" id="soundLibraryFiles" accept="audio/*,.wav,.flac,.mp3,.aiff,.aif,.ogg" multiple hidden></label></div><div class="row-actions"><button class="btn btn-gold btn-small" id="indexSoundLibrary">İndeksi oluştur</button><button class="btn btn-secondary btn-small" id="matchSoundCues">Cue eşleştir</button><button class="btn btn-secondary btn-small" id="clearSoundLibrary">Temizle</button></div><div class="field"><label for="soundLibrarySearch">Yerel indeks içinde ara</label><input id="soundLibrarySearch" type="search" placeholder="Örn. kalabalık, adım, rüzgâr, ambiyans"></div><div id="soundLibraryResults" class="report-box">Henüz indeks oluşturulmadı. Dosyalar yüklenmez.</div></div>
+      </div>
+      <div class="two-col workspace-advanced">
+        <div class="panel"><div class="panel-head"><div><span class="eyebrow">VIDEO / SAHNE</span><h3>Yerel sahne sınırı taraması</h3></div><button class="btn btn-gold btn-small" id="analyzeVideoLocal">Sahne geçişlerini tara</button></div><p class="muted">Video kareleri yerel olarak örneklenir; parlaklık/renk farkı eşik tabanlı bir kestirimdir, yapay zekâ veya profesyonel kurgu algılayıcısı değildir.</p><div id="videoAnalysisReport" class="report-box">Video seçildiğinde sahne geçişi taraması yapılabilir.</div><div id="sceneMarkerList" class="scene-marker-list"></div><div class="row-actions"><button class="btn btn-secondary btn-small" id="stageSceneCues">Sahne işaretlerini cue'ya ekle</button><button class="btn btn-secondary btn-small" id="buildAutonomousEdit">Yerel ses planı taslağı oluştur</button></div></div>
+        <div class="panel"><div class="panel-head"><div><span class="eyebrow">EDIT DECISION LIST</span><h3>Ses planı ve kanıt</h3></div><button class="btn btn-secondary btn-small" id="exportPlanJSON">Plan JSON</button></div><textarea id="soundPlanOutput" rows="9" placeholder="Yerel plan taslağı burada görüntülenecek."></textarea><div class="row-actions"><button class="btn btn-secondary btn-small" id="applyPlanCues">Taslakları cue listesine ekle</button><button class="btn btn-secondary btn-small" id="exportPlanCSV">Cue CSV</button></div><p class="muted">Taslaklar dosya adı, sahne işaretleri ve senin cue notlarından türetilir. Otomatik miks/kurgu kararı olarak kabul edilmez.</p></div>
+      </div>
+      <div class="notice"><strong>İşleme sınırı</strong><span>Bu atölye eğitim/ön miks çalışma alanıdır. Zamanlama, fade ve filtreler tarayıcının Web Audio motoruyla uygulanır. Video analizinde sahne geçişi kestirimi yapılır; video yeniden render/dışa aktarma ve lisans belirsiz kaynak kodlarının dağıtımı bu tek EXE sürümünde bulunmaz. Kritik teslim işlerini dinleyerek ve bağımsız DAW/QC araçlarıyla doğrula.</span></div></section>
+
+    <section class="page" data-page="wav"><div class="page-intro"><div><span class="eyebrow">PCM / PEAK / RMS</span><h2>WAV kalite analizi</h2><p>Dosyayı cihazından seç; desteklenen WAV dosyaları çevrimdışı analiz edilir.</p></div></div><div class="panel"><div class="row-actions"><button class="btn btn-gold" id="wavChoose">WAV dosyası seç ve analiz et</button><button class="btn btn-secondary" id="wavSaveReport" disabled>Raporu TXT kaydet</button></div><div id="wavReport" class="report-box">Analiz bekleniyor. PCM WAV formatı, kanal sayısı, örnekleme frekansı, peak, RMS ve tam ölçeğe yakın örnekler raporlanır.</div></div><div class="notice notice-warn"><strong>Rapor sınırı</strong><span>Sample peak/RMS, LUFS, true peak veya dB SPL değildir. Tam ölçeğe yaklaşan örneklerin varlığı clipping kanıtı değildir; waveform ve dinleme ile doğrulanmalıdır.</span></div></section>
+
+    <section class="page" data-page="lufs"><div class="page-intro"><div><span class="eyebrow">BS.1770 / LOUDNESS</span><h2>LUFS normalizasyonu</h2><p>Android’de yerel dosyadan yaklaşık loudness düzeyleme ve WAV dışa aktarma kullanılabilir. Ölçüm EBU/ITU sertifikalı değildir; teslim öncesi bağımsız loudness ve true-peak aracıyla doğrula.</p></div><span class="badge badge-gold">Yerel</span></div><div class="two-col"><div class="panel"><h3>İşlem hedefleri</h3><div class="field"><label for="lufsTarget">Hedef entegre loudness (LUFS-I)</label><input id="lufsTarget" type="number" value="-14" min="-70" max="0" step="0.1"></div><div class="field"><label for="tpTarget">Tepe tavanı (dBTP kestirimi)</label><input id="tpTarget" type="number" value="-1" min="-20" max="0" step="0.1"></div><p class="muted">True-peak sınırı hedef LUFS'e erişimi engellerse pik sınırı korunur ve sonuç raporlanır; brickwall limiter uygulanmaz.</p><button class="btn btn-gold" id="runLufs">Kaynak ve çıktı seç, işlemi başlat</button></div><div class="panel"><h3>İşlem raporu</h3><div id="lufsReport" class="report-box">İşlem başlatılmadı.</div></div></div><div class="notice"><strong>Teslim sorumluluğu</strong><span>-14 LUFS sadece örnek hedeftir, evrensel standart değildir. Müşteri/platform teslim koşulunu kullan, çıktıyı tekrar ölç ve dinle.</span></div></section>
+
+    <section class="page" data-page="cues"><div class="page-intro"><div><span class="eyebrow">SES TASARIMI / ZAMAN</span><h2>Cue ve video notları</h2><p>Görüntü zamanına ses fikri, kaynak notu ve gözlem bağla. Notlar yerel olarak kalır.</p></div></div><div class="panel"><div class="cue-form"><div class="field"><label for="cueTime">Zaman (ss:dd:ss veya saniye)</label><input id="cueTime" type="text" value="00:00.000"></div><div class="field"><label for="cueType">Tür</label><select id="cueType"><option>Diyalog</option><option>Müzik</option><option>Efekt</option><option>Ambiyans</option><option>Geçiş</option><option>Teknik not</option></select></div><div class="field grow"><label for="cueText">Not / öneri</label><input id="cueText" type="text" placeholder="Örn. kalabalık ambiyansı, sahne değişimi..." maxlength="1000"></div><button class="btn btn-gold" id="saveCue">Cue kaydet</button></div><div class="row-actions"><button class="btn btn-secondary" id="exportCueJson">Cue JSON dışa aktar</button><button class="btn btn-secondary" id="exportCueCsv">Cue CSV dışa aktar</button><button class="btn btn-secondary" id="clearCues">Cue listesini temizle</button></div><div id="cueListFull" class="cue-list"></div></div></section>
+
+<section class="page" data-page="systemplan">
+      <div class="page-intro"><div><span class="eyebrow">SAHNE / SES SİSTEMİ / GÖRÜNTÜ / KABLO</span><h2>Sahne ve ses-görüntü planı</h2><p>Ölçekli üstten görünüşte ekipmanları yerleştir, yaklaşık kablo ihtiyacını ve ekipman listesini çıkar. Plan dosyası yerel olarak dışa aktarılır.</p></div><span class="badge badge-gold">Çevrimdışı</span></div>
+      <div class="planner-layout">
+        <div class="panel planner-controls">
+          <h3>Alan ölçüleri</h3>
+          <div class="field-row"><label for="stageRoomWidth">Oda genişliği (m)</label><input id="stageRoomWidth" type="number" min="4" max="100" step="0.5" value="20"></div>
+          <div class="field-row"><label for="stageRoomDepth">Oda derinliği (m)</label><input id="stageRoomDepth" type="number" min="4" max="150" step="0.5" value="30"></div>
+          <div class="field-row"><label for="stageDeckWidth">Sahne genişliği (m)</label><input id="stageDeckWidth" type="number" min="2" max="80" step="0.5" value="12"></div>
+          <div class="field-row"><label for="stageDeckDepth">Sahne derinliği (m)</label><input id="stageDeckDepth" type="number" min="1" max="40" step="0.5" value="6"></div>
+          <h3>Ekipman ekle</h3>
+          <div class="field-row"><label for="stageItemType">Ekipman türü</label><select id="stageItemType"><option value="speaker">Ana hoparlör</option><option value="sub">Alt frekans hoparlörü (subwoofer)</option><option value="monitor">Sahne monitörü</option><option value="foh">Ön alan kontrol konsolu (FOH)</option><option value="stagebox">Sahne kutusu</option><option value="mic">Mikrofon</option><option value="rack">Cihaz kabini (rack)</option><option value="delay">Gecikme hoparlörü (delay)</option><option value="display">LED ekran</option></select></div>
+          <div class="row-actions"><button class="btn btn-gold" id="stageAdd">Ekipman ekle</button><button class="btn btn-secondary" id="stageRemove">Seçileni kaldır</button></div>
+          <div class="row-actions"><button class="btn btn-secondary" id="stageReset">Örnek planı yükle</button></div>
+          <label class="file-button">Plan dosyası aç<input id="stageLoadJson" type="file" accept=".json,application/json"></label>
+          <div class="row-actions"><button class="btn btn-secondary" id="stageExportJson">Planı JSON kaydet</button><button class="btn btn-secondary" id="stageExportCsv">Envanteri CSV kaydet</button></div>
+          <div id="stageSelectedInfo" class="muted">Nesneyi sürükleyerek yerini değiştir.</div>
+        </div>
+        <div class="panel planner-canvas-panel">
+          <div class="panel-head"><div><span class="eyebrow">YERLEŞİM</span><h3>Ölçekli saha krokisi</h3></div><span class="chip">1 kare = 1 m</span></div>
+          <canvas id="stageCanvas" width="1000" height="620" aria-label="Sahne ve ekipman yerleşim krokisi"></canvas>
+          <div id="stageSummary" class="result-line">Ekipman yerleşimi hazırlanıyor.</div>
+        </div>
+      </div>
+      <article class="panel table-panel"><h3>Ekipman yerleşim listesi</h3><div class="table-scroll"><table><thead><tr><th>Ad</th><th>Tür</th><th>X</th><th>Y</th></tr></thead><tbody id="stageInventory"></tbody></table></div></article>
+      <div class="notice"><strong>Tasarım sınırı</strong><span>Bu araç 2B yerleşim ve yaklaşık doğrusal kablo mesafesi üretir. Askı sistemi (rigging), taşıma kapasitesi, gerçek hoparlör polaritesi, faz, oda akustiği ve sertifikalı kapsama hesabı yapmaz. Üretici verileri ve saha ölçümüyle doğrula.</span></div>
+    </section>
+
+<section class="page" data-page="patch">
+      <div class="page-intro"><div><span class="eyebrow">DİJİTAL KONSOL / SAHNE DOSYASI</span><h2>Mikser kanal bağlantı raporu</h2><p>Midas M32 ve Behringer X32 uyumlu .scn sahne dosyasını yerel olarak oku. Dosya değiştirilmez ve konsola gönderilmez.</p></div><span class="badge badge-gold">Salt okunur</span></div>
+      <article class="panel">
+        <label class="file-button">M32 / X32 .scn dosyası seç<input id="patchFile" type="file" accept=".scn,.txt,text/plain"></label>
+        <div id="patchSummary" class="result-line" aria-live="polite">Henüz sahne dosyası seçilmedi.</div>
+        <div id="patchWarnings" class="muted">Giriş yönlendirmesi çözülemeyen satırlar ayrıca uyarı olarak gösterilir.</div>
+        <div id="patchRouteInfo" class="muted"></div>
+        <div class="row-actions"><button class="btn btn-gold" id="patchExport" disabled>Kanal bağlantı listesini CSV olarak dışa aktar</button><button class="btn btn-secondary" id="patchPrint" disabled>Raporu yazdır</button></div>
+        <div class="table-scroll"><table class="wide-table"><thead><tr><th>Kanal</th><th>Ad</th><th>Giriş yuvası</th><th>Fiziksel kaynak</th><th>Ön yükselteç</th><th>Gürültü kapısı</th><th>Dinamik işlemci</th><th>Ekolayzer</th><th>Gönderimler</th></tr></thead><tbody id="patchTableBody"></tbody></table></div>
+      </article>
+      <div class="notice"><strong>Uyumluluk notu</strong><span>Bu ilk sürüm X32/M32 .scn dosyalarında temel giriş yönlendirmesi, kanal adı, preamp kazancı, gate, dinamik işlemci, EQ durumu ve bus gönderimlerini okur. Bilinmeyen alanları yorumlamaz. Çıkış bağlantı düzeni özetlenir; tüm konsol parametrelerini yeniden kurmaz.</span></div>
+    </section>
+
+<section class="page" data-page="rf">
+      <div class="page-intro"><div><span class="eyebrow">KABLOSUZ FREKANS / KOORDİNASYON</span><h2>Kablosuz frekans planı</h2><p>Onaylı frekans aralığını sen gir. Yerel tarama CSV verisini ekleyerek yoğun noktaları dışla ve kanallar arası temel girişim kontrollerini çalıştır.</p></div><span class="badge badge-gold">Yerel hesaplama</span></div>
+      <div class="calc-grid">
+        <article class="panel calc-card"><h3>İzinli frekans aralığı</h3>
+          <div class="field-row"><label for="rfBandMin">Alt sınır (MHz)</label><input id="rfBandMin" type="number" min="1" max="10000" step="0.001" placeholder="Örn. 470"></div>
+          <div class="field-row"><label for="rfBandMax">Üst sınır (MHz)</label><input id="rfBandMax" type="number" min="1" max="10000" step="0.001" placeholder="Örn. 694"></div>
+          <div class="field-row"><label for="rfCount">İstenen kanal sayısı</label><input id="rfCount" type="number" min="1" max="64" value="4"></div>
+          <div class="field-row"><label for="rfSpacing">En az kanal aralığı (MHz)</label><input id="rfSpacing" type="number" min="0.01" max="20" step="0.01" value="0.25"></div>
+          <div class="field-row"><label for="rfGuard">Koruma aralığı (MHz)</label><input id="rfGuard" type="number" min="0.01" max="10" step="0.01" value="0.3"></div>
+          <div class="field-row"><label for="rfNoiseLimit">Tarama engelleme eşiği (dBm)</label><input id="rfNoiseLimit" type="number" min="-160" max="20" value="-70"></div>
+          <div class="row-actions"><button class="btn btn-gold" id="rfGenerate">Kanal planı oluştur</button><button class="btn btn-secondary" id="rfExport">CSV dışa aktar</button></div>
+          <label class="file-button">Frekans tarama CSV dosyası ekle<input id="rfScanFile" type="file" accept=".csv,text/csv,text/plain"></label>
+          <div id="rfScanInfo" class="muted">CSV biçimi: frekans_MHz,seviye_dBm</div>
+        </article>
+        <article class="panel calc-card"><h3>Oluşturulan kanal listesi</h3><div id="rfResult" class="result-line">Önce izinli frekans aralığını gir.</div><div class="table-scroll"><table><thead><tr><th>No</th><th>Etiket</th><th>Frekans</th><th>Durum</th></tr></thead><tbody id="rfTableBody"></tbody></table></div><div id="rfWarning" class="notice-text"></div></article>
+      </div>
+      <div class="notice"><strong>Yasal ve teknik uyarı</strong><span>Bu araç BTK frekans tahsisi, lisans/izin sorgusu veya gerçek zamanlı donanım koordinasyonu değildir. Ülke, bölge, cihaz sınıfı ve etkinlik konumuna göre izin verilen aralıklar değişebilir. Yalnızca yetkili kaynaktan doğruladığın bandı gir.</span></div>
+    </section>
+
+<section class="page" data-page="distribution">
+      <div class="page-intro"><div><span class="eyebrow">SABİT GERİLİM HOPARLÖR HATTI</span><h2>70,7 / 100 V hat hesabı</h2><p>Tap yükü, yükselteç gücü, hat akımı ve bakır kablo gerilim düşümünü hesapla.</p></div><span class="badge badge-gold">Çevrimdışı</span></div>
+      <div class="calc-grid">
+        <article class="panel calc-card"><h3>Hoparlör tap yükleri</h3>
+          <div class="field-row"><label for="lineVoltage">Hat gerilimi</label><select id="lineVoltage"><option value="70.7">70,7 V</option><option value="100" selected>100 V</option></select></div>
+          <div class="field-row"><label for="lineLoads">Hoparlör sayısı × tap gücü (W)</label><textarea id="lineLoads" rows="5">12x15
+8x7.5</textarea></div>
+          <small class="muted">Her satıra örnek: 12x15, yani 12 hoparlörün her biri 15 W tap ayarında.</small>
+          <div class="field-row"><label for="lineHeadroom">Yedek güç payı (%)</label><input id="lineHeadroom" type="number" min="0" max="100" value="25"></div>
+          <div class="field-row"><label for="lineUtilization">Yükselteç azami yük kullanımı (%)</label><input id="lineUtilization" type="number" min="10" max="100" value="80"></div>
+        </article>
+        <article class="panel calc-card"><h3>Kablo ve sonuç</h3>
+          <div class="field-row"><label for="lineLength">Tek yön kablo uzunluğu (m)</label><input id="lineLength" type="number" min="0" max="5000" value="100"></div>
+          <div class="field-row"><label for="lineSection">Bakır iletken kesiti (mm²)</label><select id="lineSection"><option>0.5</option><option>0.75</option><option>1</option><option>1.5</option><option selected>2.5</option><option>4</option><option>6</option><option>10</option><option>16</option><option>25</option><option>35</option><option>50</option></select></div>
+          <div class="row-actions"><button class="btn btn-gold" id="lineCalculate">Hesapla</button><button class="btn btn-secondary" id="lineReset">Örnek değerlere dön</button></div>
+          <div id="lineResult" class="result-line">Hesap bekleniyor.</div><div id="lineCableResult" class="muted"></div>
+        </article>
+      </div>
+      <div class="notice"><strong>Hesap sınırı</strong><span>Hat üzerindeki dağıtılmış hoparlör yükleri için bu sonuç yaklaşık tasarım kontrolüdür. Trafo kayıpları, kablo sıcaklığı, gerçek hat topolojisi, üretici tap verileri, frekans cevabı, koruma ve mevzuat ayrıca doğrulanmalıdır.</span></div>
+      <div id="lineCaution" class="muted"></div>
+    </section>
+
+<section class="page" data-page="roommap">
+      <div class="page-intro"><div><span class="eyebrow">AKUSTİK ÖLÇÜM / ISI HARİTASI</span><h2>Oda ses basınç seviyesi haritası</h2><p>Ölçüm noktalarını CSV olarak yükle ve oda içinde göreli seviye dağılımını gör.</p></div><span class="badge badge-gold">Yerel veri</span></div>
+      <article class="panel">
+        <div class="row-fields">
+          <div class="field-row"><label for="roomMapWidth">Oda genişliği (m)</label><input id="roomMapWidth" type="number" min="1" max="500" value="20"></div>
+          <div class="field-row"><label for="roomMapDepth">Oda derinliği (m)</label><input id="roomMapDepth" type="number" min="1" max="500" value="30"></div>
+        </div>
+        <label class="file-button">Ölçüm CSV dosyası seç<input id="roomMapFile" type="file" accept=".csv,text/csv,text/plain"></label>
+        <button class="btn btn-secondary" id="roomMapClear">Haritayı temizle</button>
+        <canvas id="roomMapCanvas" width="1000" height="620" aria-label="Ölçüm noktalarına göre oda ses basınç seviyesi haritası"></canvas>
+        <div id="roomMapSummary" class="result-line">Ölçüm verisi yok.</div><div id="roomMapWarning" class="muted"></div>
+      </article>
+      <div class="notice"><strong>CSV düzeni</strong><span>Her satırda x_m,y_m,dB_SPL sütunları bulunmalı. Ondalık değerlerde nokta kullan; örnek: 2.5,4.0,91.2. En az üç ölçüm noktası gereklidir.</span></div>
+    </section>
+
+<section class="page" data-page="speaker">
+      <div class="page-intro"><div><span class="eyebrow">HOPARLÖR / KABİN / SAYISAL SİNYAL İŞLEME</span><h2>Hoparlör tasarımı ve sayısal sinyal işleme eğitimi</h2><p>Thiele–Small parametrelerinden kapalı kutu hacmini ve Butterworth geçiş filtresi genlik eğrisini ön hesapla.</p></div><span class="badge badge-gold">Öğretim aracı</span></div>
+      <div class="calc-grid">
+        <article class="panel calc-card"><h3>Kapalı kutu hesaplayıcı</h3>
+          <div class="field-row"><label for="speakerFs">Fs (Hz)</label><input id="speakerFs" type="number" min="1" max="500" step="0.1" value="55"></div>
+          <div class="field-row"><label for="speakerVas">Vas (L)</label><input id="speakerVas" type="number" min="0.1" max="10000" step="0.1" value="40"></div>
+          <div class="field-row"><label for="speakerQts">Qts</label><input id="speakerQts" type="number" min="0.05" max="1.49" step="0.001" value="0.38"></div>
+          <div class="field-row"><label for="speakerQtc">Hedef Qtc</label><input id="speakerQtc" type="number" min="0.1" max="1.5" step="0.001" value="0.707"></div>
+          <button class="btn btn-gold" id="speakerCalculate">Kabin hacmini hesapla</button><output id="speakerBoxResult">Hesap bekleniyor.</output>
+        </article>
+        <article class="panel calc-card"><h3>Geçiş filtresi tepkisi</h3>
+          <div class="field-row"><label for="speakerFilterMode">Filtre türü</label><select id="speakerFilterMode"><option value="low">Alçak geçiren</option><option value="high">Yüksek geçiren</option></select></div>
+          <div class="field-row"><label for="speakerCrossover">Kesim frekansı (Hz)</label><input id="speakerCrossover" type="number" min="20" max="20000" value="1000"></div>
+          <div class="field-row"><label for="speakerOrder">Filtre derecesi</label><select id="speakerOrder"><option value="1">1. derece</option><option value="2" selected>2. derece</option><option value="4">4. derece</option></select></div>
+          <button class="btn btn-gold" id="speakerFilterCalculate">Filtre tepkisini hesapla</button><output id="speakerFilterResult">Hesap bekleniyor.</output>
+        </article>
+      </div>
+      <div class="notice"><strong>Model sınırı</strong><span>Kapalı kutu hesabı ideal küçük işaret Thiele–Small yaklaşımıdır. Bass-reflex, pasif radyatör, kabin kaçakları, port sıkışması, termal sıkıştırma, sınır koşulları veya FEM/BEM çözümü içermez. Filtre sonucu yalnızca teorik genlik eğrisidir; sayısal sinyal işleme cihazına aktarılabilir katsayı üretmez.</span></div>
+    </section>
+
+<section class="page" data-page="wavelab">
+  <div class="page-intro"><div><span class="eyebrow">AKUSTİK / DALGA / FAZ / ZAMAN</span><h2>Dalga, faz ve ses gecikmesi laboratuvarı</h2><p>Sesin frekansını, dalga boyunu, yayılma süresini ve iki kaynağın girişimini etkileşimli olarak incele.</p></div><span class="badge badge-gold">Yerel eğitim aracı</span></div>
+  <article class="panel wave-lab-intro"><strong>Modelin sınırı</strong><span>Bu modül matematiksel ve görsel eğitim simülasyonudur; varsayılan olarak kamera veya mikrofon açmaz. Mikrofon izni yalnızca Canlı mikrofon (Live mic) sekmesindeki başlat düğmesine basıldığında istenir. Ses kaydedilmez veya diske yazılmaz. Gerçek oda ölçümü yapmaz ve PA sistemine gecikme ayarı göndermez. İki kaynak görünümü yansımasız ideal 2B alanı temsil eder.</span></article>
+  <div class="wave-lab-tabs" role="tablist" aria-label="Dalga laboratuvarı bölümleri">
+    <button class="wave-tab-btn active" type="button" data-wave-tab="wave" role="tab" aria-selected="true">Dalga ve gecikme (Wave &amp; delay)</button>
+    <button class="wave-tab-btn" type="button" data-wave-tab="phase" role="tab" aria-selected="false">Faz ve girişim (Phase &amp; interference)</button>
+    <button class="wave-tab-btn" type="button" data-wave-tab="sources" role="tab" aria-selected="false">İki kaynak (Two sources, 2D)</button>
+    <button class="wave-tab-btn" type="button" data-wave-tab="spl" role="tab" aria-selected="false">Pa ve dB SPL (Pressure &amp; level)</button>
+    <button class="wave-tab-btn" type="button" data-wave-tab="live" role="tab" aria-selected="false">Canlı mikrofon (Live mic)</button>
+  </div>
+  <section class="wave-lab-panel" data-wave-panel="wave">
+    <div class="wave-lab-grid">
+      <article class="panel">
+        <h3>Ortam ve frekans (Medium &amp; frequency)</h3>
+        <div class="field-row"><label for="waveMedium">Yayılma ortamı (Propagation medium)</label><select id="waveMedium"><option value="air">Hava</option><option value="water">Su (yaklaşık)</option><option value="steel">Çelik (yaklaşık)</option></select></div>
+        <div class="field-row" id="waveAirTempWrap"><label for="waveAirTemp">Hava sıcaklığı (Air temperature, °C)</label><input id="waveAirTemp" type="number" min="-30" max="50" step="0.5" value="20"></div>
+        <div class="field-row"><label for="waveFrequency">Frekans (Hz)</label><input id="waveFrequency" type="number" min="20" max="20000" step="1" value="440"></div>
+        <div class="field-row"><label for="waveFrequencySlider">Frekans ayarı (Frequency control)</label><input id="waveFrequencySlider" type="range" min="20" max="20000" step="1" value="440"></div>
+        <div class="wave-presets">
+          <button class="btn btn-secondary btn-small" type="button" data-wave-frequency="100">100 Hz</button>
+          <button class="btn btn-secondary btn-small" type="button" data-wave-frequency="440">440 Hz</button>
+          <button class="btn btn-secondary btn-small" type="button" data-wave-frequency="1000">1 kHz</button>
+          <button class="btn btn-secondary btn-small" type="button" data-wave-frequency="4000">4 kHz</button>
+        </div>
+        <div class="wave-lab-note" id="waveMediumNote">Hava için ses hızı sıcaklığa göre yaklaşık hesaplanır.</div>
+      </article>
+      <article class="panel">
+        <h3>Mesafeye bağlı ses gecikmesi (Distance-based delay)</h3>
+        <div class="field-row"><label for="waveDistance">Ses yolu farkı (Path difference)</label><input id="waveDistance" type="number" min="0" max="100000" step="0.1" value="1"></div>
+        <div class="field-row"><label for="waveDistanceUnit">Mesafe birimi (Distance unit)</label><select id="waveDistanceUnit"><option value="m">Metre (m)</option><option value="km">Kilometre (km)</option></select></div>
+        <input id="waveDistanceSlider" type="range" min="0" max="1000" step="1" value="1" aria-label="Ses yolu farkı kaydırıcısı">
+        <div class="wave-distance-limits"><span>0</span><span id="waveDistanceMax">1.000 m</span></div>
+        <div class="wave-result-grid">
+          <div><small>Ses hızı (Speed of sound)</small><strong id="waveSpeedValue">343,2 m/s</strong></div>
+          <div><small>Dalga boyu (Wavelength, λ)</small><strong id="waveLengthValue">0,780 m</strong></div>
+          <div><small>Periyot (Period, T)</small><strong id="wavePeriodValue">2,273 ms</strong></div>
+          <div><small>Yayılma gecikmesi (Propagation delay, Δt)</small><strong id="waveDelayValue">2,915 ms</strong></div>
+          <div><small>Bu frekanstaki faz farkı (Phase difference)</small><strong id="waveDistancePhaseValue">4,62°</strong></div>
+          <div><small>Dalga sayısı (Number of wavelengths)</small><strong id="waveCycleValue">1,28 λ</strong></div>
+        </div>
+        <div class="row-actions"><button class="btn btn-gold" id="waveTonePlay" type="button">Gecikme örneğini dinlet</button><button class="btn btn-secondary" id="waveToneStop" type="button" disabled>Durdur</button></div>
+        <div class="wave-lab-note" id="waveToneStatus" aria-live="polite">İsteğe bağlı test tonu yalnızca bu düğmeye basıldığında üretilir. Mikrofon kullanılmaz; çıkış seviyesi düşüktür.</div>
+      </article>
+    </div>
+    <article class="panel wave-canvas-panel">
+      <div class="panel-head"><div><h3>Dalga biçimi ve dalga boyu (Waveform &amp; wavelength)</h3><p class="muted">Görsel, seçili frekans ve ortama göre yenilenir.</p></div><span class="chip" id="waveCanvasLabel">λ = 0,780 m</span></div>
+      <canvas id="waveLabCanvas" height="250" aria-label="Dalga boyu ve sinüs dalgası görseli"></canvas>
+    </article>
+    <article class="panel wave-lab-note"><strong>Ses gecikmesi formülü (Propagation delay formula)</strong><span>Δt = d ÷ c. Δt gecikme süresi (delay time, s), d ses yolları arasındaki mesafe farkı (path difference, m), c ortamın ses hızı (speed of sound, m/s). Faz farkı φ = (360° × f × Δt) mod 360° ile bulunur. Faz hesabı seçilen tek frekans içindir; geniş bantlı müzikte (broadband audio) gecikmenin etkisi frekansa göre değişir.</span></article>
+  </section>
+
+  <section class="wave-lab-panel" data-wave-panel="live" hidden>
+    <article class="panel wave-mic-panel">
+      <div class="panel-head"><div><span class="eyebrow">GERÇEK ZAMANLI SES / LIVE AUDIO</span><h3>Mikrofonla canlı gecikme deneyi (Live microphone delay)</h3><p class="muted">Mikrofon girişini (Audio input) seç, 0–5.000 ms gecikme (Delay) uygula ve gecikmiş sinyali kulaklıkla dinle. Ses kaydedilmez veya diske yazılmaz; kamera açılmaz.</p></div><span class="chip">İsteğe bağlı izin (Optional permission)</span></div>
+      <div class="wave-mic-warning"><strong>Güvenli dinleme (Safe monitoring)</strong><span>Geri besleme (feedback) ve ani ses yükselmesini önlemek için izleme varsayılan olarak kapalıdır. Gecikmiş mikrofon sesini yalnızca kulaklıkla aç. Hoparlöre yönlendirme yapma. Çıkış kazancı yazılım tarafından en fazla %6 ile sınırlandırılır; bu sınır profesyonel bir limiter veya işitme koruması yerine geçmez.</span></div>
+      <div class="wave-lab-grid">
+        <div class="field-row"><label for="waveMicInput">Mikrofon girişi (Audio input)</label><select id="waveMicInput"><option value="">Sistem varsayılanı</option></select></div>
+        <div class="field-row"><label for="waveMicOutput">Ses çıkışı (Audio output)</label><select id="waveMicOutput"><option value="">Sistem varsayılanı</option></select></div>
+      </div>
+      <div class="field-row"><label for="waveMicDelay">Gecikme süresi (Delay time, ms)</label><input id="waveMicDelay" type="number" min="0" max="5000" step="0.1" value="20"></div>
+      <input id="waveMicDelaySlider" type="range" min="0" max="5000" step="1" value="20" aria-label="Mikrofon gecikme süresi kaydırıcısı">
+      <div class="wave-presets">
+        <button class="btn btn-secondary btn-small" type="button" data-wave-mic-delay="0">0 ms · Gecikmesiz</button>
+        <button class="btn btn-secondary btn-small" type="button" data-wave-mic-delay="10">10 ms</button>
+        <button class="btn btn-secondary btn-small" type="button" data-wave-mic-delay="20">20 ms</button>
+        <button class="btn btn-secondary btn-small" type="button" data-wave-mic-delay="50">50 ms</button>
+        <button class="btn btn-secondary btn-small" type="button" data-wave-mic-delay="100">100 ms</button>
+        <button class="btn btn-secondary btn-small" type="button" data-wave-mic-delay="250">250 ms</button>
+        <button class="btn btn-secondary btn-small" type="button" data-wave-mic-delay="1000">1.000 ms</button>
+        <button class="btn btn-secondary btn-small" type="button" data-wave-mic-delay="5000">5.000 ms</button>
+      </div>
+      <div class="wave-mic-actions">
+        <button class="btn btn-gold" id="waveMicStart" type="button">Mikrofonu başlat (Start microphone)</button>
+        <button class="btn btn-secondary" id="waveMicStop" type="button" disabled>Durdur (Stop)</button>
+        <label class="wave-mic-monitor"><input id="waveMicMonitor" type="checkbox"> Gecikmiş sesi kulaklığa ver (Enable headphone monitoring)</label>
+      </div>
+      <div class="wave-result-grid">
+        <div><small>Eşdeğer ses yolu farkı (Equivalent path difference)</small><strong id="waveMicDistance">6,86 m</strong></div>
+        <div><small>Seçili frekansta faz farkı (Phase shift)</small><strong id="waveMicPhase">316,8°</strong></div>
+        <div><small>Yuvarlanmış örnek sayısı (Rounded delay samples)</small><strong id="waveMicSamples">960 örnek</strong></div>
+        <div><small>Örnekleme frekansı (Sample rate)</small><strong id="waveMicRate">48.000 Hz</strong></div>
+      </div>
+      <p class="wave-lab-note" id="waveMicStatus" aria-live="polite">Mikrofon kapalı. Başlat düğmesine basılınca izin istenir; gecikmiş ses çıkışı ayrıca etkinleştirilmelidir.</p>
+      <div class="wave-formula-guide">
+        <h4>Formüller ve açıklamalar (Formulas &amp; explanations)</h4>
+        <div><b>Havadaki ses hızı (Speed of sound in air):</b><code>c ≈ 331,3 × √(1 + T / 273,15)</code><span>c: ses hızı (m/s), T: hava sıcaklığı (°C). Yaklaşık kuru hava modelidir; nem ve atmosfer koşulları küçük fark oluşturabilir. Canlı mikrofon deneyi havayı esas alır.</span></div>
+        <div><b>Dalga boyu (Wavelength):</b><code>λ = c / f</code><span>λ: dalga boyu (m), c: ses hızı (m/s), f: frekans (Hz). Aynı ortamda frekans yükseldikçe dalga boyu kısalır.</span></div>
+        <div><b>Periyot (Period):</b><code>T = 1 / f</code><span>T: bir tam titreşimin süresi (s), f: frekans (Hz). 440 Hz için T ≈ 2,273 ms olur.</span></div>
+        <div><b>Yayılma gecikmesi (Propagation delay):</b><code>Δt = d / c</code><span>Δt: süre (s), d: iki ses yolu arasındaki mesafe farkı (m), c: ses hızı (m/s). Sesin ek mesafeyi katetmesi için gereken süredir.</span></div>
+        <div><b>Faz farkı (Phase difference):</b><code>φ = (360° × f × Δt) mod 360°</code><span>φ: faz açısı (degree), f: frekans (Hz), Δt: zaman farkı (s). Aynı gecikme farklı frekanslarda farklı faz açıları oluşturur; geniş bantlı müzikte etkisi frekansa bağlıdır.</span></div>
+        <div><b>İki eşit kaynağın toplam genliği (Two-source amplitude):</b><code>Aₜ = 2A × |cos(φ / 2)|</code><span>A: tek kaynağın basınç genliği, φ: faz farkı. Eşit genlikli ve aynı frekanstaki iki ideal sinüs için geçerlidir; oda yansımalarını ve mesafe kaynaklı seviye farkını içermez.</span></div>
+        <div><b>Örnek cinsinden gecikme (Delay in samples):</b><code>N = round(Δt × fₛ)</code><span>N: en yakın tam örnek sayısı (rounded sample count), fₛ: örnekleme frekansı (sample rate, Hz). Örneğin 20 ms × 48.000 Hz = 960 örnek. Web Audio gecikme düğümü (DelayNode) kesirli örneklerde ara değerleme yapabilir.</span></div>
+        <div><b>Ses basınç seviyesi (Sound pressure level):</b><code>Lₚ = 20 log₁₀(p / p₀)</code><span>p: RMS ses basıncı (Pa), p₀: 20 µPa referans basıncı. Bu matematiksel dönüşüm, kalibre edilmiş mikrofon olmadan gerçek dB SPL ölçümü sağlamaz.</span></div>
+      </div>
+    </article>
+  </section>
+  <section class="wave-lab-panel" data-wave-panel="phase" hidden>
+    <div class="wave-lab-grid">
+      <article class="panel">
+        <h3>Faz farkını ayarla (Set phase difference)</h3>
+        <div class="field-row"><label for="wavePhaseAngle">Faz farkı (Phase difference, °)</label><input id="wavePhaseAngle" type="number" min="0" max="360" step="1" value="90"></div>
+        <input id="wavePhaseSlider" type="range" min="0" max="360" step="1" value="90" aria-label="Faz farkı kaydırıcısı">
+        <div class="wave-presets">
+          <button class="btn btn-secondary btn-small" type="button" data-wave-phase="0">0°</button>
+          <button class="btn btn-secondary btn-small" type="button" data-wave-phase="90">90°</button>
+          <button class="btn btn-secondary btn-small" type="button" data-wave-phase="120">120°</button>
+          <button class="btn btn-secondary btn-small" type="button" data-wave-phase="180">180°</button>
+          <button class="btn btn-secondary btn-small" type="button" data-wave-phase="270">270°</button>
+        </div>
+        <div class="field-row"><label for="wavePhaseDistance">Yol farkından hesapla (Path difference, m)</label><input id="wavePhaseDistance" type="number" min="-1000" max="1000" step="0.001" value="0.195"></div>
+        <div class="wave-result-grid">
+          <div><small>Faz farkına karşılık gelen süre</small><strong id="wavePhaseDelayValue">0,568 ms</strong></div>
+          <div><small>Yol farkı</small><strong id="wavePhasePathValue">0,195 m</strong></div>
+          <div><small>Toplam basınç oranı (tek kaynağa göre)</small><strong id="wavePhaseAmplitudeValue">1,414×</strong></div>
+          <div><small>Seviye farkı (eşit genlikli kaynaklar)</small><strong id="wavePhaseDbValue">+3,01 dB</strong></div>
+        </div>
+      </article>
+      <article class="panel wave-lab-note"><strong>Fiziksel yorum</strong><span id="wavePhaseInterpretation">90° faz farkında eşit genlikli iki sinüsün toplam basınç genliği tek kaynağın √2 katıdır.</span><span>Bu sonuç eşit genlikli, aynı frekanstaki iki sinüs ve ideal doğrusal toplama varsayımına dayanır. Gerçek mekânda yansımalar, yönlülük, mesafe kaynaklı seviye farkı ve oda modları sonucu değiştirir.</span></article>
+    </div>
+    <article class="panel wave-canvas-panel"><div class="panel-head"><div><h3>İki sinüs ve toplamları</h3><p class="muted">A kaynağı, fazı kaydırılmış B kaynağı ve toplam basınç.</p></div></div><canvas id="wavePhaseCanvas" height="300" aria-label="Faz farkına göre iki sinüsün toplamı"></canvas></article>
+  </section>
+  <section class="wave-lab-panel" data-wave-panel="sources" hidden>
+    <article class="panel">
+      <div class="panel-head"><div><h3>İki ses kaynağı ve dinleyici (Two sources &amp; listener)</h3><p class="muted">Noktaları sürükle veya aşağıdaki koordinatları değiştir. Alan 10 × 8 m ve hava 20 °C kabul edilir.</p></div><span class="chip">İdeal 2B alan</span></div>
+      <div class="wave-source-controls">
+        <div class="field-row"><label for="waveSourceAX">Kaynak A · X (m)</label><input id="waveSourceAX" type="number" min="0" max="10" step="0.1" value="2"></div>
+        <div class="field-row"><label for="waveSourceAY">Kaynak A · Y (m)</label><input id="waveSourceAY" type="number" min="0" max="8" step="0.1" value="2"></div>
+        <div class="field-row"><label for="waveSourceBX">Kaynak B · X (m)</label><input id="waveSourceBX" type="number" min="0" max="10" step="0.1" value="8"></div>
+        <div class="field-row"><label for="waveSourceBY">Kaynak B · Y (m)</label><input id="waveSourceBY" type="number" min="0" max="8" step="0.1" value="2"></div>
+        <div class="field-row"><label for="waveListenerX">Dinleyici · X (m)</label><input id="waveListenerX" type="number" min="0" max="10" step="0.1" value="5"></div>
+        <div class="field-row"><label for="waveListenerY">Dinleyici · Y (m)</label><input id="waveListenerY" type="number" min="0" max="8" step="0.1" value="7"></div>
+      </div>
+      <div class="wave-result-grid">
+        <div><small>A kaynağı yolu</small><strong id="waveSourceR1">5,83 m</strong></div>
+        <div><small>B kaynağı yolu</small><strong id="waveSourceR2">5,83 m</strong></div>
+        <div><small>Yol farkı (Δd)</small><strong id="waveSourcePathDiff">0,00 m</strong></div>
+        <div><small>Faz farkı</small><strong id="waveSourcePhase">0,0°</strong></div>
+        <div><small>Eşfazlı toplama göre genlik</small><strong id="waveSourceAmplitude">1,000×</strong></div>
+        <div><small>Maksimuma göre seviye</small><strong id="waveSourceLevel">0,00 dB</strong></div>
+      </div>
+    </article>
+    <article class="panel wave-canvas-panel"><canvas id="waveSourcesCanvas" height="360" aria-label="İki kaynağın girişim alanı ve dinleyici konumu"></canvas><div class="wave-lab-note">Renkli alan iki kaynağın göreli basınç genliği dağılımını gösterir. Bu model line-array kapsaması, gerçek SPL haritası, oda yansıması veya faz hizalama ölçümü değildir.</div></article>
+  </section>
+  <section class="wave-lab-panel" data-wave-panel="spl" hidden>
+    <div class="wave-lab-grid">
+      <article class="panel"><h3>Basınçtan dB SPL'ye (Pressure to dB SPL)</h3><div class="field-row"><label for="waveSplPa">RMS ses basıncı (Pa)</label><input id="waveSplPa" type="number" min="0.000001" max="100000" step="any" value="1"></div><div class="wave-result-grid"><div><small>Hesaplanan seviye</small><strong id="waveSplFromPa">93,98 dB SPL</strong></div></div></article>
+      <article class="panel"><h3>dB SPL'den basınca (dB SPL to pressure)</h3><div class="field-row"><label for="waveSplDb">Ses basınç seviyesi</label><input id="waveSplDb" type="number" min="-100" max="200" step="0.1" value="94"></div><div class="wave-result-grid"><div><small>Hesaplanan RMS basınç</small><strong id="waveSplFromDb">1,002 Pa</strong></div></div></article>
+    </div>
+    <article class="panel"><h3>Referans ve örnekler (Reference values)</h3><div class="wave-spl-reference"><button class="btn btn-secondary btn-small" type="button" data-wave-spl="0.00002">20 µPa · 0 dB SPL</button><button class="btn btn-secondary btn-small" type="button" data-wave-spl="0.001">1 mPa</button><button class="btn btn-secondary btn-small" type="button" data-wave-spl="1">1 Pa · 94 dB SPL</button><button class="btn btn-secondary btn-small" type="button" data-wave-spl="20">20 Pa · 120 dB SPL</button></div><p class="wave-lab-note" id="waveSplNote">Referans basınç 20 µPa'dır. Bu araç basınç ile dB SPL arasında matematiksel dönüşüm yapar; mikrofon kalibrasyonu veya akustik ölçüm yapmaz.</p></article>
+  </section>
+</section>
+
+
+
+
+
+    <section class="page" data-page="checklists"><div class="page-intro"><div><span class="eyebrow">SAHA KONTROLÜ</span><h2>Kontrol listeleri</h2><p>İş akışına göre seç, işaretle ve seçili öğrenci profiline kaydet.</p></div></div><div class="panel"><div class="field max-400"><label for="checklistType">Kontrol listesi</label><select id="checklistType"><option value="show">Gösteri öncesi</option><option value="qc">Ses kalite kontrolü</option><option value="recording">Konuşma kaydı</option><option value="rf">RF / IEM</option><option value="noise">Gürültü / yalıtım</option></select></div><div id="checklistItems" class="checklist-items"></div><div class="row-actions"><button class="btn btn-gold" id="saveChecklist">Profille kaydet</button><button class="btn btn-secondary" id="resetChecklist">Listeyi sıfırla</button></div></div></section>
+
+    <section class="page" data-page="docs"><div class="page-intro"><div><span class="eyebrow">DERS MATERYALİ</span><h2>Türkçe kılavuzlar</h2><p>Canlı ses, PA, RF, kalite kontrolü ve kayıt konularını uygulamayla birlikte takip et.</p></div></div><div class="docs-layout"><div class="panel docs-list-panel"><label for="docSelect" class="field-label">Kılavuz seç</label><select id="docSelect"></select><div id="docListButtons" class="doc-list-buttons"></div></div><article class="panel doc-content"><div id="docTitle" class="doc-title">Kılavuz yükleniyor…</div><div id="docBody" class="markdown-body"></div></article></div></section>
+
+    <section class="page" data-page="pdf"><div class="page-intro"><div><span class="eyebrow">ÖĞRENCİ EĞİTİM KÜTÜPHANESİ</span><h2>Öğrenci PDF kitaplığı</h2><p>Öğrenci ders kitapları uygulama paketine dahildir ve çevrimdışı açılabilir. PDF görüntüleme cihazın PDF görüntüleyicisi üzerinden yapılır.</p></div><button class="btn btn-gold" id="pdfDownload">Seçili PDF dosyasını aç</button></div><div class="student-pdf-layout"><div class="panel student-pdf-list"><h3>Eğitim paketleri</h3><p class="muted">Başlangıç rehberinden ileri düzey ders kitabına doğru hazırlanmış öğrenci materyalleri.</p><div id="studentPdfButtons" class="student-pdf-buttons"><div class="muted">Eğitim dosyaları listeleniyor…</div></div></div><div class="student-pdf-viewer"><div class="panel student-pdf-heading"><h3 id="studentPdfTitle">Ses Mühendisliği Öğrenci Ders Kitabı</h3><p id="studentPdfDescription" class="muted">Seçilen PDF aynı uygulama penceresinde açılır.</p></div><div class="pdf-shell pdf-native-shell"><div class="pdf-native-message"><div class="tool-icon">▧</div><h3>Öğrenci PDF kitaplığı</h3><p>Android WebView PDF dosyalarını sayfa içinde güvenilir biçimde görüntülemez. Bir ders seç ve “Seçili PDF dosyasını aç” düğmesine bas; dosya cihazındaki PDF görüntüleyicide açılır.</p><p class="muted">Kitaplar uygulama paketine dahil edilir ve çevrimdışı açılabilir.</p></div><iframe id="pdfFrame" title="Öğrenci eğitim PDF görüntüleyicisi" src="about:blank" hidden></iframe></div></div></div></section>
+
+    <section class="page" data-page="curriculum">
+      <div class="page-intro"><div><span class="eyebrow">STAGEPULSE AKADEMİ</span><h2>Eğitim dalları, sınavlar ve usta yolu</h2><p>Ortak temel eğitimden sonra uzmanlık dalı seç. Her aşama uygulama, kanıt, test ve eğitmen değerlendirmesiyle tamamlanır.</p></div><button class="btn btn-secondary" data-route="pdf">Ders PDF kitaplığı</button></div>
+      <div class="notice"><strong>Ustalık kuralı</strong><span>Usta statüsü yalnızca teori testiyle verilmez. Gerçek donanımda uygulama, kanıt dosyası, kritik güvenlik maddelerinin tamamı ve yetkili eğitmen onayı gerekir. Öğrenci kendi statüsünü işaretleyemez.</span></div>
+      <div class="section-heading"><div><span class="eyebrow">YETERLİLİK BASAMAKLARI</span><h3>Başlangıçtan ustalığa</h3></div></div>
+      <div class="tool-grid">
+        <article class="panel"><h3>L0 · Başlangıç</h3><p>Temel ses, sinyal akışı, dB, ekipman tanıma ve güvenlik.</p><small>Geçiş: %70 bilgi sınavı ve güvenlik modülü.</small></article>
+        <article class="panel"><h3>L1 · Temel uygulayıcı</h3><p>Kablo/patch, basit yönlendirme, kontrol listesi ve güvenli hazırlık.</p><small>Geçiş: kontrol listesinin %80'i, kritik hata yok.</small></article>
+        <article class="panel"><h3>L2 · Saha uygulayıcısı</h3><p>Gerçek görev, ölçüm, dosyalama ve teknik rapor.</p><small>Geçiş: uygulama rubriği en az 80/100.</small></article>
+        <article class="panel"><h3>L3 · İleri uygulayıcı</h3><p>Optimizasyon, koordinasyon, bağımsız arıza teşhisi.</p><small>Geçiş: 3 arıza senaryosu ve proje dosyası.</small></article>
+        <article class="panel"><h3>L4 · Usta adayı</h3><p>İş planı, risk analizi, ekip iletişimi ve teslim.</p><small>Geçiş: iki farklı senaryoda başarılı uygulama.</small></article>
+        <article class="panel"><h3>L5 · Usta / eğitmen onayı</h3><p>Bağımsız yeterlilik, portföy ve sözlü savunma.</p><small>Geçiş: %85 sınav, sıfır kritik güvenlik hatası, eğitmen imzası.</small></article>
+      </div>
+      <div class="section-heading"><div><span class="eyebrow">UZMANLIK DALLARI</span><h3>İstediğin alanda uzmanlaş</h3></div></div>
+      <div class="tool-grid">
+        <article class="panel"><h3>Canlı Ses / FOH / Monitör</h3><p>Gain staging, Midas M32 Live, routing, sahne patch, soundcheck, FOH, monitör ve IEM.</p><button class="btn btn-secondary" data-route="checklists">Saha kontrol listesi</button></article>
+        <article class="panel"><h3>RF / Kablosuz / IEM</h3><p>RF tarama, frekans koordinasyonu, anten sistemi, girişim ve drop-out teşhisi.</p><button class="btn btn-secondary" data-route="checklists">RF kontrol listesi</button></article>
+        <article class="panel"><h3>PA / DSP / Array</h3><p>Kapsama planı, sub hizalama, delay, crossover, limiter ve saha doğrulaması.</p><button class="btn btn-secondary" data-route="acoustics">SPL / alan planı</button></article>
+        <article class="panel"><h3>Stüdyo / Kayıt / Miks</h3><p>Kayıt, düzenleme, EQ/dinamik, dosya yönetimi, loudness ve teslim QC.</p><button class="btn btn-secondary" data-route="wav">WAV kalite analizi</button></article>
+        <article class="panel"><h3>SPL / Akustik / Gürültü</h3><p>Kalibrasyon, ölçüm noktaları, dBA/LAeq, oda akustiği ve raporlama sınırları.</p><button class="btn btn-secondary" data-route="rta">RTA aracını aç</button></article>
+        <article class="panel"><h3>Dijital Konsol Uzmanlığı</h3><p>Midas M32 Live, Yamaha CL5, Allen & Heath Avantis; scene, bus, DCA ve show dosyası.</p><button class="btn btn-secondary" data-route="pdf">Konsol eğitim PDF'leri</button></article>
+        <article class="panel"><h3>Konuşma / Podcast / Yayın</h3><p>Mikrofonlama, anlaşılabilirlik, de-esser, mix-minus, kayıt ve yayın teslimi.</p><button class="btn btn-secondary" data-route="cues">Cue / not planı</button></article>
+        <article class="panel"><h3>Kablolama / Bakım / Arıza</h3><p>XLR/TRS/SpeakON, kablo testleri, hum/buzz, etiketleme ve güvenli bakım.</p><button class="btn btn-secondary" data-route="checklists">Bakım kontrol listesi</button></article>
+      </div>
+      <div class="section-heading"><div><span class="eyebrow">UYGULAMALI ATÖLYE</span><h3>Dal seç, görevi uygula, kanıtını kaydet</h3></div></div>
+      <div class="panel"><div class="field max-400"><label for="curriculumTrackSelect">Uzmanlık dalı</label><select id="curriculumTrackSelect"><option value="live_sound">Canlı Ses / FOH / Monitör</option><option value="rf_wireless">RF / Kablosuz / IEM</option><option value="pa_system">PA / DSP / Array</option><option value="studio_post">Stüdyo / Kayıt / Miks</option><option value="spl_acoustics">SPL / Akustik / Gürültü</option><option value="digital_console">Dijital Konsol Uzmanlığı</option><option value="speech_broadcast">Konuşma / Podcast / Yayın</option><option value="maintenance">Kablolama / Bakım / Arıza</option></select></div><div id="curriculumTrackDetails" class="report-box">Uygulama görevleri yükleniyor…</div><div class="field"><label for="curriculumEvidence">Kanıt / sonuç / eğitmen notuna hazırlık</label><textarea id="curriculumEvidence" rows="3" maxlength="4000" placeholder="Ölçüm sonucu, kullanılan ekipman, yapılan test, bulunan hata ve kanıt dosyasının adı..."></textarea></div><div class="row-actions"><button class="btn btn-gold" id="saveCurriculumPractice">Yerel çalışma profiline kaydet</button><button class="btn btn-secondary" id="curriculumQuizButton">Bilgi testini başlat</button></div><div id="curriculumQuizArea" class="report-box hidden"></div><p class="muted">Bu ekrandaki görev tikleri kişisel çalışma takibidir, resmî başarı veya usta onayı değildir. Resmî tamamlanma öğretmen tarafından sunucuya kaydedilir.</p></div>
+      <div class="section-heading"><div><span class="eyebrow">STAGEPULSE HİZMET AKIŞLARI</span><h3>Sahadaki işlerin uygulama içi karşılığı</h3></div></div>
+      <div class="panel"><div class="license-list-wrap"><article class="license-row"><div class="license-row-main"><strong>Ses sistemi kiralama ve etkinlik operasyonu</strong><small>Talep → rider → ekipman/personel listesi → kurulum/soundcheck → operasyon/söküm → rapor</small></div><button class="btn btn-secondary btn-small" data-route="checklists">Kontrol listesi</button></article><article class="license-row"><div class="license-row-main"><strong>FOH / monitör / IEM</strong><small>Input list → patch → bus planı → line-check → soundcheck → show dosyası</small></div><button class="btn btn-secondary btn-small" data-route="mixer">Atölye</button></article><article class="license-row"><div class="license-row-main"><strong>Stage Plot / teknik rider / 3D yerleşim</strong><small>Rider analizi, sahne ölçüsü, sanatçı/monitör yerleşimi, revizyon ve onay</small></div><button class="btn btn-secondary btn-small" data-route="cues">Plan notları</button></article><article class="license-row"><div class="license-row-main"><strong>SPL / sistem tasarımı / tuning</strong><small>Mekân keşfi, üretici verisi, kapsama tahmini, saha ölçümü ve sınırlamaları belirtilmiş rapor</small></div><button class="btn btn-secondary btn-small" data-route="acoustics">SPL / alan planı</button></article><article class="license-row"><div class="license-row-main"><strong>Dante / Network Audio</strong><small>Topoloji, IP/clock, routing, senkronizasyon ve kurtarma planı</small></div><button class="btn btn-secondary btn-small" data-route="docs">Teknik kılavuzlar</button></article><article class="license-row"><div class="license-row-main"><strong>Ses + ışık + LED prodüksiyon koordinasyonu</strong><small>Ortak etkinlik planı ve sorumluluk ayrımı. Bu uygulama ses mühendisliği odağındadır; ışık/LED kontrol yazılımı değildir.</small></div><button class="btn btn-secondary btn-small" data-route="checklists">Operasyon listesi</button></article></div><p class="muted">Hizmet fiyatı otomatik sabitlenmez. Ekipman, ekip, süre, kurulum/söküm, lojistik, mühendislik emeği ve vergi girdileri doğrulanmadan müşteriye kesin teklif verilmez.</p></div>
+      <div class="section-heading"><div><span class="eyebrow">UYGULAMA DÖNGÜSÜ</span><h3>Her modülde zorunlu teslim</h3></div></div>
+      <div class="panel"><ol class="plain-list"><li>Ön test ve hedef becerinin belirlenmesi.</li><li>Örnek vaka ve adım adım rehberli uygulama.</li><li>Bağımsız uygulama ve ikinci senaryoda tekrar.</li><li>Kanıt dosyası: ölçüm, fotoğraf, show dosyası, routing şeması veya rapor.</li><li>Otomatik bilgi sınavı ve rubrikle uygulama puanı.</li><li>Hata varsa tekrar çalışması ve yeniden sınav.</li><li>Öğretmen gözlemi, sözlü savunma ve portföy kontrolü.</li><li>Resmî tamamlanma ve usta statüsü yalnızca yetkili öğretmen tarafından onaylanır.</li></ol></div>
+    </section>
+
+    <section class="page" data-page="student"><div class="page-intro"><div><span class="eyebrow">ÖĞRETMEN ONAYLI EĞİTİM</span><h2>Öğrenci ilerlemesi</h2><p>Öğrenci durumunu görüntüleyebilir; aşama tamamlandı işaretini yalnızca Stagepulse öğretmeni verebilir.</p></div><span class="badge badge-gold" id="progressRoleBadge">Hesap bekleniyor</span></div><div class="panel teacher-only hidden" id="teacherProgressPanel"><div class="panel-head"><div><h3>Öğretmen değerlendirmesi</h3><p class="muted">Öğrenci seç, kanıtı kontrol et ve tamamlanan aşamayı kaydet.</p></div><button class="btn btn-secondary" id="teacherRefreshStudents">Öğrencileri yenile</button></div><div class="field max-400"><label for="teacherStudentSelect">Öğrenci</label><select id="teacherStudentSelect"><option value="">Öğrenci seç</option></select></div><div class="field"><label for="teacherNote">Öğretmen notu</label><textarea id="teacherNote" rows="2" maxlength="1000" placeholder="Uygulamada gözlenen kanıt, hata veya tekrar ödevi…"></textarea></div><div id="teacherProgressStatus" class="report-box">Öğrenci seçildiğinde sunucu kayıtları yüklenir.</div></div><div class="two-col"><div class="panel"><h3>Yerel çalışma profili</h3><div class="field"><label for="studentName">Ad / rumuz</label><input id="studentName" type="text" maxlength="80" placeholder="Örn. Çalışma notlarım"></div><div class="field"><label for="studentSelect">Bu bilgisayardaki kişisel çalışma kaydı</label><select id="studentSelect"><option value="">Profil seç</option></select></div><div class="row-actions"><button class="btn btn-gold" id="studentLoad">Profili yükle</button><button class="btn btn-secondary" id="studentSave">Profili kaydet</button><button class="btn btn-secondary" id="studentDelete">Profili sil</button></div><p class="muted">Yerel profil; cue, kontrol listesi ve alıştırma notları içindir. Resmî eğitim tamamlama kaydı değildir. Windows üzerinde profil dosyası kullanıcı hesabına bağlı DPAPI ile şifrelenir.</p><div class="row-actions"><button class="btn btn-secondary" id="studentExport">Yerel çalışma notlarını dışa aktar</button><button class="btn btn-secondary" id="studentImport">JSON içe aktar</button><input type="file" id="studentImportFile" accept="application/json,.json" hidden></div></div><div class="panel"><div class="panel-head"><div><h3>Resmî eğitim aşamaları</h3><small class="muted" id="courseProgressSubtitle">Sunucudaki öğretmen onayları</small></div><strong id="studentProgressText">0%</strong></div><div class="progress-track"><div id="studentProgressBar" class="progress-fill" style="width:0%"></div></div><div id="studentModules" class="student-modules"></div><div class="notice"><strong>Onay kuralı</strong><span>Bu listedeki tamamlanma bilgileri hesabınla Stagepulse sunucusundan alınır. Öğrenci kendi durumunu değiştiremez veya dışa aktardığı dosyayla tamamlanmış sayılmaz.</span></div></div></div></section>
+
+    <section class="page" data-page="assistant"><div class="page-intro"><div><span class="eyebrow">YEREL İSTEMLER / İSTEĞE BAĞLI API</span><h2>AI ve çalışma asistanı</h2><p>İstem şablonları yerel çalışır. Model bağlantısı yalnızca lisanslı hesapta, seçtiğin sağlayıcıya ve açık rızanla yapılır.</p></div><span class="badge badge-gold">Anahtar kaydedilmez</span></div><div class="two-col"><div class="panel"><h3>Ses mühendisliği istemleri</h3><div class="field"><label for="promptType">Görev</label><select id="promptType"><option value="live">Canlı ses arızası</option><option value="wav">Ses dosyası analizi</option><option value="mix">Miks değerlendirmesi</option><option value="pa">PA / sub hizalama</option><option value="noise">Gürültü / yalıtım raporu</option><option value="speech">Konuşma / TTS kalite kontrolü</option></select></div><div class="field"><label for="promptContext">Kendi notların</label><textarea id="promptContext" rows="5" placeholder="Cihaz, belirti, ölçüm ve hedefi ekle..."></textarea></div><button class="btn btn-gold" id="buildPrompt">Türkçe istemi oluştur</button><textarea id="promptOutput" rows="9" readonly></textarea><button class="btn btn-secondary" id="copyPrompt">İstemi kopyala</button></div><div class="panel"><h3>AI sağlayıcıları</h3><div class="field"><label for="aiProvider">Sağlayıcı / katman</label><select id="aiProvider"><option value="ollama">Ollama · Yerel / otomatik model</option><option value="groq">Groq · Çevrimiçi yedek</option></select></div><div class="field"><label for="aiModel">Model yönlendirmesi</label><input id="aiModel" type="text" value="auto" autocomplete="off" readonly></div><div class="field"><label for="aiEndpoint">Endpoint</label><input id="aiEndpoint" type="url" value="http://127.0.0.1:11434/api/chat" placeholder="Sağlayıcı seçimine göre otomatik ayarlanır"></div><div class="field"><label for="aiKey">API anahtarı</label><input id="aiKey" type="password" autocomplete="new-password" placeholder="Yalnızca bu oturumda kullanılır"></div><label class="consent-line"><input type="checkbox" id="aiConsent"><span>İstem metninin seçilen sağlayıcıya gönderilmesini kabul ediyorum. Dosyalar ve profiller iznim olmadan aktarılmaz.</span></label><div class="row-actions"><button class="btn btn-secondary" id="testAIConnection">Bağlantıyı test et</button><button class="btn btn-gold" id="sendAI">İsteği gönder</button></div><div id="aiStatus" class="report-box">Ollama yerel ve otomatik çalışır. Groq yalnızca yedek sağlayıcıdır; kendi API anahtarını girmen gerekir.</div><p class="muted">API anahtarları diske kaydedilmez. Yalnızca Ollama ve Groq kullanılabilir. Uygulama sağlayıcıya yalnızca onayladığın istem metnini gönderir. Ollama için Ollama uygulaması ve yerel model ayrıca kurulmuş olmalıdır.</p></div></div></section>
+
+    <section class="page" data-page="account"><div class="page-intro"><div><span class="eyebrow">STAGEPULSE HESAP / ÜRÜN LİSANSI</span><h2>Hesap, lisans ve güncellemeler</h2><p>Yerel araçları lisans olmadan kullanabilirsin. Hesap ve lisans, bulut AI ile resmî öğretmen/öğrenci ilerleme özelliklerini açar.</p></div><span class="badge badge-gold" id="accountRoleBadge">Giriş yapılmadı</span></div><div class="two-col"><div class="panel" id="accountAuthPanel"><h3>Stagepulse hesabı</h3><div class="field"><label for="accountDisplayName">Ad / görünen ad (kayıt için)</label><input id="accountDisplayName" type="text" maxlength="120" autocomplete="name" placeholder="Adınız"></div><div class="field"><label for="accountEmail">E-posta</label><input id="accountEmail" type="email" maxlength="320" autocomplete="username" placeholder="ornek@eposta.com"></div><div class="field"><label for="accountPassword">Şifre</label><input id="accountPassword" type="password" autocomplete="current-password" minlength="10" maxlength="256" placeholder="En az 10 karakter"></div><div class="row-actions"><button class="btn btn-gold" id="accountLogin">Giriş yap</button><button class="btn btn-secondary" id="accountSignup">Öğrenci hesabı oluştur</button></div><p class="muted">Şifren uygulamada tutulmaz. Hesap ve oturum doğrulaması Supabase Auth üzerinden yapılır. E-posta doğrulaması istenirse e-postandaki adımı tamamla.</p></div><div class="panel"><div class="panel-head"><div><h3>Bu cihazın lisansı</h3><p class="muted" id="licenseStatusText">Yerel demo açık. Bulut ve öğretmen özellikleri için lisans gerekir.</p></div><button class="btn btn-secondary" id="accountLogout">Çıkış yap</button></div><div class="field"><label for="licenseKeyInput">Satın alınan lisans anahtarı</label><input id="licenseKeyInput" type="text" maxlength="100" autocomplete="off" placeholder="SP-SM-XXXXX-XXXXX-…"></div><button class="btn btn-gold" id="licenseActivate">Bu cihazı etkinleştir</button><div class="report-box" id="accountStatus">Yerel araçlar, profil kayıtları ve eğitim PDF’leri lisans olmadan kullanılabilir. Ücretli bulut AI ve resmî öğretmen/öğrenci ilerleme özellikleri için hesap ve lisans gerekir.</div><p class="muted">İlk lisans aktivasyonu ve resmî öğretmen/öğrenci senkronizasyonu için internet gerekir. Yerel hesaplayıcılar, profil kayıtları ve eğitim PDF’leri lisans kontrolünden bağımsız çalışır.</p></div></div><div class="panel teacher-only hidden" id="teacherLicensePanel"><div class="panel-head"><div><h3>Öğretmen / lisans yöneticisi</h3><p class="muted">Bu bölüm yalnızca sahibin sunucu tarafında doğrulanan hesabında görünür.</p></div><span class="badge badge-gold">Yönetici</span></div><div class="account-license-grid"><div class="field"><label for="licenseLabel">Lisans etiketi</label><input id="licenseLabel" type="text" maxlength="120" value="Öğrenci lisansı"></div><div class="field"><label for="licenseCustomerName">Müşteri / öğrenci adı</label><input id="licenseCustomerName" type="text" maxlength="120" placeholder="Ad soyad"></div><div class="field"><label for="licenseCustomerEmail">E-posta (isteğe bağlı)</label><input id="licenseCustomerEmail" type="email" maxlength="320" placeholder="ornek@eposta.com"></div><div class="field"><label for="licensePlan">Lisans türü</label><select id="licensePlan"><option value="student">Tek öğrenci</option><option value="classroom">Sınıf / kurum</option><option value="lifetime">Süresiz</option></select><div class="field"><label for="licenseBundle">Eğitim paketi / lisans kapsamı</label><select id="licenseBundle"><option value="start">Temel Başlangıç</option><option value="live_sound">Canlı Ses / FOH / Monitör</option><option value="rf_wireless">RF / Kablosuz / IEM</option><option value="pa_system">PA / DSP / Sistem Tasarımı</option><option value="studio_post">Stüdyo / Post Prodüksiyon</option><option value="spl_acoustics">SPL / Akustik Ölçüm</option><option value="digital_console">Dijital Konsol Uzmanlığı</option><option value="full_master">Usta Yolu Full Paket</option><option value="institution">Kurum / Ekip Paketi</option></select></div></div><div class="field"><label for="licenseSeats">Cihaz aktivasyon sınırı</label><input id="licenseSeats" type="number" min="1" max="100" value="1"></div><div class="field"><label for="licenseDays">Geçerlilik (gün, 0 = süresiz)</label><input id="licenseDays" type="number" min="0" max="3650" value="365"></div><div class="field"><label for="licensePaymentMethod">Ödeme yöntemi</label><select id="licensePaymentMethod"><option value="cash">Elden / nakit</option><option value="bank_transfer">Havale / EFT</option><option value="card">Kart / POS</option><option value="other">Diğer</option></select></div><div class="field"><label for="licensePaymentStatus">Ödeme durumu</label><select id="licensePaymentStatus"><option value="unpaid" selected>Ödeme bekliyor, lisans kapalı</option><option value="paid">Ödendi, lisans açılabilir</option></select></div><div class="field"><label for="licenseAmount">Tutar</label><input id="licenseAmount" type="number" min="0" max="999999999" step="0.01" value="0"></div><div class="field"><label for="licenseCurrency">Para birimi</label><input id="licenseCurrency" type="text" maxlength="3" value="TRY"></div><div class="field"><label for="licensePaymentReference">Dekont / satış notu (isteğe bağlı)</label><input id="licensePaymentReference" type="text" maxlength="120" placeholder="Dekont no veya elden satış notu"></div></div><button class="btn btn-gold" id="licenseCreate">Yeni lisans anahtarı üret</button><div class="field"><label for="issuedLicenseKey">Üretilen anahtar (yalnızca bir kez gösterilir)</label><textarea id="issuedLicenseKey" rows="2" readonly placeholder="Henüz anahtar oluşturulmadı"></textarea></div><button class="btn btn-secondary" id="copyIssuedLicense">Anahtarı kopyala</button><p class="muted">Elden satış için ödeme yöntemi ve tutarı kaydet. Ödeme bekleyen anahtar etkinleşmez; ödemeyi aldıktan sonra listeden onayla. Veritabanında anahtarın kendisi değil SHA-256 özeti tutulur; oluşturulduğunda yalnızca bir kez gösterilir. Fatura / tahsilat mevzuatı ayrıca yürütülmelidir.</p><div class="license-list-wrap"><div class="panel-head"><div><h3>Oluşturulan lisanslar</h3><p class="muted">Anahtarın kendisi yeniden gösterilmez. Lisans durumunu, süresini ve etkinleştirme sayısını buradan yönet.</p></div><button class="btn btn-secondary" id="refreshLicenseList">Lisansları yenile</button></div><div id="licenseListStatus" class="report-box">Lisans listesi yüklenmedi.</div><div id="licenseList" class="license-list" aria-live="polite"></div></div></div><div class="panel"><div class="panel-head"><div><h3>Güncelleme</h3><p class="muted">Yeni kurulum paketi Stagepulse sitesine yayımlandığında bütünleşik güncelleme kontrolü burada çalışır.</p></div><button class="btn btn-gold" id="checkUpdates">Güncellemeleri denetle</button></div><div id="updateStatus" class="report-box">Sürüm bildirimi kontrol edilmedi.</div><button class="btn btn-secondary hidden" id="installUpdate">Doğrulanmış güncellemeyi indir ve kur</button></div><div class="panel"><h3>Stagepulse çevrimiçi</h3><p class="muted">Lisans, ürün desteği ve yayımlanan sürümler Stagepulse alan adı altında yönetilir.</p><div class="row-actions"><button class="btn btn-secondary" id="openStagepulseSite">Stagepulse.com.tr aç</button><button class="btn btn-secondary" id="openSupportSite">Destek / iletişim</button></div></div></section>
+
+    <section class="page" data-page="settings"><div class="page-intro"><div><span class="eyebrow">UYGULAMA DURUMU</span><h2>Ayarlar ve gizlilik</h2><p>Yerel dosyalar, çevrimdışı çalışma ve isteğe bağlı bağlantılar.</p></div></div><div class="settings-grid"><div class="panel"><h3>Çalışma durumu</h3><div id="settingsInfo" class="settings-info">Uygulama bilgisi yükleniyor…</div><div class="row-actions"><button class="btn btn-secondary" id="checkOffline">Bağlantıyı kontrol et</button><button class="btn btn-secondary" data-route="account">Hesap / güncellemeler</button><button class="btn btn-secondary" id="exportAllData">Yerel çalışma notlarını dışa aktar</button></div></div><div class="panel"><h3>Veri ve izinler</h3><ul class="plain-list"><li>Ses dosyası analizi yerel yapılır.</li><li>RTA mikrofon izni gerektirir, ses kaydı saklamaz.</li><li>AI endpoint'e yalnızca açık onayla yazı gönderilir.</li><li>API anahtarı profil dosyasına yazılmaz.</li><li>Resmî eğitim ilerlemesi sunucuda tutulur; yalnızca Stagepulse sahibi işaretleyebilir. Android profilleri WebView yerel depolamasında, Windows profilleri DPAPI ile şifrelenir.</li><li>PDF, HTML araçları ve ders kılavuzları EXE içine paketlenir.</li></ul><button class="btn btn-secondary" data-route="docs">Gizlilik kılavuzunu aç</button></div></div></section>
+
+    <footer class="app-footer"><span>STAGEPULSE · Sesin gücü, işin kalitesi.</span><span id="footerStatus">Yerel çalışma alanı hazır</span></footer>
+  </main>
+</div>
+<script src="/assets/ui/rta_math.js"></script>
+<script src="/assets/ui/acoustic_math.js"></script>
+<script src="/assets/ui/first_party_tools.js"></script>
+<script src="/assets/ui/app.js"></script>
+</body></html>

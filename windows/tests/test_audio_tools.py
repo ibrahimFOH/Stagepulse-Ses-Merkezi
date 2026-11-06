@@ -1,0 +1,111 @@
+import math
+import wave
+from pathlib import Path
+
+import numpy as np
+import soundfile as sf
+
+from core.audio_tools import analyze_wav, normalize_lufs
+
+
+def make_pcm16(path: Path, amplitude: float = 0.2, seconds: float = 2.0, rate: int = 48000):
+    t = np.arange(int(seconds * rate), dtype=np.float64) / rate
+    samples = np.round(np.sin(2 * np.pi * 1000 * t) * amplitude * 32767).astype('<i2')
+    with wave.open(str(path), 'wb') as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)
+        wf.setframerate(rate)
+        wf.writeframes(samples.tobytes())
+    return samples
+
+
+def test_analyze_wav_reports_pcm_scope_and_metrics(tmp_path):
+    path = tmp_path / 'tone.wav'
+    samples = make_pcm16(path, amplitude=0.5, seconds=1)
+    report = analyze_wav(path)
+    assert report['channels'] == 1
+    assert len(report['channel_analysis']) == 1
+    assert report['channel_analysis'][0]['channel'] == 1
+    assert report['channel_analysis'][0]['sample_peak_dbfs'] == report['sample_peak_dbfs']
+    assert report['sample_rate_hz'] == 48000
+    assert report['bits_per_sample'] == 16
+    assert report['frames'] == 48000
+    assert 0.99 < report['duration_seconds'] < 1.01
+    assert -7.0 < report['sample_peak_dbfs'] < -5.5
+    assert -12.0 < report['rms_dbfs'] < -8.0
+    assert 'dB SPL' in report['scope_note']
+    assert len(samples) == report['frames']
+
+
+def test_normalize_writes_new_pcm24_file_and_does_not_touch_source(tmp_path):
+    source = tmp_path / 'source.wav'
+    output = tmp_path / 'out' / 'normalized.wav'
+    make_pcm16(source, amplitude=0.2, seconds=3)
+    before = source.read_bytes()
+    report = normalize_lufs(source, output, -14.0, -1.0)
+    assert output.is_file()
+    assert source.read_bytes() == before
+    info = sf.info(str(output))
+    assert info.subtype == 'PCM_24'
+    assert info.samplerate == 48000 and info.channels == 1
+    assert math.isfinite(report['input_lufs_i'])
+    assert math.isfinite(report['achieved_lufs_i_estimate'])
+    assert report['target_true_peak_dbtp'] == -1.0
+    assert report['output'].endswith('normalized.wav')
+
+
+def test_loud_material_is_limited_by_peak_not_clipped_to_target(tmp_path):
+    source, output = tmp_path / 'loud.wav', tmp_path / 'safe.wav'
+    samples = make_pcm16(source, amplitude=0.01, seconds=3)
+    # Seyrek yüksek tepe, düşük entegre loudness: loudness hedefi piki aşmadan karşılanamaz.
+    samples[24001] = 31000
+    with wave.open(str(source), 'wb') as wf:
+        wf.setnchannels(1); wf.setsampwidth(2); wf.setframerate(48000); wf.writeframes(samples.tobytes())
+    report = normalize_lufs(source, output, -14.0, -1.0)
+    assert report['target_lufs_limited_by_peak'] is True
+    assert report['applied_gain_db'] < 0
+    assert report['output_sample_peak_dbfs'] <= -0.85
+
+
+def test_invalid_target_rejected(tmp_path):
+    source = tmp_path / 'tone.wav'
+    make_pcm16(source)
+    try:
+        normalize_lufs(source, tmp_path / 'bad.wav', 1, -1)
+    except ValueError as exc:
+        assert 'Hedef LUFS' in str(exc)
+    else:
+        raise AssertionError('Geçersiz LUFS hedefi reddedilmedi.')
+
+
+def test_source_and_destination_must_differ(tmp_path):
+    source = tmp_path / 'tone.wav'
+    make_pcm16(source)
+    try:
+        normalize_lufs(source, source)
+    except ValueError as exc:
+        assert 'aynı dosya' in str(exc)
+    else:
+        raise AssertionError('Kaynak dosyanın üzerine yazmaya izin verildi.')
+
+
+def test_analyze_wav_reports_independent_stereo_channel_metrics(tmp_path):
+    path = tmp_path / "stereo.wav"
+    rate = 48000
+    t = np.arange(rate, dtype=np.float64) / rate
+    left = np.round(np.sin(2 * np.pi * 1000 * t) * 0.5 * 32767).astype("<i2")
+    right = np.round(np.sin(2 * np.pi * 500 * t) * 0.1 * 32767 + 0.05 * 32767).astype("<i2")
+    interleaved = np.column_stack((left, right)).astype("<i2")
+    with wave.open(str(path), "wb") as wf:
+        wf.setnchannels(2)
+        wf.setsampwidth(2)
+        wf.setframerate(rate)
+        wf.writeframes(interleaved.tobytes())
+    report = analyze_wav(path)
+    assert len(report["channel_analysis"]) == 2
+    left_report, right_report = report["channel_analysis"]
+    assert left_report["channel"] == 1 and right_report["channel"] == 2
+    assert left_report["sample_peak_dbfs"] > right_report["sample_peak_dbfs"]
+    assert abs(right_report["dc_offset_percent"] - 5.0) < 0.1
+    assert report["sample_values"] == rate * 2
+

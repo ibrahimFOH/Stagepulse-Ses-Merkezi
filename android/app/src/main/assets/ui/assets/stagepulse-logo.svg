@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="116" viewBox="0 0 520 116" role="img" aria-labelledby="title desc">
+<title id="title">Stagepulse</title><desc id="desc">Siyah zemin, altın ses dalgası ve beyaz Stagepulse kelime işareti</desc>
+<rect x="0" y="0" width="520" height="116" rx="14" fill="#090b0f"/>
+<defs><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7dfa1"/><stop offset=".5" stop-color="#d4ad55"/><stop offset="1" stop-color="#9b762a"/></linearGradient></defs>
+<rect x="1" y="1" width="114" height="114" rx="24" fill="#090b0f" stroke="#806427" stroke-width="2"/>
+<path d="M23 61 H33 L41 39 L52 80 L64 27 L75 70 L84 50 L93 61 H99" fill="none" stroke="url(#gold)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="60" cy="61" r="43" fill="none" stroke="#d4ad55" stroke-opacity=".35" stroke-width="1.5"/>
+<text x="139" y="57" fill="#f6f6f4" font-family="Arial, Helvetica, sans-serif" font-size="37" font-weight="700" letter-spacing="2.6">STAGEPULSE</text>
+<path d="M141 72 H496" stroke="url(#gold)" stroke-width="2"/>
+<text x="141" y="96" fill="#d8bb78" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="600" letter-spacing="3.1">SES MÜHENDİSLİĞİ MERKEZİ</text>
+</svg>

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="tr">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" type="text/css" href="freq-finder.css">
+
+    <!-- Çevrimdışı sürüm: gerekli Bootstrap sınıfları freq-finder.css içinde yerel olarak tanımlanır. -->
+    
+    <title>Frekans Bulucu</title>
+</head>
+
+<body>
+    <div class="container-fluid keyboard-container">
+        <div class="row ">
+            <div class="col-sm-12 ">
+                <ul class="keyboard d-flex flex-nowrap">
+                    <!-- Octave 0 -->
+                    <li class="white" id="A0" onclick="playNote(27.50, 0.15, 1)" role="button" tabindex="0" aria-label="A0, 27.50 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(27.50,0.15,1)}"><span>A0</span></li>
+                    <li class="black" id="Bb0" onclick="playNote(29.14, 0.15, 1)" role="button" tabindex="0" aria-label="Bb0, 29.14 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(29.14,0.15,1)}"><span>Bb0 </span></li>
+                    <li class="white" id="B0" onclick="playNote(30.87, 0.15, 1)" role="button" tabindex="0" aria-label="B0, 30.87 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(30.87,0.15,1)}"><span>B0 </span></li>
+                    <!-- Octave 1 -->
+                    <li class="white" id="C1" onclick="playNote(32.70, 0.15, 1)" role="button" tabindex="0" aria-label="C1, 32.70 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(32.70,0.15,1)}"><span>C1 </span></li>
+                    <li class="black" id="C#1" onclick="playNote(34.65, 0.15, 1)" role="button" tabindex="0" aria-label="C#1, 34.65 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(34.65,0.15,1)}"><span>C#1 </span></li>
+                    <li class="white" id="D1" onclick="playNote(36.71, 0.15, 1)" role="button" tabindex="0" aria-label="D1, 36.71 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(36.71,0.15,1)}"><span>D1 </span></li>
+                    <li class="black" id="Eb1" onclick="playNote(38.89, 0.15, 1)" role="button" tabindex="0" aria-label="Eb1, 38.89 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(38.89,0.15,1)}"><span>Eb1 </span></li>
+                    <li class="white" id="E1" onclick="playNote(41.20, 0.15, 1)" role="button" tabindex="0" aria-label="E1, 41.20 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(41.20,0.15,1)}"><span>E1 </span></li>
+                    <li class="white" id="F1" onclick="playNote(43.65, 0.15, 1)" role="button" tabindex="0" aria-label="F1, 43.65 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(43.65,0.15,1)}"><span>F1 </span></li>
+                    <li class="black" id="F#1" onclick="playNote(46.25, 0.15, 1)" role="button" tabindex="0" aria-label="F#1, 46.25 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(46.25,0.15,1)}"><span>F#1 </span></li>
+                    <li class="white" id="G1" onclick="playNote(49.00, 0.15, 1)" role="button" tabindex="0" aria-label="G1, 49.00 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(49.00,0.15,1)}"><span>G1 </span></li>
+                    <li class="black" id="Ab1" onclick="playNote(51.91, 0.15, 1)" role="button" tabindex="0" aria-label="Ab1, 51.91 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(51.91,0.15,1)}"><span>Ab1 </span></li>
+                    <li class="white" id="A1" onclick="playNote(55.00, 0.15, 1)" role="button" tabindex="0" aria-label="A1, 55.00 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(55.00,0.15,1)}"><span>A1 </span></li>
+                    <li class="black" id="Bb1" onclick="playNote(58.27, 0.15, 1)" role="button" tabindex="0" aria-label="Bb1, 58.27 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(58.27,0.15,1)}"><span>Bb1 </span></li>
+                    <li class="white" id="B1" onclick="playNote(61.74, 0.15, 1)" role="button" tabindex="0" aria-label="B1, 61.74 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(61.74,0.15,1)}"><span>B1 </span></li>
+                    <!-- Octave 2 -->
+                    <li class="white" id="C2" onclick="playNote(65.41, 0.15, 1)" role="button" tabindex="0" aria-label="C2, 65.41 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(65.41,0.15,1)}"><span>C2 </span></li>
+                    <li class="black" id="C#2" onclick="playNote(69.30, 0.15, 1)" role="button" tabindex="0" aria-label="C#2, 69.30 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(69.30,0.15,1)}"><span>C#2 </span></li>
+                    <li class="white" id="D2" onclick="playNote(73.42, 0.15, 1)" role="button" tabindex="0" aria-label="D2, 73.42 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(73.42,0.15,1)}"><span>D2 </span></li>
+                    <li class="black" id="Eb2" onclick="playNote(77.78, 0.15, 1)" role="button" tabindex="0" aria-label="Eb2, 77.78 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(77.78,0.15,1)}"><span>Eb2   </span></li>
+                    <li class="white" id="E2" onclick="playNote(82.41, 0.15, 1)" role="button" tabindex="0" aria-label="E2, 82.41 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(82.41,0.15,1)}"><span>E2   </span></li>
+                    <li class="white" id="F2" onclick="playNote(87.31, 0.15, 1)" role="button" tabindex="0" aria-label="F2, 87.31 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(87.31,0.15,1)}"><span>F2   </span></li>
+                    <li class="black" id="F#2" onclick="playNote(92.50, 0.15, 1)" role="button" tabindex="0" aria-label="F#2, 92.50 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(92.50,0.15,1)}"><span>F#2   </span></li>
+                    <li class="white" id="G2" onclick="playNote(98.00, 0.15, 1)" role="button" tabindex="0" aria-label="G2, 98.00 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(98.00,0.15,1)}"><span>G2   </span></li>
+                    <li class="black" id="Ab2" onclick="playNote(103.83, 0.15, 1)" role="button" tabindex="0" aria-label="Ab2, 103.83 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(103.83,0.15,1)}"><span>Ab2   </span></li>
+                    <li class="white" id="A2" onclick="playNote(110.00, 0.15, 1)" role="button" tabindex="0" aria-label="A2, 110.00 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(110.00,0.15,1)}"><span>A2   </span></li>
+                    <li class="black" id="Bb2" onclick="playNote(116.54, 0.15, 1)" role="button" tabindex="0" aria-label="Bb2, 116.54 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(116.54,0.15,1)}"><span>Bb2   </span></li>
+                    <li class="white" id="B2" onclick="playNote(123.47, 0.15, 1)" role="button" tabindex="0" aria-label="B2, 123.47 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(123.47,0.15,1)}"><span>B2   </span></li>
+                    <!-- Octave 3 -->
+                    <li class="white" id="C3" onclick="playNote(130.81, 0.15, 1)" role="button" tabindex="0" aria-label="C3, 130.81 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(130.81,0.15,1)}"><span>C3   </span></li>
+                    <li class="black" id="C#3" onclick="playNote(138.59, 0.15, 1)" role="button" tabindex="0" aria-label="C#3, 138.59 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(138.59,0.15,1)}"><span>C#3   </span></li>
+                    <li class="white" id="D3" onclick="playNote(146.83, 0.15, 1)" role="button" tabindex="0" aria-label="D3, 146.83 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(146.83,0.15,1)}"><span>D3   </span></li>
+                    <li class="black" id="Eb3" onclick="playNote(155.56, 0.15, 1)" role="button" tabindex="0" aria-label="Eb3, 155.56 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(155.56,0.15,1)}"><span>Eb3   </span></li>
+                    <li class="white" id="E3" onclick="playNote(164.81, 0.15, 1)" role="button" tabindex="0" aria-label="E3, 164.81 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(164.81,0.15,1)}"><span>E3   </span></li>
+                    <li class="white" id="F3" onclick="playNote(174.61, 0.15, 1)" role="button" tabindex="0" aria-label="F3, 174.61 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(174.61,0.15,1)}"><span>F3   </span></li>
+                    <li class="black" id="F#3" onclick="playNote(185.00, 0.15, 1)" role="button" tabindex="0" aria-label="F#3, 185.00 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(185.00,0.15,1)}"><span>F#3   </span></li>
+                    <li class="white" id="G3" onclick="playNote(196.00, 0.15, 1)" role="button" tabindex="0" aria-label="G3, 196.00 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(196.00,0.15,1)}"><span>G3   </span></li>
+                    <li class="black" id="Ab3" onclick="playNote(207.65, 0.15, 1)" role="button" tabindex="0" aria-label="Ab3, 207.65 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(207.65,0.15,1)}"><span>Ab3   </span></li>
+                    <li class="white" id="A3" onclick="playNote(220.00, 0.15, 1)" role="button" tabindex="0" aria-label="A3, 220.00 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(220.00,0.15,1)}"><span>A3   </span></li>
+                    <li class="black" id="Bb3" onclick="playNote(233.08, 0.15, 1)" role="button" tabindex="0" aria-label="Bb3, 233.08 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(233.08,0.15,1)}"><span>Bb3   </span></li>
+                    <li class="white" id="B3" onclick="playNote(246.94, 0.15, 1)" role="button" tabindex="0" aria-label="B3, 246.94 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(246.94,0.15,1)}"><span>B3   </span></li>
+                    <!-- Octave 4 -->
+                    <li class="white" id="C4" onclick="playNote(261.63, 0.15, 1)" role="button" tabindex="0" aria-label="C4, 261.63 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(261.63,0.15,1)}"><span>C4    </span></li>
+                    <li class="black" id="C#4" onclick="playNote(277.18, 0.15, 1)" role="button" tabindex="0" aria-label="C#4, 277.18 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(277.18,0.15,1)}"><span>C#4   </span></li>
+                    <li class="white" id="D4" onclick="playNote(293.66, 0.15, 1)" role="button" tabindex="0" aria-label="D4, 293.66 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(293.66,0.15,1)}"><span>D4 </span></li>
+                    <li class="black" id="Eb4" onclick="playNote(311.13, 0.15, 1)" role="button" tabindex="0" aria-label="Eb4, 311.13 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(311.13,0.15,1)}"><span>Eb4 </span></li>
+                    <li class="white" id="E4" onclick="playNote(329.63, 0.15, 1)" role="button" tabindex="0" aria-label="E4, 329.63 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(329.63,0.15,1)}"><span>E4 </span></li>
+                    <li class="white" id="F4" onclick="playNote(349.23, 0.15, 1)" role="button" tabindex="0" aria-label="F4, 349.23 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(349.23,0.15,1)}"><span>F4 </span></li>
+                    <li class="black" id="F#4" onclick="playNote(369.99, 0.15, 1)" role="button" tabindex="0" aria-label="F#4, 369.99 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(369.99,0.15,1)}"><span>F#4 </span></li>
+                    <li class="white" id="G4" onclick="playNote(392.00, 0.15, 1)" role="button" tabindex="0" aria-label="G4, 392.00 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(392.00,0.15,1)}"><span>G4 </span></li>
+                    <li class="black" id="Ab4" onclick="playNote(415.30, 0.15, 1)" role="button" tabindex="0" aria-label="Ab4, 415.30 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(415.30,0.15,1)}"><span>Ab4 </span></li>
+                    <li class="white" id="A4" onclick="playNote(440.00, 0.15, 1)" role="button" tabindex="0" aria-label="A4, 440.00 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(440.00,0.15,1)}"><span>A4 </span></li>
+                    <li class="black" id="Bb4" onclick="playNote(466.16, 0.15, 1)" role="button" tabindex="0" aria-label="Bb4, 466.16 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(466.16,0.15,1)}"><span>Bb4 </span></li>
+                    <li class="white" id="B4" onclick="playNote(493.88, 0.15, 1)" role="button" tabindex="0" aria-label="B4, 493.88 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(493.88,0.15,1)}"><span>B4 </span></li>
+                    <!-- Octave 5 -->
+                    <li class="white" id="C5" onclick="playNote(523.25, 0.15, 1)" role="button" tabindex="0" aria-label="C5, 523.25 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(523.25,0.15,1)}"><span>C5   </span></li>
+                    <li class="black" id="C#5" onclick="playNote(554.37, 0.15, 1)" role="button" tabindex="0" aria-label="C#5, 554.37 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(554.37,0.15,1)}"><span>C#5   </span></li>
+                    <li class="white" id="D5" onclick="playNote(587.33, 0.15, 1)" role="button" tabindex="0" aria-label="D5, 587.33 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(587.33,0.15,1)}"><span>D5   </span></li>
+                    <li class="black" id="Eb5" onclick="playNote(622.25, 0.15, 1)" role="button" tabindex="0" aria-label="Eb5, 622.25 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(622.25,0.15,1)}"><span>Eb5   </span></li>
+                    <li class="white" id="E5" onclick="playNote(659.26, 0.15, 1)" role="button" tabindex="0" aria-label="E5, 659.26 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(659.26,0.15,1)}"><span>E5   </span></li>
+                    <li class="white" id="F5" onclick="playNote(698.46, 0.15, 1)" role="button" tabindex="0" aria-label="F5, 698.46 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(698.46,0.15,1)}"><span>F5   </span></li>
+                    <li class="black" id="F#5" onclick="playNote(739.99, 0.15, 1)" role="button" tabindex="0" aria-label="F#5, 739.99 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(739.99,0.15,1)}"><span>F#5   </span></li>
+                    <li class="white" id="G5" onclick="playNote(783.99, 0.15, 1)" role="button" tabindex="0" aria-label="G5, 783.99 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(783.99,0.15,1)}"><span>G5   </span></li>
+                    <li class="black" id="Ab5" onclick="playNote(830.61, 0.15, 1)" role="button" tabindex="0" aria-label="Ab5, 830.61 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(830.61,0.15,1)}"><span>Ab5   </span></li>
+                    <li class="white" id="A5" onclick="playNote(880.00, 0.15, 1)" role="button" tabindex="0" aria-label="A5, 880.00 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(880.00,0.15,1)}"><span>A5   </span></li>
+                    <li class="black" id="Bb5" onclick="playNote(932.33, 0.15, 1)" role="button" tabindex="0" aria-label="Bb5, 932.33 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(932.33,0.15,1)}"><span>Bb5   </span></li>
+                    <li class="white" id="B5" onclick="playNote(987.77, 0.15, 1)" role="button" tabindex="0" aria-label="B5, 987.77 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(987.77,0.15,1)}"><span>B5   </span></li>
+                    <!-- Octave 6 -->
+                    <li class="white" id="C6" onclick="playNote(1046.50, 0.15, 1)" role="button" tabindex="0" aria-label="C6, 1046.50 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(1046.50,0.15,1)}"><span>C6   </span></li>
+                    <li class="black" id="C#6" onclick="playNote(1108.73, 0.15, 1)" role="button" tabindex="0" aria-label="C#6, 1108.73 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(1108.73,0.15,1)}"><span>C#6   </span></li>
+                    <li class="white" id="D6" onclick="playNote(1174.66, 0.15, 1)" role="button" tabindex="0" aria-label="D6, 1174.66 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(1174.66,0.15,1)}"><span>D6   </span></li>
+                    <li class="black" id="Eb6" onclick="playNote(1244.51, 0.15, 1)" role="button" tabindex="0" aria-label="Eb6, 1244.51 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(1244.51,0.15,1)}"><span>Eb6   </span></li>
+                    <li class="white" id="E6" onclick="playNote(1318.51, 0.15, 1)" role="button" tabindex="0" aria-label="E6, 1318.51 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(1318.51,0.15,1)}"><span>E6   </span></li>
+                    <li class="white" id="F6" onclick="playNote(1396.91, 0.15, 1)" role="button" tabindex="0" aria-label="F6, 1396.91 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(1396.91,0.15,1)}"><span>F6   </span></li>
+                    <li class="black" id="F#6" onclick="playNote(1479.98, 0.15, 1)" role="button" tabindex="0" aria-label="F#6, 1479.98 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(1479.98,0.15,1)}"><span>F#6   </span></li>
+                    <li class="white" id="G6" onclick="playNote(1567.98, 0.15, 1)" role="button" tabindex="0" aria-label="G6, 1567.98 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(1567.98,0.15,1)}"><span>G6   </span></li>
+                    <li class="black" id="Ab6" onclick="playNote(1661.22, 0.15, 1)" role="button" tabindex="0" aria-label="Ab6, 1661.22 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(1661.22,0.15,1)}"><span>Ab6   </span></li>
+                    <li class="white" id="A6" onclick="playNote(1760.00, 0.15, 1)" role="button" tabindex="0" aria-label="A6, 1760.00 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(1760.00,0.15,1)}"><span>A6   </span></li>
+                    <li class="black" id="Bb6" onclick="playNote(1864.66, 0.15, 1)" role="button" tabindex="0" aria-label="Bb6, 1864.66 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(1864.66,0.15,1)}"><span>Bb6   </span></li>
+                    <li class="white" id="B6" onclick="playNote(1975.53, 0.15, 1)" role="button" tabindex="0" aria-label="B6, 1975.53 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(1975.53,0.15,1)}"><span>B6   </span></li>
+                    <!-- Octave 7 -->
+                    <li class="white" id="C7" onclick="playNote(2093.00, 0.15, 1)" role="button" tabindex="0" aria-label="C7, 2093.00 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(2093.00,0.15,1)}"><span>C7   </span></li>
+                    <li class="black" id="C#7" onclick="playNote(2217.46, 0.15, 1)" role="button" tabindex="0" aria-label="C#7, 2217.46 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(2217.46,0.15,1)}"><span>C#7   </span></li>
+                    <li class="white" id="D7" onclick="playNote(2349.32, 0.15, 1)" role="button" tabindex="0" aria-label="D7, 2349.32 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(2349.32,0.15,1)}"><span>D7   </span></li>
+                    <li class="black" id="Eb7" onclick="playNote(2489.02, 0.15, 1)" role="button" tabindex="0" aria-label="Eb7, 2489.02 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(2489.02,0.15,1)}"><span>Eb7   </span></li>
+                    <li class="white" id="E7" onclick="playNote(2637.02, 0.15, 1)" role="button" tabindex="0" aria-label="E7, 2637.02 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(2637.02,0.15,1)}"><span>E7   </span></li>
+                    <li class="white" id="F7" onclick="playNote(2793.83, 0.15, 1)" role="button" tabindex="0" aria-label="F7, 2793.83 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(2793.83,0.15,1)}"><span>F7   </span></li>
+                    <li class="black" id="F#7" onclick="playNote(2959.96, 0.15, 1)" role="button" tabindex="0" aria-label="F#7, 2959.96 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(2959.96,0.15,1)}"><span>F#7   </span></li>
+                    <li class="white" id="G7" onclick="playNote(3135.96, 0.15, 1)" role="button" tabindex="0" aria-label="G7, 3135.96 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(3135.96,0.15,1)}"><span>G7   </span></li>
+                    <li class="black" id="Ab7" onclick="playNote(3322.44, 0.15, 1)" role="button" tabindex="0" aria-label="Ab7, 3322.44 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(3322.44,0.15,1)}"><span>Ab7   </span></li>
+                    <li class="white" id="A7" onclick="playNote(3520.00, 0.15, 1)" role="button" tabindex="0" aria-label="A7, 3520.00 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(3520.00,0.15,1)}"><span>A7   </span></li>
+                    <li class="black" id="Bb7" onclick="playNote(3729.31, 0.15, 1)" role="button" tabindex="0" aria-label="Bb7, 3729.31 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(3729.31,0.15,1)}"><span>Bb7   </span></li>
+                    <li class="white" id="B7" onclick="playNote(3951.07, 0.15, 1)" role="button" tabindex="0" aria-label="B7, 3951.07 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(3951.07,0.15,1)}"><span>B7   </span></li>
+                    <!-- Octave 8 -->
+                    <li class="white" id="C8" onclick="playNote(4186.01, 0.15, 1)" role="button" tabindex="0" aria-label="C8, 4186.01 Hz" onkeydown="if(event.key==='Enter'||event.key===' '){playNote(4186.01,0.15,1)}"><span>C8   </span></li>
+                </ul>
+
+
+
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid freq-container justify-content-center text-center lead" style="display: inline-block;">
+        <span class="arrow">←</span> Daha fazla nota ulaşmak için yatay kaydırın <span class="arrow">→</span>
+        <h1 class="instructions" id="freq">Bir notaya basın<br>frekansı<br>görüntüleyin</h1>
+
+    </div>
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script type="text/javascript" src="freq-finder.js"></script>
+</body>
+
+</html>

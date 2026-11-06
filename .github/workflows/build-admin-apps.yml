@@ -1,0 +1,91 @@
+name: Stagepulse Yönetim Paneli EXE + APK
+
+on:
+  push:
+    branches:
+      - feature/wavelab-live-mic-delay
+    paths:
+      - "admin-app/android/**"
+      - ".github/workflows/build-admin-apps.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-exe:
+    runs-on: windows-latest
+    steps:
+      - name: Kaynak kodunu al
+        uses: actions/checkout@v4
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Bağımlılıkları kur
+        run: python -m pip install -r admin-app/desktop/requirements.txt
+      - name: Node.js 22 kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: JavaScript sözdizimini denetle
+        run: node --check assets\app.js
+        working-directory: admin-app/desktop
+      - name: Yönetim EXE'sini derle
+        run: pyinstaller --noconfirm --clean --onefile --windowed --name Stagepulse-Yonetim-Paneli --add-data "admin-app\desktop\assets;assets" admin-app/desktop/main.py
+      - name: EXE çıktısını doğrula
+        shell: pwsh
+        run: |
+          if (!(Test-Path "dist/Stagepulse-Yonetim-Paneli.exe")) { throw "EXE çıktısı bulunamadı" }
+          Get-Item "dist/Stagepulse-Yonetim-Paneli.exe" | Format-List Name,Length
+      - name: Windows EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Stagepulse-Yonetim-Paneli-Windows-EXE
+          path: dist/Stagepulse-Yonetim-Paneli.exe
+          if-no-files-found: error
+          retention-days: 30
+
+  android-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kaynak kodunu al
+        uses: actions/checkout@v4
+      - name: JDK 17 kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Android SDK lisanslarını kabul et ve platformu kur
+        shell: bash
+        run: |
+          set -euo pipefail
+          export ANDROID_HOME=/usr/local/lib/android/sdk
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | head -n 1)"
+          if [ -z "$SDKMANAGER" ]; then echo "sdkmanager bulunamadı"; find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager; exit 1; fi
+          yes | "$SDKMANAGER" --sdk_root="$ANDROID_HOME" --licenses >/dev/null || true
+          "$SDKMANAGER" --sdk_root="$ANDROID_HOME" "platforms;android-35" "build-tools;35.0.0"
+      - name: Node.js 22 kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Gradle 8.9 kur
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: JavaScript sözdizimini denetle
+        run: node --check app.js
+        working-directory: admin-app/android/app/src/main/assets
+      - name: Debug APK derle
+        working-directory: admin-app/android
+        run: gradle --no-daemon assembleDebug
+      - name: APK çıktısını doğrula
+        run: test -s admin-app/android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Android APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Stagepulse-Yonetim-Paneli-Android-APK
+          path: admin-app/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30

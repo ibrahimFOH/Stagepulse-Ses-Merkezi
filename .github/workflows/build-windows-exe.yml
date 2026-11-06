@@ -1,0 +1,68 @@
+name: Windows EXE
+
+on:
+  pull_request:
+    branches: [research/android-engineering-tools-parity]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-exe-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Kaynak kodunu al
+        uses: actions/checkout@v4
+      - name: Python 3.11 x64 kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          architecture: x64
+      - name: Node.js 22 kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Ortak varlık ve Windows/Android sürümlerini doğrula
+        run: python android/scripts/verify_assets.py
+      - name: Windows sürümünü al
+        id: app_version
+        shell: pwsh
+        run: |
+          $source = Get-Content windows/Merkez.py -Raw
+          if ($source -notmatch 'APP_VERSION\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"') { throw 'Windows sürüm numarası bulunamadı.' }
+          "version=$($Matches[1])" >> $env:GITHUB_OUTPUT
+      - name: JavaScript motorunu ve regresyon testlerini çalıştır
+        shell: pwsh
+        run: |
+          node --check windows/ui/app.js
+          node --check windows/ui/first_party_tools.js
+          node windows/tests/test_first_party_tools.js
+      - name: Kaynak testlerini çalıştır
+        shell: pwsh
+        working-directory: windows
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pytest tests -q
+      - name: Kurulum EXE'sini derle
+        shell: pwsh
+        run: ./windows/EXE_OLUSTUR.ps1
+      - name: EXE çıktısını doğrula
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem -Path windows/dist -Filter "*.exe" -File
+          if ($files.Count -lt 1) { throw "Windows kurulum EXE'si oluşmadı." }
+          $files | ForEach-Object { Get-FileHash -Algorithm SHA256 $_.FullName }
+      - name: Kurulum EXE artifact yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Stagepulse-Ses-Merkezi-Windows-Setup-EXE-${{ steps.app_version.outputs.version }}
+          path: windows/dist/*.exe
+          if-no-files-found: error
+          retention-days: 30

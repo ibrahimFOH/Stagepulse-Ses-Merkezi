@@ -1,0 +1,6 @@
+Stagepulse web sitesinin ana `_headers` dosyasına eklenmesi gereken son bölüm:
+
+/ses-merkezi-lisans/*
+  Cache-Control: no-cache, no-store, must-revalidate
+  X-Robots-Tag: noindex, nofollow, noarchive
+  Referrer-Policy: no-referrer

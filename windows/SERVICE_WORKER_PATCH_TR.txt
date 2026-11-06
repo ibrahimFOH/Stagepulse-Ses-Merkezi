@@ -1,0 +1,9 @@
+Mevcut tam `sw.js` dosyasını bu dosyayla değiştirme. Yalnızca mevcut dosyada aşağıdaki satırı bul:
+
+const AUTHENTICATED_PATHS = ['/admin', '/portal'];
+
+ve şu şekilde güncelle:
+
+const AUTHENTICATED_PATHS = ['/admin', '/portal', '/ses-merkezi-lisans'];
+
+Bu tek değişiklik lisans yönetim yolu için mevcut network-first cache davranışını genişletir. Diğer service worker kodu aynen korunmalıdır. Bu değişiklik Stagepulse web deposunun `main` dalına zaten commit edilmiştir.

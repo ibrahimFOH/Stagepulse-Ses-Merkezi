@@ -1,0 +1,46 @@
+[
+  {
+    "file": "00_BASLANGIC_TR.md",
+    "title": "Başlangıç ve güvenli kullanım"
+  },
+  {
+    "file": "01_CANLI_SES_IS_AKISI_TR.md",
+    "title": "Canlı ses iş akışı"
+  },
+  {
+    "file": "02_PA_ARRAY_SUB_HIZALAMA_TR.md",
+    "title": "PA, array ve sub hizalama"
+  },
+  {
+    "file": "03_RF_KABLOSUZ_SISTEM_TR.md",
+    "title": "RF, kablosuz ve IEM"
+  },
+  {
+    "file": "04_SES_KALITE_KONTROL_TR.md",
+    "title": "Ses kalite kontrolü"
+  },
+  {
+    "file": "05_KONUSMA_KAYDI_HAZIRLIK_TR.md",
+    "title": "Konuşma kaydı"
+  },
+  {
+    "file": "06_YAPAY_ZEKA_ISTEMLERI_TR.md",
+    "title": "Yapay zekâ iş akışları"
+  },
+  {
+    "file": "07_GURULTU_YALITIM_RAPORU_TR.md",
+    "title": "Gürültü ve yalıtım"
+  },
+  {
+    "file": "08_SES_AI_ARASTIRMA_REHBERI_TR.md",
+    "title": "Ses analizi ve yapay zekâ araştırması"
+  },
+  {
+    "file": "09_API_GIZLILIK_TR.md",
+    "title": "Gizlilik ve API kullanımı"
+  },
+  {
+    "file": "10_MUZIK_PRODUKSIYONU_VE_OGRENME_TR.md",
+    "title": "Müzik prodüksiyonu"
+  }
+]

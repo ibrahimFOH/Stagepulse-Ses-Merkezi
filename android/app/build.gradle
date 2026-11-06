@@ -1,0 +1,58 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+def ciReleaseStorePath = System.getenv('ANDROID_KEYSTORE_PATH')
+def updateChannel = 'stable'
+
+android {
+    namespace 'com.stagepulse.sesmerkezi'
+    compileSdk 35
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    defaultConfig {
+        applicationId 'com.stagepulse.sesmerkezi'
+        minSdk 26
+        targetSdk 35
+        versionCode 30808
+        versionName '3.8.8'
+        buildConfigField 'String', 'UPDATE_CHANNEL', '"' + updateChannel + '"'
+    }
+
+    if (ciReleaseStorePath) {
+        signingConfigs {
+            ciRelease {
+                storeFile file(ciReleaseStorePath)
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (ciReleaseStorePath) {
+                signingConfig signingConfigs.ciRelease
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+    implementation 'androidx.core:core-ktx:1.15.0'
+}

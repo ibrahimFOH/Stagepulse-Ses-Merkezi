@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+build/
+dist/
+*.spec
+build_support/MicrosoftEdgeWebView2RuntimeInstallerX64.exe
+build_support/nsis-3.13.zip
+build_support/nsis_extract/
+website_release/latest.json
+website_release/YAYIN_KONTROL_TR.txt

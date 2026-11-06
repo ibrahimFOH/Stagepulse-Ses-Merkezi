@@ -1,0 +1,156 @@
+from __future__ import annotations
+import numpy as np
+import pytest
+from core.rta_capture import (
+    SUPPORTED_FFT_SIZES, aggregate_band_db, spectrum_power_db, supported_centers,
+)
+
+
+def sine(freq: float, sample_rate: int, size: int, amplitude: float = 0.5) -> np.ndarray:
+    t = np.arange(size, dtype=np.float64) / sample_rate
+    return amplitude * np.sin(2 * np.pi * freq * t)
+
+
+def test_supported_bands_obey_nyquist_upper_band_edge():
+    assert supported_centers(44100, 'third', 20, 20000)[-1] == 16000
+    assert 20000 not in supported_centers(44100, 'third', 20, 20000)
+    assert supported_centers(48000, 'third', 20, 20000)[-1] == 20000
+    assert supported_centers(16000, 'octave', 20, 20000)[-1] == 4000
+
+
+@pytest.mark.parametrize('fft_size', SUPPORTED_FFT_SIZES)
+def test_low_frequency_band_uses_fractional_edge_bins_instead_of_becoming_empty(fft_size):
+    sr = 48000
+    freq = 20.0
+    frequencies, spectrum_db = spectrum_power_db(sine(freq, sr, fft_size), sr)
+    level = aggregate_band_db(frequencies, spectrum_db, sr, 20, 'third')
+    assert level > -30, (fft_size, level)
+    assert level < -3
+
+
+def test_high_tone_is_in_expected_treble_band_and_44k_does_not_fake_20k_support():
+    sr, size = 48000, 32768
+    frequencies, spectrum_db = spectrum_power_db(sine(18000, sr, size), sr)
+    level_20k = aggregate_band_db(frequencies, spectrum_db, sr, 20000, 'third')
+    level_16k = aggregate_band_db(frequencies, spectrum_db, sr, 16000, 'third')
+    assert level_20k > level_16k + 15
+    assert aggregate_band_db(frequencies, spectrum_db, 44100, 20000, 'third') == -120
+
+
+def test_band_power_is_near_expected_rms_for_bin_centred_sine():
+    sr, size, freq, amplitude = 48000, 16384, 1000, 0.5
+    frequencies, spectrum_db = spectrum_power_db(sine(freq, sr, size, amplitude), sr)
+    value = aggregate_band_db(frequencies, spectrum_db, sr, 1000, 'third')
+    expected_rms_dbfs = 20 * np.log10(amplitude / np.sqrt(2))
+    assert value == pytest.approx(expected_rms_dbfs, abs=1.5)
+
+
+def test_spectrum_rejects_invalid_fft_size():
+    with pytest.raises(ValueError, match='FFT boyutu'):
+        spectrum_power_db(np.zeros(1024), 48000)
+
+
+def test_native_device_listing_filters_to_inputs_and_marks_default(monkeypatch):
+    import sys
+    from types import SimpleNamespace
+    from core.rta_capture import list_input_devices
+
+    devices = [
+        {'name': 'Dahili Mikrofon', 'max_input_channels': 1, 'max_output_channels': 0,
+         'default_samplerate': 44100.0, 'hostapi': 0},
+        {'name': 'Hoparlör', 'max_input_channels': 0, 'max_output_channels': 2,
+         'default_samplerate': 48000.0, 'hostapi': 0},
+    ]
+    fake = SimpleNamespace(query_devices=lambda: devices,
+                           query_hostapis=lambda: ({'name': 'Windows WASAPI'},),
+                           default=SimpleNamespace(device=(0, 1)))
+    monkeypatch.setitem(sys.modules, 'sounddevice', fake)
+    got = list_input_devices()
+    assert len(got) == 1
+    assert got[0]['name'] == 'Dahili Mikrofon'
+    assert got[0]['is_default'] is True
+    assert got[0]['default_sample_rate'] == 44100
+
+
+def test_native_capture_prefers_48khz_when_the_device_supports_it(monkeypatch):
+    import sys
+    from types import SimpleNamespace
+    from core.rta_capture import RTACapture
+
+    devices = [{'name': 'PC Mikrofonu', 'max_input_channels': 1, 'max_output_channels': 0,
+                'default_samplerate': 44100.0, 'hostapi': 0}]
+    class FakeStream:
+        def __init__(self, **kwargs):
+            self.kwargs = kwargs
+        def start(self):
+            pass
+        def stop(self):
+            pass
+        def close(self):
+            pass
+    class FakeSoundDevice:
+        default = SimpleNamespace(device=(0, -1))
+        InputStream = FakeStream
+        @staticmethod
+        def query_devices(device=None, kind=None):
+            if kind == 'input': return devices[0]
+            if device is None: return devices
+            return devices[device]
+        @staticmethod
+        def query_hostapis(): return ({'name': 'Windows WASAPI'},)
+        @staticmethod
+        def check_input_settings(device=None, channels=None, samplerate=None, dtype=None):
+            if samplerate not in (44100, 48000): raise ValueError('unsupported sample rate')
+    monkeypatch.setitem(sys.modules, 'sounddevice', FakeSoundDevice)
+    capture = RTACapture()
+    result = capture.start(None, 8192)
+    assert result['sample_rate'] == 48000
+    assert result['device'] == 'PC Mikrofonu'
+    capture.stop()
+
+
+def test_snapshot_reports_if_driver_opens_but_no_microphone_frames_arrive(monkeypatch):
+    import sys
+    from types import SimpleNamespace
+    from core.rta_capture import RTACapture
+
+    devices = [{'name': 'Sessiz/erişimsiz mikrofon', 'max_input_channels': 1, 'max_output_channels': 0,
+                'default_samplerate': 48000.0, 'hostapi': 0}]
+    class FakeStream:
+        def __init__(self, **kwargs): pass
+        def start(self): pass
+        def stop(self): pass
+        def close(self): pass
+    class FakeSoundDevice:
+        default = SimpleNamespace(device=(0, -1))
+        InputStream = FakeStream
+        @staticmethod
+        def query_devices(device=None, kind=None):
+            if kind == 'input': return devices[0]
+            if device is None: return devices
+            return devices[device]
+        @staticmethod
+        def query_hostapis(): return ({'name': 'Windows WASAPI'},)
+        @staticmethod
+        def check_input_settings(device=None, channels=None, samplerate=None, dtype=None):
+            if samplerate != 48000: raise ValueError('unsupported')
+    monkeypatch.setitem(sys.modules, 'sounddevice', FakeSoundDevice)
+    capture = RTACapture()
+    capture.start(None, 8192)
+    snapshot = capture.snapshot('third', 20, 20000)
+    assert snapshot['samples_received'] == 0
+    assert snapshot['seconds_since_last_callback'] >= 0
+    capture.stop()
+
+
+def test_audio_callback_updates_input_meter_and_sample_watchdog():
+    from core.rta_capture import RTACapture
+    capture = RTACapture()
+    capture._running = True
+    capture._started_monotonic = __import__('time').monotonic()
+    samples = sine(1000, 48000, 480, amplitude=0.25).astype(np.float32).reshape(-1, 1)
+    capture._audio_callback(samples, len(samples), None, None)
+    assert capture._samples_received == len(samples)
+    assert capture._peak_dbfs == pytest.approx(20 * np.log10(0.25), abs=0.2)
+    assert capture._rms_dbfs == pytest.approx(20 * np.log10(0.25 / np.sqrt(2)), abs=0.3)
+    assert capture._last_callback_monotonic > 0
