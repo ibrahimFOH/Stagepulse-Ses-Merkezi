@@ -15,6 +15,7 @@ on:
       - "android/app/src/main/assets/ui/app.js"
       - "android/app/src/main/assets/ui/index.html"
       - "windows/ui/first_party_tools.js"
+      - "windows/tests/**"
       - "android/app/src/main/assets/ui/first_party_tools.js"
       - "README.md"
       - ".github/workflows/trigger-ses-merkezi-release.yml"
