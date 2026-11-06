@@ -14,6 +14,9 @@ on:
       - "windows/ui/index.html"
       - "android/app/src/main/assets/ui/app.js"
       - "android/app/src/main/assets/ui/index.html"
+      - "windows/ui/first_party_tools.js"
+      - "android/app/src/main/assets/ui/first_party_tools.js"
+      - "README.md"
       - ".github/workflows/trigger-ses-merkezi-release.yml"
   workflow_dispatch:
 
