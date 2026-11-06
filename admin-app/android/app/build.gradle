@@ -3,8 +3,6 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
-def ciReleaseStorePath = System.getenv('ANDROID_KEYSTORE_PATH')
-
 android {
     namespace 'com.stagepulse.yonetim'
     compileSdk 35
@@ -15,23 +13,6 @@ android {
         targetSdk 35
         versionCode 30809
         versionName '3.8.9'
-    }
-
-    if (ciReleaseStorePath) {
-        signingConfigs {
-            ciRelease {
-                storeFile file(ciReleaseStorePath)
-                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
-                keyAlias System.getenv('ANDROID_KEY_ALIAS')
-                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
-            }
-        }
-    }
-
-    buildTypes {
-        release {
-            if (ciReleaseStorePath) signingConfig signingConfigs.ciRelease
-        }
     }
 
     compileOptions {
