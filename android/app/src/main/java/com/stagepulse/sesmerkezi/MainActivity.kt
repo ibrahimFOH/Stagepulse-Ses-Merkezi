@@ -4,9 +4,12 @@ import android.Manifest
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.media.AudioDeviceInfo
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -17,6 +20,7 @@ import android.provider.Settings
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import android.util.Log
 import android.view.WindowInsets
 import android.webkit.ConsoleMessage
 import android.webkit.JavascriptInterface
@@ -70,6 +74,28 @@ class MainActivity : Activity() {
         val script = "window.__stagepulseResolveMediaPermission && window.__stagepulseResolveMediaPermission(" +
             "${JSONObject.quote(callbackId)}, ${granted}, ${JSONObject.quote(message)});"
         runOnUiThread { if (::webView.isInitialized) webView.evaluateJavascript(script, null) }
+    }
+
+    /**
+     * WebView/WebRTC mikrofon yakalaması için Android ses modunu hazırlar.
+     * Mikrofon izni verilmeden önce çağrılır. İletişim cihazı zorla seçilmez;
+     * Android'in varsayılan giriş/çıkış eşlemesi korunur.
+     */
+    private fun configureAudioForCapture() {
+        try {
+            val am = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+            am.mode = AudioManager.MODE_IN_COMMUNICATION
+            Log.d("StagepulseAudio", "Ses yakalama modu etkinleştirildi")
+        } catch (e: Exception) {
+            Log.w("StagepulseAudio", "Ses yakalama modu ayarlanamadı", e)
+        }
+    }
+
+    private fun restoreAudioMode() {
+        try {
+            val am = getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+            am.mode = AudioManager.MODE_NORMAL
+        } catch (_: Exception) { }
     }
 
     private val secureSessionPrefs by lazy { getSharedPreferences("stagepulse_ses_secure_v1", MODE_PRIVATE) }
@@ -190,6 +216,7 @@ class MainActivity : Activity() {
                         checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED
                     }
                     if (missingPermissions.isEmpty()) {
+                        configureAudioForCapture()
                         request.grant(requestedResources.toTypedArray())
                     } else {
                         pendingMediaPermission?.let { pending ->
@@ -1063,6 +1090,7 @@ class MainActivity : Activity() {
             }
         }
         if (grantedResources.isNotEmpty()) {
+            configureAudioForCapture()
             request.grant(grantedResources.toTypedArray())
             if (grantedResources.size < request.resources.distinct().size) {
                 Toast.makeText(this, "İstenen medya izinlerinden bazıları verilmedi.", Toast.LENGTH_SHORT).show()
@@ -1098,6 +1126,7 @@ class MainActivity : Activity() {
         pendingMediaPermission?.deny()
         pendingMediaPermission = null
         bridgeExecutor.shutdownNow()
+        restoreAudioMode()
         super.onDestroy()
     }
 
