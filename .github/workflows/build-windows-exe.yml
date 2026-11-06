@@ -37,21 +37,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Ana ve yönetim sürümlerini doğrula
+      - name: Ana uygulama sürümünü doğrula
         id: version
         shell: pwsh
         run: |
           $android = Get-Content android/app/build.gradle -Raw
           $windows = Get-Content windows/Merkez.py -Raw
           $installer = Get-Content windows/EXE_OLUSTUR.ps1 -Raw
-          $adminAndroid = Get-Content admin-app/android/app/build.gradle -Raw
-          $adminDesktop = Get-Content admin-app/desktop/main.py -Raw
           $values = @(
             [regex]::Match($android, "versionName\s+'([^']+)'").Groups[1].Value,
             [regex]::Match($windows, 'APP_VERSION\s*=\s*"([^"]+)"').Groups[1].Value,
-            [regex]::Match($installer, ([regex]::Escape('$version') + "\s*=\s*'([^']+)'")).Groups[1].Value,
-            [regex]::Match($adminAndroid, "versionName\s+'([^']+)'").Groups[1].Value,
-            [regex]::Match($adminDesktop, 'APP_VERSION\s*=\s*"([^"]+)"').Groups[1].Value
+            [regex]::Match($installer, ([regex]::Escape('$version') + "\s*=\s*'([^']+)'")).Groups[1].Value
           )
           if ($values -contains '') { throw "Uygulama sürümlerinden biri bulunamadı." }
           if (($values | Select-Object -Unique).Count -ne 1) { throw "Uygulama sürümleri eşleşmiyor: $($values -join ', ')" }
