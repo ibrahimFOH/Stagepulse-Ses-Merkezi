@@ -3,6 +3,8 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
+def ciReleaseStorePath = System.getenv('ANDROID_KEYSTORE_PATH')
+
 android {
     namespace 'com.stagepulse.yonetim'
     compileSdk 35
