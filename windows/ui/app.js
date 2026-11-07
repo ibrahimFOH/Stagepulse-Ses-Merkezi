@@ -902,15 +902,16 @@ async function sendAiText(){
 function commerceApi(){return api();}
 function applyAccountContext(context){
  currentAccountContext=context||null;currentRole=context?.role||'guest';
- const license=context?.licensed||{};appAuthorized=currentRole==='owner'||license.active===true;
+ const license=context?.licensed||{},trial=context?.trial||{};appAuthorized=currentRole==='owner'||license.active===true||trial.active===true;
  if(licenseGatePending){licenseGatePending=false;setPage(appAuthorized?'home':'account');}
  else if(!appAuthorized&&activeRoute!=='account')setPage('account');
  if($('accountRoleBadge'))$('accountRoleBadge').textContent=currentRole==='owner'?'Sahip / öğretmen':currentRole==='student'?'Lisanslı öğrenci':'Misafir / lisans gerekli';
  if($('progressRoleBadge'))$('progressRoleBadge').textContent=currentRole==='owner'?'Öğretmen / yönetici':currentRole==='student'?'Öğrenci · salt okunur':'Hesap gerekli';
  const admin=currentRole==='owner';$('teacherLicensePanel').classList.toggle('hidden',!admin);$('teacherProgressPanel').classList.toggle('hidden',!admin);$('fullPackageAdminPanel')?.classList.toggle('hidden',!admin);$('fullPackagePurchasePanel')?.classList.toggle('hidden',!context?.user?.id);
  $('licenseActivate').disabled=currentRole==='owner';$('licenseActivate').textContent=currentRole==='owner'?'Sahip hesabı lisans gerektirmez':'Bu cihazı etkinleştir';
- if(license.active){$('licenseStatusText').textContent=`Lisans etkin · FULL PAKET${license.expires_at?' · son tarih '+new Date(license.expires_at).toLocaleDateString('tr-TR'):''}`;appAuthorized=true;}
- else $('licenseStatusText').textContent=currentRole==='owner'?'Stagepulse sahibi hesabı doğrulandı.':'Ödeme onaylı etkin lisans gerekli. Lisans etkinleştirilene kadar uygulama kilitli.';
+ if(trial.active){const seconds=Math.max(0,Number(trial.remaining_seconds||0)),days=Math.floor(seconds/86400),hours=Math.ceil((seconds%86400)/3600);$('licenseStatusText').textContent=`7 günlük demo açık · ${days>0?days+' gün ':''}${Math.max(1,hours)} saat kaldı`;appAuthorized=true;}
+ else if(license.active){$('licenseStatusText').textContent=`Lisans etkin · FULL PAKET${license.expires_at?' · son tarih '+new Date(license.expires_at).toLocaleDateString('tr-TR'):''}`;appAuthorized=true;}
+ else $('licenseStatusText').textContent=currentRole==='owner'?'Stagepulse sahibi hesabı doğrulandı.':'Ödeme onaylı etkin lisans veya süresi dolmamış demo gerekli.';
  $('accountStatus').textContent=`Hesap: ${context?.user?.email||'—'}\nYetki: ${currentRole}\nLisans: ${license.active?'etkin':'etkin değil'}\nWeb: https://stagepulse.com.tr`;
  if(context?.user?.email&&!$('accountEmail').value)$('accountEmail').value=context.user.email;if(context?.user?.name&&!$('purchaseCustomerName').value)$('purchaseCustomerName').value=context.user.name;
  refreshProfiles();renderStudentModules();
