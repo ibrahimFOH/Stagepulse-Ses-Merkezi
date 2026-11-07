@@ -85,5 +85,13 @@ jobs:
         with:
           gradle-version: "8.13"
 
-      - name: Android birim testlerini çalıştır
-        run: gradle -p android --no-daemon clean testDebugUnitTest --stacktrace
+      - name: Android birim testleri ve APK derlemesi
+        run: gradle -p android --no-daemon clean testDebugUnitTest assembleDebug --stacktrace
+
+      - name: Android debug APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Stagepulse-Ses-Merkezi-Android-3.9.0-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 7
