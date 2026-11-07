@@ -966,7 +966,9 @@ async function startAndroidTf(){
   const track=androidTfStream.getAudioTracks()[0],settings=track?.getSettings?.()||{};
   if(Number(settings.channelCount)>0&&Number(settings.channelCount)<2)throw new Error('Seçilen aygıt Android tarafından mono olarak sunuldu. İki bağımsız giriş kanalı olan USB ses kartı gerekli.');
   androidTfContext=new (window.AudioContext||window.webkitAudioContext)();
-  await androidTfContext.resume();androidTfSampleRate=androidTfContext.sampleRate;
+  await androidTfContext.resume();
+  if(token!==androidTfGeneration){await stopAndroidTf(false);return;}
+  androidTfSampleRate=androidTfContext.sampleRate;
   androidTfDeviceName=track?.label||'Android USB ses girişi';
   const size=androidTfFftSize,bins=size/2+1;
   androidTfRefBuffer=new Float32Array(size);androidTfMicBuffer=new Float32Array(size);
@@ -1003,7 +1005,7 @@ function tickAndroidTf(token){
 }
 function initAndroidTfControls(){
  if(!$('androidTfStart'))return;
- $('androidTfRefresh').addEventListener('click',refreshAndroidTfDevices);
+ $('androidTfRefresh').addEventListener('click',async()=>{try{await requestAndroidRuntimePermission('android.permission.RECORD_AUDIO');await refreshAndroidTfDevices();}catch(error){$('androidTfStatus').textContent=error.message||String(error);}});
  $('androidTfStart').addEventListener('click',startAndroidTf);
  $('androidTfStop').addEventListener('click',()=>stopAndroidTf(true));
  if(navigator.mediaDevices?.addEventListener)navigator.mediaDevices.addEventListener('devicechange',refreshAndroidTfDevices);
