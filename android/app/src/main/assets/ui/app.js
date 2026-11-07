@@ -962,6 +962,7 @@ async function startAndroidTf(){
   if(deviceId)audio.deviceId={exact:deviceId};
   androidTfStream=await navigator.mediaDevices.getUserMedia({audio});
   if(token!==androidTfGeneration){androidTfStream.getTracks().forEach(t=>t.stop());androidTfStream=null;return;}
+  await refreshAndroidTfDevices();
   const track=androidTfStream.getAudioTracks()[0],settings=track?.getSettings?.()||{};
   if(Number(settings.channelCount)>0&&Number(settings.channelCount)<2)throw new Error('Seçilen aygıt Android tarafından mono olarak sunuldu. İki bağımsız giriş kanalı olan USB ses kartı gerekli.');
   androidTfContext=new (window.AudioContext||window.webkitAudioContext)();
