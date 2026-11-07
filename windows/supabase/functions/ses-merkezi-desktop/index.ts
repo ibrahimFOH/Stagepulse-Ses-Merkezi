@@ -431,14 +431,16 @@ Deno.serve(async (req: Request) => {
       const licenseId = String(body.license_id ?? "").trim();
       const paymentStatus = String(body.payment_status ?? "");
       if (!licenseId || !["paid", "unpaid", "refunded"].includes(paymentStatus)) return fail("LICENSE_PAYMENT_DATA_INVALID", 400);
-      const { data: lic, error } = await admin.from("sesm_license_keys")
-        .update({ payment_status: paymentStatus }).eq("id", licenseId).eq("created_by", user.id)
-        .select("id,payment_status,customer_name").maybeSingle();
-      if (error || !lic) return fail("LICENSE_NOT_FOUND", 404);
-      if (paymentStatus !== "paid") {
-        await admin.from("sesm_activations").update({ is_active: false }).eq("license_id", licenseId);
-        await admin.from("sesm_students").update({ is_active: false }).eq("license_id", licenseId).eq("teacher_user_id", user.id);
+      const { data: lic, error } = await admin.rpc("sesm_set_license_payment_status", {
+        p_license_id: licenseId,
+        p_owner_user_id: user.id,
+        p_payment_status: paymentStatus,
+      });
+      if (error) {
+        console.error("Atomic license payment update failed", error.message);
+        return fail(error.code === "P0002" ? "LICENSE_NOT_FOUND" : "LICENSE_PAYMENT_SYNC_FAILED", error.code === "P0002" ? 404 : 500);
       }
+      if (!lic) return fail("LICENSE_NOT_FOUND", 404);
       await audit(user.id, "license_payment_updated", null, licenseId, { payment_status: paymentStatus });
       return reply({ ok: true, license: lic });
     }
@@ -527,11 +529,17 @@ Deno.serve(async (req: Request) => {
     }
     if (action === "license_revoke") {
       await requireOwner(user.id);
-      const licenseId = String(body.license_id ?? "");
-      const { data, error } = await admin.from("sesm_license_keys").update({ is_active: false }).eq("id", licenseId).eq("created_by", user.id).select("id").maybeSingle();
-      if (error || !data) return fail("LICENSE_NOT_FOUND", 404);
-      await admin.from("sesm_activations").update({ is_active: false }).eq("license_id", licenseId);
-      await admin.from("sesm_students").update({ is_active: false }).eq("license_id", licenseId).eq("teacher_user_id", user.id);
+      const licenseId = String(body.license_id ?? "").trim();
+      if (!licenseId) return fail("LICENSE_NOT_FOUND", 404);
+      const { data, error } = await admin.rpc("sesm_revoke_license_atomic", {
+        p_license_id: licenseId,
+        p_owner_user_id: user.id,
+      });
+      if (error) {
+        console.error("Atomic license revoke failed", error.message);
+        return fail(error.code === "P0002" ? "LICENSE_NOT_FOUND" : "LICENSE_REVOKE_FAILED", error.code === "P0002" ? 404 : 500);
+      }
+      if (!data) return fail("LICENSE_NOT_FOUND", 404);
       await audit(user.id, "license_revoked", null, licenseId);
       return reply({ ok: true });
     }
