@@ -232,9 +232,9 @@ class AppApi(AcousticAnalysisApi):
         cached = self._cached_license_status()
         return {
             "name": APP_NAME, "version": APP_VERSION,
-            "mode": "tek kurulum / tek pencere / çevrimdışı öncelikli / yerel demo erişimi",
-            "demo_mode": True,
-            "license_required_for_local_tools": False,
+            "mode": "tek kurulum / tek pencere / lisans zorunlu / çevrimdışı öncelikli",
+            "demo_mode": False,
+            "license_required_for_local_tools": True,
             "data_dir": str(DATA_ROOT), "runtime": "WebView2",
             "website": WEBSITE_URL, "update_manifest": UPDATE_MANIFEST_URL,
             "offline_license_grace_days": OFFLINE_LICENSE_GRACE_DAYS,
@@ -248,13 +248,16 @@ class AppApi(AcousticAnalysisApi):
             return {"active": False, "reason": "not_verified"}
         try:
             checked = float(cached.get("verified_at", 0))
-            if time.time() - checked > OFFLINE_LICENSE_GRACE_DAYS * 86400:
+            now = time.time()
+            if checked <= 0 or checked > now + 300:
+                return {"active": False, "reason": "cache_invalid"}
+            if now - checked > OFFLINE_LICENSE_GRACE_DAYS * 86400:
                 return {"active": False, "reason": "offline_grace_expired"}
             expires = cached.get("expires_at")
             if expires and time.time() >= __import__("datetime").datetime.fromisoformat(str(expires).replace("Z", "+00:00")).timestamp():
                 return {"active": False, "reason": "license_expired"}
             # A cached owner role never restores teacher/admin access while offline.
-            return {"active": True, "reason": "offline_grace", "plan_code": cached.get("plan_code", "student"), "bundle_code": cached.get("bundle_code", "start"), "expires_at": expires, "verified_at": checked}
+            return {"active": True, "reason": "offline_grace", "plan_code": cached.get("plan_code", "student"), "bundle_code": cached.get("bundle_code", "start"), "expires_at": expires, "verified_at": checked, "user_id": cached.get("user_id")}
         except (ValueError, TypeError, OverflowError):
             return {"active": False, "reason": "cache_invalid"}
 
@@ -413,8 +416,10 @@ class AppApi(AcousticAnalysisApi):
     def ai_chat(self, provider: str, model: str, api_key: str, prompt: str, endpoint: str = "",
                 request_options: dict[str, Any] | None = None, keep_alive: str = "30m",
                 think: bool = False) -> dict[str, Any]:
-        """Run local Ollama in demo mode; require an active license for remote AI calls."""
+        """Run AI providers only while a paid license is valid, including offline grace."""
         from core.ai_providers import PROVIDERS, _validate_endpoint, chat
+        if not self._cached_license_status().get("active"):
+            raise RuntimeError("Stagepulse Ses Merkezi için etkin ve ödemesi onaylı lisans gerekir.")
         provider_id = str(provider or "auto").strip().lower()
         if provider_id == "auto":
             # Always try this computer's Ollama first. User text reaches Groq
@@ -560,7 +565,17 @@ class AppApi(AcousticAnalysisApi):
             self._account_context = None
             return {"ok": True, "authenticated": False}
         access = str(stored.get("access_token") or "")
-        user = self._auth_user_request(access) if access else None
+        try:
+            user = self._auth_user_request(access) if access else None
+        except RuntimeError as exc:
+            message = str(exc)
+            cached = self._cached_license_status()
+            stored_user_id = (stored.get("user") or {}).get("id") if isinstance(stored.get("user"), dict) else None
+            network_unavailable = "ulaşılamadı" in message.lower() or "çevrimiçi servisine" in message.lower()
+            if network_unavailable and cached.get("active") and cached.get("user_id") == stored_user_id:
+                self._session = stored
+                return {"ok": True, "authenticated": False, "offline": True, "license": cached}
+            raise
         if user is not None:
             self._session = stored
         else:
@@ -580,7 +595,17 @@ class AppApi(AcousticAnalysisApi):
                 return {"ok": True, "authenticated": False}
             self._session = refreshed
             self._persist_auth_session()
-        context = self._edge_call("context", {"device_hash": _installation_device_hash()})
+        try:
+            context = self._edge_call("context", {"device_hash": _installation_device_hash()})
+        except RuntimeError as exc:
+            message = str(exc)
+            cached = self._cached_license_status()
+            stored_user_id = (stored.get("user") or {}).get("id") if isinstance(stored.get("user"), dict) else None
+            network_unavailable = "ulaşılamadı" in message.lower() or "çevrimiçi servisine" in message.lower()
+            if network_unavailable and cached.get("active") and cached.get("user_id") == stored_user_id:
+                self._session = stored
+                return {"ok": True, "authenticated": False, "offline": True, "license": cached}
+            raise
         self._account_context = context
         self._cache_server_license(context)
         return {"ok": True, "authenticated": True, "context": context}
