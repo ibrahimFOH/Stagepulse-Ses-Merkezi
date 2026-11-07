@@ -805,7 +805,7 @@ class AppApi(AcousticAnalysisApi):
                 manifest.get("channel") != UPDATE_CHANNEL or
                 manifest.get("prerelease") is not False):
             raise RuntimeError("Yalnızca yayımlanmış kararlı güncellemeler kabul edilir.")
-        if (not re.fullmatch(r"\\d+\\.\\d+\\.\\d+", version) or
+        if (not re.fullmatch(r"\d+\.\d+\.\d+", version) or
                 not re.fullmatch(r"[0-9a-f]{64}", digest)):
             raise RuntimeError("Güncelleme bildiriminin sürüm veya SHA-256 alanı geçersiz.")
         filename = f"Stagepulse-Ses-Merkezi-Windows-{version}.exe"
