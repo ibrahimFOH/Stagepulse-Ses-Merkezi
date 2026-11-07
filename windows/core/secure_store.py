@@ -5,6 +5,7 @@ Windows dışı geliştirme/test ortamlarında AES-GCM kullanılır.
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import secrets
