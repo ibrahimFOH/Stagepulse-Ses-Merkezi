@@ -1,4 +1,4 @@
-name: Android kalite ve test APK
+name: Android kalite ve imzalı Release APK
 
 on:
   push:
@@ -19,12 +19,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: android-quality-${{ github.ref }}
+  group: android-release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   android:
-    name: Android kaynak, varlık, test ve APK doğrulaması
+    name: Android testleri ve imzalı Release APK
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -48,11 +48,11 @@ jobs:
           import re
           from pathlib import Path
           gradle = Path("android/app/build.gradle").read_text(encoding="utf-8")
-          name = re.search(r"\bversionName\s+'([^']+)'", gradle)
-          code = re.search(r"\bversionCode\s+(\d+)", gradle)
+          name = re.search(r"\\bversionName\\s+'([^']+)'", gradle)
+          code = re.search(r"\\bversionCode\\s+(\\d+)", gradle)
           if not name or not code:
               raise SystemExit("Android sürüm bilgisi bulunamadı.")
-          m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", name.group(1))
+          m = re.fullmatch(r"(\\d+)\\.(\\d+)\\.(\\d+)", name.group(1))
           if not m:
               raise SystemExit("Android sürümü X.Y.Z biçiminde değil.")
           expected = int(m.group(1))*10000 + int(m.group(2))*100 + int(m.group(3))
@@ -86,37 +86,69 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SDK_ROOT="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDK_ROOT="${{{ANDROID_HOME:-/usr/local/lib/android/sdk}"
           SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager 2>/dev/null | sort -V | tail -n 1)"
           test -n "$SDKMANAGER"
           yes | "$SDKMANAGER" --sdk_root="$SDK_ROOT" --licenses >/dev/null || true
           "$SDKMANAGER" --sdk_root="$SDK_ROOT" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          test -x "$SDK_ROOT/build-tools/35.0.0/apksigner"
+          test -x "$SDK_ROOT/build-tools/35.0.0/zipalign"
 
-      - name: Gradle 8.9 kur
+      - name: Gradle 8.13 kur
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.13"
 
-      - name: Android birim testlerini ve debug APK derlemesini çalıştır
-        run: gradle -p android --no-daemon clean testDebugUnitTest assembleDebug --stacktrace
+      - name: Üretim imza anahtarını hazırla
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [[ -z "${{!name:-}}" ]]; then
+              echo "::error::GitHub Actions Secrets içinde $name bulunamadı."
+              exit 1
+            fi
+          done
+          SIGNING_DIR="$RUNNER_TEMP/stagepulse-release-signing"
+          mkdir -p "$SIGNING_DIR"
+          STORE="$SIGNING_DIR/stagepulse-release.jks"
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$STORE"
+          test -s "$STORE"
+          keytool -list -keystore "$STORE" -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias "$ANDROID_KEY_ALIAS" >/dev/null
+          {
+            echo "ANDROID_KEYSTORE_PATH=$STORE"
+            echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+            echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+            echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+          } >> "$GITHUB_ENV"
 
-      - name: Debug APK dosyasını sürüm, paket ve SHA-256 açısından doğrula
+      - name: Android birim testlerini ve yalnızca imzalı Release APK derlemesini çalıştır
+        run: gradle -p android --no-daemon clean testDebugUnitTest assembleRelease --stacktrace
+
+      - name: Release APK sürümünü, imzasını ve bütünlüğünü doğrula
         shell: bash
         env:
           VERSION_NAME: ${{ steps.android_version.outputs.version_name }}
           VERSION_CODE: ${{ steps.android_version.outputs.version_code }}
         run: |
           set -euo pipefail
-          APK="android/app/build/outputs/apk/debug/app-debug.apk"
+          APK="android/app/build/outputs/apk/release/app-release.apk"
           test -s "$APK"
           BADGING="$("$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK")"
           grep -Fq "package: name='com.stagepulse.sesmerkezi' versionCode='$VERSION_CODE' versionName='$VERSION_NAME'" <<< "$BADGING"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$APK"
           sha256sum "$APK"
 
-      - name: Test APK artifact yükle
+      - name: İmzalı Release APK artifact yükle
         uses: actions/upload-artifact@v4
         with:
-          name: Stagepulse-Ses-Merkezi-Android-${{ steps.android_version.outputs.version_name }}-TEST-DEBUG
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: Stagepulse-Ses-Merkezi-Android-__VERSION_NAME__-RELEASE
+          path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
