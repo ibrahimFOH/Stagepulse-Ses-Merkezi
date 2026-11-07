@@ -24,6 +24,20 @@ alter table public.sesm_license_keys
 alter table public.sesm_license_keys
   add constraint sesm_license_keys_bundle_code_check check (bundle_code = 'full_master');
 
+alter table public.sesm_license_keys
+  drop constraint if exists sesm_license_keys_payment_method_check;
+alter table public.sesm_license_keys
+  add constraint sesm_license_keys_payment_method_check
+  check (payment_method in ('cash','bank_transfer','legacy'));
+alter table public.sesm_license_keys
+  drop constraint if exists sesm_license_keys_amount_check;
+alter table public.sesm_license_keys
+  add constraint sesm_license_keys_amount_check check (amount >= 0 and amount <= 2500);
+alter table public.sesm_license_keys
+  drop constraint if exists sesm_license_keys_currency_check;
+alter table public.sesm_license_keys
+  add constraint sesm_license_keys_currency_check check (currency = 'TRY');
+
 create table if not exists public.sesm_purchase_requests (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete restrict,
