@@ -154,3 +154,49 @@ def test_audio_callback_updates_input_meter_and_sample_watchdog():
     assert capture._peak_dbfs == pytest.approx(20 * np.log10(0.25), abs=0.2)
     assert capture._rms_dbfs == pytest.approx(20 * np.log10(0.25 / np.sqrt(2)), abs=0.3)
     assert capture._last_callback_monotonic > 0
+
+
+def test_rta_snapshot_marks_stopped_stream_stale_instead_of_live():
+    import time
+    from core.rta_capture import RTACapture
+
+    capture = RTACapture()
+    capture._running = True
+    capture._sample_rate = 48000
+    capture._fft_size = 8192
+    capture._device_name = "Test giriş"
+    capture._started_monotonic = time.monotonic() - 5
+    capture._last_callback_monotonic = time.monotonic() - 3
+    capture._frequencies = np.fft.rfftfreq(8192, 1 / 48000)
+    capture._power_db = np.full(4097, -60.0)
+
+    result = capture.snapshot()
+    assert result["stream_stale"] is True
+    assert result["stream_healthy"] is False
+    assert result["ready"] is False
+    assert result["seconds_since_last_callback"] >= 3
+
+
+def test_live_tf_snapshot_marks_stopped_stream_stale():
+    import time
+    from core.tf_capture import TFCapture
+
+    capture = TFCapture()
+    capture._running = True
+    capture._sample_rate = 48000
+    capture._fft_size = 8192
+    capture._num_avg = 4
+    capture._device_name = "Test stereo giriş"
+    capture._started = time.monotonic() - 5
+    capture._last_callback = time.monotonic() - 3
+    bins = 8192 // 2 + 1
+    capture._sxx = np.ones(bins, dtype=np.float64)
+    capture._syy = np.ones(bins, dtype=np.float64)
+    capture._syx = np.ones(bins, dtype=np.complex128)
+    capture._avg_count = 4
+
+    result = capture.snapshot()
+    assert result["stream_stale"] is True
+    assert result["stream_healthy"] is False
+    assert result["ready"] is False
+    assert result["averages_target"] == 4
