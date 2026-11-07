@@ -21,7 +21,7 @@ declare
   has_existing boolean := false;
   used_devices integer := 0;
 begin
-  if p_user_id is null or p_app_id is null or p_platform not in ('web','windows','android')
+  if p_user_id is null or p_app_id is null or p_platform is null or p_platform not in ('web','windows','android')
      or p_device_hash is null or length(p_device_hash)<8 or length(p_device_hash)>256 then
     raise exception 'LICENSE_ACTIVATION_INPUT_INVALID' using errcode='22023';
   end if;
