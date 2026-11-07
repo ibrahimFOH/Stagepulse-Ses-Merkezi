@@ -418,13 +418,12 @@ class AppApi(AcousticAnalysisApi):
                 think: bool = False) -> dict[str, Any]:
         """Run AI providers only while a paid license is valid, including offline grace."""
         from core.ai_providers import PROVIDERS, _validate_endpoint, chat
-        if not self._cached_license_status().get("active"):
-            raise RuntimeError("Stagepulse Ses Merkezi için etkin ve ödemesi onaylı lisans gerekir.")
         provider_id = str(provider or "auto").strip().lower()
         if provider_id == "auto":
-            # Always try this computer's Ollama first. User text reaches Groq
-            # only after a local failure, with a key and active license.
             local_endpoint = PROVIDERS["ollama"]["endpoint"]
+            _validate_endpoint("ollama", local_endpoint)
+            if not self._cached_license_status().get("active"):
+                raise RuntimeError("Stagepulse Ses Merkezi için etkin ve ödemesi onaylı lisans gerekir.")
             try:
                 result = chat("ollama", "auto", "", prompt, local_endpoint, request_options, keep_alive, think)
                 result["provider"] = "auto"
@@ -452,13 +451,11 @@ class AppApi(AcousticAnalysisApi):
         if provider_id not in PROVIDERS:
             raise ValueError("Yalnızca otomatik, yerel Ollama veya Groq sağlayıcısı kullanılabilir.")
         raw_endpoint = str(endpoint or PROVIDERS[provider_id]["endpoint"]).strip()
-        # Validate host/scheme before checking the license, so invalid URLs receive a useful error.
         _validate_endpoint(provider_id, raw_endpoint)
-        parsed = urlsplit(raw_endpoint)
-        local_ollama = provider_id == "ollama" and parsed.hostname and parsed.hostname.lower() in {"localhost", "127.0.0.1", "::1"}
-        if not local_ollama and not self._cached_license_status().get("active"):
-            raise RuntimeError("Groq yedek bağlantısı için etkin Stagepulse lisansı gerekir. Yerel Ollama lisanssız kullanılabilir.")
+        if not self._cached_license_status().get("active"):
+            raise RuntimeError("Stagepulse Ses Merkezi için etkin ve ödemesi onaylı lisans gerekir.")
         return chat(provider_id, model, api_key, prompt, raw_endpoint, request_options, keep_alive, think)
+
 
     def _auth_request(self, path: str, body: dict[str, Any]) -> dict[str, Any]:
         data = json.dumps(body, ensure_ascii=False).encode("utf-8")
