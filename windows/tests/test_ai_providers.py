@@ -200,7 +200,7 @@ def test_app_auto_provider_does_not_send_to_groq_without_license(monkeypatch):
         calls.append(provider)
         raise RuntimeError("Ollama kapalı")
     monkeypatch.setattr(ai_providers, "chat", fake_chat)
-    with pytest.raises(RuntimeError, match="ödemesi onaylı lisans gerekir"):
+    with pytest.raises(RuntimeError, match="FULL PAKET lisansı veya süresi dolmamış demo gerekir"):
         app.ai_chat("auto", "auto", "groq-test-key", "merhaba", "http://127.0.0.1:11434/api/chat")
     assert calls == []
 
