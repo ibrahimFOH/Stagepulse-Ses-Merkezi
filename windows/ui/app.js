@@ -546,6 +546,16 @@ function rtaFormatHz(f){return f>=1000?(f/1000).toLocaleString('tr-TR',{maximumF
 function resetRtaHistory(){rtaSmoothed=null;rtaPeak=null;rtaTraceHistory=[];rtaLastTime=0;rtaOptimizerHistory=[];if($('rtaOptimizerOutput'))$('rtaOptimizerOutput').textContent='Kararlı spektrum örneği bekleniyor.';}
 function initRtaControls(){
  $('rtaStart').addEventListener('click',startRta);$('rtaStop').addEventListener('click',()=>stopRta(true));
+ $('rtaCalibrate').addEventListener('click',async()=>{
+  if(!api()||typeof api().calibrate_rta_spl!=='function'){$('rtaStatus').textContent='Fiziksel kalibratörle SPL kalibrasyonu bu Windows masaüstü sürümünde kullanılabilir.';return;}
+  const button=$('rtaCalibrate');button.disabled=true;
+  try{
+   const result=await api().calibrate_rta_spl(Number($('rtaCalibratorLevel').value||94));
+   $('rtaStatus').textContent=result.message||'SPL kalibrasyonu tamamlandı.';
+   if(rtaRunning)tickRta(rtaGeneration);
+  }catch(error){$('rtaStatus').textContent='SPL kalibrasyonu yapılamadı: '+(error.message||String(error));}
+  finally{button.disabled=false;}
+ });
  $('rtaResetPeak').addEventListener('click',()=>{rtaPeak=null;if(rtaSmoothed)drawRta(rtaSmoothed);});
  $('rtaRefreshDevices').addEventListener('click',refreshRtaDevices);
  $('rtaDevice').addEventListener('change',()=>{if(rtaRunning)startRta();});
@@ -646,11 +656,13 @@ async function tickRta(token){
    if(changed){rtaFreqs=centers.slice();resetRtaHistory();}
    if(snapshot.ready){const now=performance.now(),dt=rtaLastTime?Math.max(.001,(now-rtaLastTime)/1000):.1;rtaLastTime=now;const tau={fast:.12,medium:.18,slow:.5}[$('rtaSmooth').value]||.18;rtaSmoothed=RtaMath.smooth(rtaSmoothed,values,dt,tau);rtaPeak=rtaPeak&&rtaPeak.length===rtaSmoothed.length?rtaPeak.map((v,i)=>Math.max(v,rtaSmoothed[i])):rtaSmoothed.slice();rtaTraceHistory.push(rtaSmoothed.slice());if(rtaTraceHistory.length>4)rtaTraceHistory.shift();drawRta(rtaSmoothed);updateRtaOptimizer(centers,rtaSmoothed);}
    const peak=Number(snapshot.peak_dbfs??-120),rms=Number(snapshot.rms_dbfs??-120),peakWarn=peak>-1?' · Kırpılmaya çok yakın!':peak<-60?' · Çok düşük giriş; kazancı kontrol et.':' · Giriş alınıyor.';
-   $('rtaInputMeter').textContent=`Giriş peak: ${peak.toFixed(1)} dBFS · RMS: ${rms.toFixed(1)} dBFS${peakWarn}`;updateRtaMeters(peak,rms);
+   const splNote=snapshot.calibrated_spl&&Number.isFinite(Number(snapshot.spl_db))?' · '+Number(snapshot.spl_db).toFixed(1)+' dB SPL Z (kalibre)':'';
+   $('rtaInputMeter').textContent=`Giriş peak: ${peak.toFixed(1)} dBFS · RMS: ${rms.toFixed(1)} dBFS${splNote}${peakWarn}`;updateRtaMeters(peak,rms);
    const bin=snapshot.sample_rate/snapshot.fft_size;
    const status=snapshot.stream_status?`\nSürücü uyarısı: ${snapshot.stream_status}`:'';
    const bandNote=rtaAvailableMax&&rtaViewMax>rtaAvailableMax?`\nTam bandın üst merkezi: ${rtaFormatHz(rtaAvailableMax)}; daha üst bantlar akış örnekleme hızında eksik kalır.`:'';
-   $('rtaCaptureInfo').textContent=`Aygıt: ${snapshot.device||rtaDeviceName}\nYerel PortAudio akışı: ${Number(snapshot.sample_rate).toLocaleString('tr-TR')} Hz · FFT: ${snapshot.fft_size} · bin aralığı: ${bin.toFixed(2)} Hz · Nyquist: ${rtaFormatHz(snapshot.sample_rate/2)}\nBant güçleri dBFS RMS olarak gösterilir; mikrofon frekans cevabı veya akustik SPL kalibre edilmemiştir.${bandNote}${status}`;
+   const splCalibrationNote=snapshot.calibrated_spl?`\nSPL kalibrasyonu: 1 kHz / ${Number(snapshot.spl_calibration_reference_db).toFixed(1)} dB SPL referansı · Z ağırlıksız · offset ${Number(snapshot.spl_calibration_offset_db).toFixed(1)} dB. Mikrofon frekans düzeltmesi/IEC sınıfı sağlamaz.`:'\nSPL kalibrasyonu yok; grafik dBFS RMS gösterir.';
+   $('rtaCaptureInfo').textContent=`Aygıt: ${snapshot.device||rtaDeviceName}\nYerel PortAudio akışı: ${Number(snapshot.sample_rate).toLocaleString('tr-TR')} Hz · FFT: ${snapshot.fft_size} · bin aralığı: ${bin.toFixed(2)} Hz · Nyquist: ${rtaFormatHz(snapshot.sample_rate/2)}\nBant grafiği dBFS RMS gösterir.${splCalibrationNote}${bandNote}${status}`;
    if(snapshot.ready)$('rtaStatus').textContent=`${centers.length} bant · ${snapshot.sample_rate.toLocaleString('tr-TR')} Hz yerel giriş · FFT ${snapshot.fft_size}${snapshot.stream_status?' · sürücü uyarısını kontrol et.':''}`;
    else if(Number(snapshot.seconds_since_last_callback||0)>2)$('rtaStatus').textContent='Mikrofon akışı açıldı ancak örnek verisi gelmiyor. Windows giriş aygıtını, izinleri ve sürücü durumunu kontrol et.';else $('rtaStatus').textContent='Mikrofondan örnekler alınıyor; ilk FFT penceresi hazırlanıyor…';
   }
