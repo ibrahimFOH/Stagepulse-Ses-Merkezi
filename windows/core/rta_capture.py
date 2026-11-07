@@ -354,6 +354,9 @@ class RTACapture:
         now = time.monotonic()
         reference_time = last_callback_monotonic or started_monotonic
         seconds_since_last_callback = max(0.0, now - reference_time) if reference_time else 0.0
+        # A stream that stops after producing valid frames must not keep presenting
+        # its last spectrum as live data. Use the same two-second threshold as the UI.
+        stream_stale = seconds_since_last_callback > 2.0
         centers = supported_centers(sample_rate, mode, min_hz, max_hz)
         if frequencies is None or power_db is None:
             values = [-120.0] * len(centers)
@@ -361,6 +364,8 @@ class RTACapture:
         else:
             values = [aggregate_band_db(frequencies, power_db, sample_rate, center, mode) for center in centers]
             ready = True
+        if stream_stale:
+            ready = False
         return {
             "ok": True, "running": True, "ready": ready,
             "device": device, "sample_rate": sample_rate, "fft_size": fft_size,
@@ -370,7 +375,13 @@ class RTACapture:
             "stream_status": status,
             "samples_received": samples_received,
             "seconds_since_last_callback": seconds_since_last_callback,
-            "message": "FFT verisi hazırlanıyor…" if not ready else "FFT göreli güç spektrumu güncel.",
+            "stream_stale": stream_stale,
+            "stream_healthy": not stream_stale,
+            "message": (
+                "Ses akışı durdu; giriş aygıtını ve sürücüyü kontrol et."
+                if stream_stale else
+                "FFT verisi hazırlanıyor…" if not ready else "FFT göreli güç spektrumu güncel."
+            ),
         }
 
     def stop(self) -> dict[str, Any]:
