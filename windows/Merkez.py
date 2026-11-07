@@ -589,6 +589,12 @@ class AppApi(AcousticAnalysisApi):
                 if any(code in message for code in ("HTTP 400", "HTTP 401", "HTTP 403")):
                     self._clear_auth_session()
                     return {"ok": True, "authenticated": False}
+                cached = self._cached_license_status()
+                stored_user_id = (stored.get("user") or {}).get("id") if isinstance(stored.get("user"), dict) else None
+                network_unavailable = "ulaşılamadı" in message.lower() or "çevrimiçi servisine" in message.lower()
+                if network_unavailable and cached.get("active") and cached.get("user_id") == stored_user_id:
+                    self._session = stored
+                    return {"ok": True, "authenticated": False, "offline": True, "license": cached}
                 raise
             if not refreshed.get("access_token") or not refreshed.get("refresh_token"):
                 self._clear_auth_session()
