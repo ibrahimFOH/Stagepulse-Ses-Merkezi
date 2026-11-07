@@ -44,6 +44,8 @@ create index if not exists sesm_purchase_requests_user_created_idx
   on public.sesm_purchase_requests (user_id, created_at desc);
 create index if not exists sesm_purchase_requests_status_created_idx
   on public.sesm_purchase_requests (status, created_at desc);
+create unique index if not exists sesm_purchase_requests_one_pending_per_user_idx
+  on public.sesm_purchase_requests (user_id) where status = 'pending';
 
 alter table public.sesm_store_settings enable row level security;
 alter table public.sesm_purchase_requests enable row level security;
