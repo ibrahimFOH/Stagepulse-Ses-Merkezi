@@ -553,10 +553,11 @@ function browserRtaSnapshot(){
   for(let i=first;i<=last;i++){const db=browserRtaFrequencyData[i];if(Number.isFinite(db)&&db>-200){power+=Math.pow(10,db/10);count++;}}
   return count?10*Math.log10(power/count):-120;
  });
- return {ok:true,ready:true,sample_rate:sampleRate,fft_size:fftSize,centers,band_dbfs:bandDb,
+ const track=browserRtaStream?.getAudioTracks()[0],streamStale=!track||track.readyState!=='live'||track.muted===true;
+ return {ok:true,ready:!streamStale,sample_rate:sampleRate,fft_size:fftSize,centers,band_dbfs:bandDb,
   peak_dbfs:peak>0?20*Math.log10(peak):-120,rms_dbfs:rms>0?20*Math.log10(rms):-120,
-  device:browserRtaStream?.getAudioTracks()[0]?.label||rtaDeviceName,
-  stream_status:'Android WebAudio; dBFS tahmini, kalibrasyon yok',seconds_since_last_callback:0};
+  device:track?.label||rtaDeviceName,stream_stale:streamStale,
+  stream_status:streamStale?'Android ses girişi durdu veya susturuldu.':'Android WebAudio; dBFS tahmini',seconds_since_last_callback:streamStale?2.1:0};
 }
 let androidMicPermissionId=0;
 function requestAndroidRuntimePermission(permission){
@@ -723,7 +724,8 @@ async function tickRta(token){
    const centers=snapshot.centers||[],values=snapshot.band_dbfs||[];
    const changed=centers.length!==rtaFreqs.length||centers.some((f,i)=>f!==rtaFreqs[i]);
    if(changed){rtaFreqs=centers.slice();resetRtaHistory();}
-   if(snapshot.ready){const now=performance.now(),dt=rtaLastTime?Math.max(.001,(now-rtaLastTime)/1000):.1;rtaLastTime=now;const tau={fast:.12,medium:.18,slow:.5}[$('rtaSmooth').value]||.18;rtaSmoothed=RtaMath.smooth(rtaSmoothed,values,dt,tau);rtaPeak=rtaPeak&&rtaPeak.length===rtaSmoothed.length?rtaPeak.map((v,i)=>Math.max(v,rtaSmoothed[i])):rtaSmoothed.slice();rtaTraceHistory.push(rtaSmoothed.slice());if(rtaTraceHistory.length>4)rtaTraceHistory.shift();drawRta(rtaSmoothed);updateRtaOptimizer(centers,rtaSmoothed);}
+   if(snapshot.stream_stale){rtaSmoothed=null;rtaPeak=null;rtaTraceHistory=[];drawRtaPlaceholder();}
+   else if(snapshot.ready){const now=performance.now(),dt=rtaLastTime?Math.max(.001,(now-rtaLastTime)/1000):.1;rtaLastTime=now;const tau={fast:.12,medium:.18,slow:.5}[$('rtaSmooth').value]||.18;rtaSmoothed=RtaMath.smooth(rtaSmoothed,values,dt,tau);rtaPeak=rtaPeak&&rtaPeak.length===rtaSmoothed.length?rtaPeak.map((v,i)=>Math.max(v,rtaSmoothed[i])):rtaSmoothed.slice();rtaTraceHistory.push(rtaSmoothed.slice());if(rtaTraceHistory.length>4)rtaTraceHistory.shift();drawRta(rtaSmoothed);updateRtaOptimizer(centers,rtaSmoothed);}
    const peak=Number(snapshot.peak_dbfs??-120),rms=Number(snapshot.rms_dbfs??-120),peakWarn=peak>-1?' · Kırpılmaya çok yakın!':peak<-60?' · Çok düşük giriş; kazancı kontrol et.':' · Giriş alınıyor.';
    const splReadout=rtaSplOffsetDb===null?'':' · RMS '+(rms+rtaSplOffsetDb).toFixed(1)+' dB SPL (oturum kalibrasyonu)';
    $('rtaInputMeter').textContent=`Giriş peak: ${peak.toFixed(1)} dBFS · RMS: ${rms.toFixed(1)} dBFS${splReadout}${peakWarn}`;updateRtaMeters(peak,rms);
@@ -809,6 +811,7 @@ function calibrateAndroidSpl(){
  if(!rtaRunning||!browserRtaAnalyser){$('rtaCalibrationStatus').textContent='Önce mikrofonu başlat.';return;}
  const reference=Number($('rtaCalibratorLevel')?.value||94);
  const snapshot=browserRtaSnapshot();
+ if(!snapshot?.ready||snapshot.stream_stale){$('rtaCalibrationStatus').textContent='Ses girişi güncel değil. Kalibratör sinyali ve mikrofon bağlantısını kontrol et.';return;}
  const measured=Number(snapshot?.rms_dbfs);
  if(!Number.isFinite(measured)||measured < -70 || measured > -3){
   $('rtaCalibrationStatus').textContent='Kalibrasyon yapılamadı. 1 kHz kalibratör açıkken sabit sinyal ver; giriş seviyesi -70 ile -3 dBFS arasında olmalı.';
