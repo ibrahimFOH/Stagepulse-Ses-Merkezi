@@ -1184,7 +1184,8 @@ async function refreshFullPackageStore(){
  try{const result=await apiClient.store_get(),s=result.settings||{};
   $("fullPackagePrice").textContent=Number(s.price||0).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})+" TL";
   $("fullPackageBankInfo").innerHTML=s.iban?`<strong>${safeText(s.bank_name||"Banka")}</strong><br>Hesap sahibi: ${safeText(s.account_holder||"")}<br>IBAN: <strong>${safeText(s.iban)}</strong>${s.payment_instructions?`<br>${safeText(s.payment_instructions)}`:""}${s.contact_phone?`<br>İletişim: ${safeText(s.contact_phone)}`:""}`:"<strong>Havale/EFT hesabı henüz tanımlanmadı.</strong><br>Satın alma bildirimleri hesap bilgileri girilene kadar kapalıdır.";
-  $("submitFullPackagePurchase").disabled=!s.iban;\n  if(currentRole==="owner"){ $("fullPackageAdminPrice").value=s.price??2500;$("fullPackageBankName").value=s.bank_name||"";$("fullPackageAccountHolder").value=s.account_holder||"";$("fullPackageIban").value=s.iban||"";$("fullPackagePaymentInstructions").value=s.payment_instructions||"";$("fullPackageContactPhone").value=s.contact_phone||""; }
+  $("submitFullPackagePurchase").disabled=!s.iban;
+  if(currentRole==="owner"){ $("fullPackageAdminPrice").value=s.price??2500;$("fullPackageBankName").value=s.bank_name||"";$("fullPackageAccountHolder").value=s.account_holder||"";$("fullPackageIban").value=s.iban||"";$("fullPackagePaymentInstructions").value=s.payment_instructions||"";$("fullPackageContactPhone").value=s.contact_phone||""; }
   if(currentRole==="owner")await refreshFullPackagePurchases();
  }catch(err){$("fullPackageBankInfo").textContent="Mağaza bilgileri alınamadı: "+err.message;if(currentRole==="owner")$("fullPackageAdminStatus").textContent=err.message;}
 }
