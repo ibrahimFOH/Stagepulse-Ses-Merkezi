@@ -193,3 +193,14 @@ def test_ses_merkezi_requires_paid_license_and_has_no_demo_path():
     assert 'Yerel demo açık' not in windows_ui
     assert 'Yerel demo açık' not in android_ui
     assert '7L * 24L * 60L * 60L * 1000L' in android_native
+
+def test_ses_merkezi_uses_one_license_scope_without_bundle_picker():
+    html = (ROOT / 'ui/index.html').read_text('utf-8')
+    ui = (ROOT / 'ui/app.js').read_text('utf-8')
+    edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
+
+    assert 'licenseBundle' not in html
+    assert 'licenseBundle' not in ui
+    assert 'paket ${' not in ui
+    assert 'const bundle = "full_master";' in edge
+    assert 'allowedBundles' not in edge
