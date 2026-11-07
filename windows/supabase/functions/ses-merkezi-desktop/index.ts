@@ -143,6 +143,82 @@ async function entitlementContext(userId: string, deviceHash: string, role: stri
   return { licensed, trial, paid: role === "owner" || licensed.active };
 }
 
+
+const OFFLINE_PAID_LEASE_MS = 14 * 24 * 60 * 60 * 1000;
+const OFFLINE_TRIAL_LEASE_MS = 7 * 24 * 60 * 60 * 1000;
+let offlineLeaseSigningKey: CryptoKey | null = null;
+
+function base64Url(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\\+/g, "-").replace(/\\//g, "_").replace(/=+$/g, "");
+}
+
+async function getOfflineLeaseSigningKey(): Promise<CryptoKey | null> {
+  if (offlineLeaseSigningKey) return offlineLeaseSigningKey;
+  const { data, error } = await admin.rpc("sesm_offline_lease_private_key");
+  if (error || typeof data !== "string" || !data.includes("BEGIN PRIVATE KEY")) {
+    console.error("Offline lease signing key unavailable", error?.message ?? "missing");
+    return null;
+  }
+  const encoded = data.replace(/-----BEGIN PRIVATE KEY-----|-----END PRIVATE KEY-----/g, "").replace(/\\s+/g, "");
+  const binary = atob(encoded);
+  const der = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  offlineLeaseSigningKey = await crypto.subtle.importKey(
+    "pkcs8", der, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"],
+  );
+  return offlineLeaseSigningKey;
+}
+
+async function createOfflineLease(
+  userId: string,
+  deviceHash: string,
+  platform: unknown,
+  appId: string,
+  entitlement: { licensed: any; trial: any; paid: boolean },
+) {
+  if (!/^[0-9a-f]{64}$/.test(deviceHash)) return null;
+  if (!["ses-merkezi", "ses-merkezi-android"].includes(appId)) return null;
+  const expectedPlatform = appId === "ses-merkezi-android" ? "android" : "windows";
+  if (platform !== expectedPlatform) return null;
+  const isPaid = entitlement.paid === true;
+  const isTrial = !isPaid && entitlement.trial?.active === true;
+  if (!isPaid && !isTrial) return null;
+
+  const issuedAt = Date.now();
+  const licenseExpiry = entitlement.licensed?.expires_at
+    ? Date.parse(String(entitlement.licensed.expires_at)) : null;
+  const trialExpiry = isTrial && entitlement.trial?.expires_at
+    ? Date.parse(String(entitlement.trial.expires_at)) : null;
+  if (isPaid && licenseExpiry !== null && (!Number.isFinite(licenseExpiry) || licenseExpiry <= issuedAt)) return null;
+  if (isTrial && (trialExpiry === null || !Number.isFinite(trialExpiry) || trialExpiry <= issuedAt)) return null;
+  const expiresAt = isPaid
+    ? Math.min(issuedAt + OFFLINE_PAID_LEASE_MS, licenseExpiry ?? Number.POSITIVE_INFINITY)
+    : Math.min(issuedAt + OFFLINE_TRIAL_LEASE_MS, trialExpiry!);
+  if (!Number.isFinite(expiresAt) || expiresAt <= issuedAt) return null;
+
+  const signingKey = await getOfflineLeaseSigningKey();
+  if (!signingKey) return null;
+  const claims = {
+    v: 1,
+    uid: userId,
+    app_id: appId,
+    platform: expectedPlatform,
+    device_hash: deviceHash,
+    entitlement: isPaid ? "paid" : "trial",
+    paid: isPaid,
+    plan_code: isPaid ? (entitlement.licensed?.plan_code ?? "student") : "trial",
+    bundle_code: isPaid ? (entitlement.licensed?.bundle_code ?? "start") : "trial",
+    license_expires_at_ms: Number.isFinite(licenseExpiry) ? licenseExpiry : null,
+    trial_expires_at_ms: Number.isFinite(trialExpiry) ? trialExpiry : null,
+    issued_at_ms: issuedAt,
+    expires_at_ms: expiresAt,
+  };
+  const payloadBytes = new TextEncoder().encode(JSON.stringify(claims));
+  const signature = new Uint8Array(await crypto.subtle.sign("RSASSA-PKCS1-v1_5", signingKey, payloadBytes));
+  return { v: 1, alg: "RS256", payload: base64Url(payloadBytes), signature: base64Url(signature) };
+}
+
 async function licensedContext(userId: string, deviceHash: string, role: string, requestedAppId = "") {
   if (role === "owner") return { active: true, plan_code: "owner", bundle_code: "full_master", expires_at: null };
   if (!/^[0-9a-f]{64}$/.test(deviceHash)) return { active: false, reason: "device_id_invalid" };
@@ -212,14 +288,19 @@ Deno.serve(async (req: Request) => {
     const role = await getRole(user.id);
     if (action === "context") {
       const deviceHash = String(body.device_hash ?? "");
-      const entitlement = await entitlementContext(user.id, deviceHash, role, body.platform, String(body.app_id ?? ""));
+      const requestedAppId = String(body.app_id ?? "");
+      const entitlement = await entitlementContext(user.id, deviceHash, role, body.platform, requestedAppId);
+      const offlineLease = await createOfflineLease(user.id, deviceHash, body.platform, requestedAppId, entitlement);
       const { data: ownStudent } = await admin.from("sesm_students").select("display_name, email, teacher_user_id")
         .eq("user_id", user.id).eq("is_active", true).maybeSingle();
-      return reply({ ok: true, user: { id: user.id, email: user.email, name: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? "" }, role, licensed: entitlement.licensed, trial: entitlement.trial, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active === true }, student: ownStudent ?? null, app: "Stagepulse Ses Mühendisliği Merkezi" });
+      return reply({ ok: true, user: { id: user.id, email: user.email, name: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? "" }, role, licensed: entitlement.licensed, trial: entitlement.trial, offline_lease: offlineLease, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active === true }, student: ownStudent ?? null, app: "Stagepulse Ses Mühendisliği Merkezi" });
     }
     if (action === "license_status") {
-      const entitlement = await entitlementContext(user.id, String(body.device_hash ?? ""), role, body.platform, String(body.app_id ?? ""));
-      return reply({ ok: true, licensed: entitlement.licensed, trial: entitlement.trial, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active === true }, role });
+      const deviceHash = String(body.device_hash ?? "");
+      const requestedAppId = String(body.app_id ?? "");
+      const entitlement = await entitlementContext(user.id, deviceHash, role, body.platform, requestedAppId);
+      const offlineLease = await createOfflineLease(user.id, deviceHash, body.platform, requestedAppId, entitlement);
+      return reply({ ok: true, licensed: entitlement.licensed, trial: entitlement.trial, offline_lease: offlineLease, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active === true }, role });
     }
     if (action === "feature_access" || action === "pdf_access") {
       const entitlement = await entitlementContext(user.id, String(body.device_hash ?? ""), role, body.platform, String(body.app_id ?? ""));
