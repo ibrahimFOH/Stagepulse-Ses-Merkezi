@@ -821,12 +821,16 @@ class MainActivity : Activity() {
                 val cached = readSecret("account_context")?.let { JSONObject(it) }
                 val validatedAt = readSecret("validated_at")?.toLongOrNull() ?: 0L
                 val licensed = cached?.optJSONObject("licensed")
+                val cachedUserId = cached?.optJSONObject("user")?.optString("id").orEmpty()
+                val storedSession = readSecret("session")?.let { JSONObject(it) }
+                val sessionUserId = storedSession?.optJSONObject("user")?.optString("id").orEmpty()
+                val sameUser = sessionUserId.isBlank() || cachedUserId == sessionUserId
                 val expiresAt = licensed?.optString("expires_at").orEmpty()
                 val notExpired = expiresAt.isBlank() || runCatching {
                     java.time.Instant.parse(expiresAt).toEpochMilli() > System.currentTimeMillis()
                 }.getOrDefault(false)
                 val now = System.currentTimeMillis()
-                val validCache = licensed?.optBoolean("active", false) == true
+                val validCache = licensed?.optBoolean("active", false) == true && sameUser
                     && validatedAt > 0L && validatedAt <= now + 5L * 60L * 1000L
                     && now - validatedAt <= 7L * 24L * 60L * 60L * 1000L && notExpired
                 return JSONObject()
