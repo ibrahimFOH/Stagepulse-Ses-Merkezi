@@ -1121,7 +1121,7 @@ function applyAccountContext(context){
  const admin=currentRole==='owner';$('teacherLicensePanel').classList.toggle('hidden',!admin);$('teacherProgressPanel').classList.toggle('hidden',!admin);$('fullPackageAdminPanel')?.classList.toggle('hidden',!admin);$('fullPackagePurchasePanel')?.classList.toggle('hidden',!context?.user?.id);
  $('licenseActivate').disabled=currentRole==='owner';$('licenseActivate').textContent=currentRole==='owner'?'Sahip hesabı lisans gerektirmez':'Bu cihazı etkinleştir';
 
- if(license.active){$('licenseStatusText').textContent=`Lisans etkin · ${license.plan_code||'student'} · paket ${license.bundle_code||'start'}${license.expires_at?' · son tarih '+new Date(license.expires_at).toLocaleDateString('tr-TR'):''}`;appAuthorized=true;}
+ if(license.active){$('licenseStatusText').textContent=`Lisans etkin · FULL PAKET${license.expires_at?' · son tarih '+new Date(license.expires_at).toLocaleDateString('tr-TR'):''}`;appAuthorized=true;}
  else $('licenseStatusText').textContent=currentRole==='owner'?'Stagepulse sahibi hesabı doğrulandı.':'Ödeme onaylı etkin lisans gerekli. Lisans etkinleştirilene kadar uygulama kilitli.';
  $('accountStatus').textContent=`Hesap: ${context?.user?.email||'—'}\nYetki: ${currentRole}\nLisans: ${license.active?'etkin':'etkin değil'}\nWeb: https://stagepulse.com.tr`;
  if(context?.user?.email&&!$('accountEmail').value)$('accountEmail').value=context.user.email;if(context?.user?.name&&!$('purchaseCustomerName').value)$('purchaseCustomerName').value=context.user.name;
@@ -1184,7 +1184,7 @@ async function refreshFullPackageStore(){
  try{const result=await apiClient.store_get(),s=result.settings||{};
   $("fullPackagePrice").textContent=Number(s.price||0).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})+" TL";
   $("fullPackageBankInfo").innerHTML=s.iban?`<strong>${safeText(s.bank_name||"Banka")}</strong><br>Hesap sahibi: ${safeText(s.account_holder||"")}<br>IBAN: <strong>${safeText(s.iban)}</strong>${s.payment_instructions?`<br>${safeText(s.payment_instructions)}`:""}${s.contact_phone?`<br>İletişim: ${safeText(s.contact_phone)}`:""}`:"<strong>Havale/EFT hesabı henüz tanımlanmadı.</strong><br>Satın alma bildirimleri hesap bilgileri girilene kadar kapalıdır.";
-  $("submitFullPackagePurchase").disabled=!s.iban;
+  $("submitFullPackagePurchase").disabled=!s.iban||!s.account_holder;
   if(currentRole==="owner"){ $("fullPackageAdminPrice").value=s.price??2500;$("fullPackageBankName").value=s.bank_name||"";$("fullPackageAccountHolder").value=s.account_holder||"";$("fullPackageIban").value=s.iban||"";$("fullPackagePaymentInstructions").value=s.payment_instructions||"";$("fullPackageContactPhone").value=s.contact_phone||""; }
   if(currentRole==="owner")await refreshFullPackagePurchases();
  }catch(err){$("fullPackageBankInfo").textContent="Mağaza bilgileri alınamadı: "+err.message;if(currentRole==="owner")$("fullPackageAdminStatus").textContent=err.message;}
