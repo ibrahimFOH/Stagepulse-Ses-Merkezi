@@ -200,3 +200,37 @@ def test_live_tf_snapshot_marks_stopped_stream_stale():
     assert result["stream_healthy"] is False
     assert result["ready"] is False
     assert result["averages_target"] == 4
+
+
+def test_spl_calibration_uses_reference_calibrator_and_reports_z_weighted_level():
+    import time
+    from core.rta_capture import RTACapture
+
+    capture = RTACapture()
+    capture._running = True
+    capture._started_monotonic = time.monotonic() - 1
+    capture._last_callback_monotonic = time.monotonic()
+    capture._samples_received = 4096
+    capture._rms_dbfs = -20.0
+
+    calibrated = capture.calibrate_spl(94.0)
+    assert calibrated["ok"] is True
+    assert calibrated["offset_db"] == pytest.approx(114.0)
+    result = capture.snapshot()
+    assert result["calibrated_spl"] is True
+    assert result["spl_db"] == pytest.approx(94.0)
+    assert result["spl_weighting"] == "Z/unweighted"
+
+
+def test_spl_calibration_rejects_stale_or_missing_microphone_signal():
+    import time
+    from core.rta_capture import RTACapture
+
+    capture = RTACapture()
+    capture._running = True
+    capture._started_monotonic = time.monotonic() - 5
+    capture._last_callback_monotonic = time.monotonic() - 4
+    capture._samples_received = 4096
+    capture._rms_dbfs = -20.0
+    with pytest.raises(RuntimeError, match="Kararlı mikrofon verisi"):
+        capture.calibrate_spl(94.0)
