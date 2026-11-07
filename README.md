@@ -6,8 +6,8 @@ Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasında
 
 | Bileşen | Kaynak sürümü | Sürümün yönetildiği yer |
 |---|---:|---|
-| Windows Ses Merkezi | 3.8.9 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
-| Android Ses Merkezi | 3.8.9 (30809) | android/app/build.gradle |
+| Windows Ses Merkezi | 3.8.10 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
+| Android Ses Merkezi | 3.8.10 (30810) | android/app/build.gradle |
 | Yönetici girişi | Ana uygulama içinde | Ana uygulamanın kimlik doğrulama ve yetki kontrolü |
 
 Windows EXE ve Android APK aynı kararlı sürümde doğrulanır ve yayımlanır. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz. Android APK kalıcı Android imza anahtarıyla imzalanır.
