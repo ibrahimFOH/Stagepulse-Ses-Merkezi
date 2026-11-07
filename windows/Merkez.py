@@ -708,6 +708,21 @@ class AppApi(AcousticAnalysisApi):
         self._cache_server_license(context)
         return {"ok": True, "activation": result, "context": context}
 
+    def store_get(self) -> dict[str, Any]:
+        return self._edge_call("store_get")
+
+    def store_update(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._edge_call("store_update", payload)
+
+    def purchase_submit(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return self._edge_call("purchase_submit", payload)
+
+    def purchase_list(self) -> dict[str, Any]:
+        return self._edge_call("purchase_list")
+
+    def purchase_review(self, purchase_id: str, decision: str, admin_note: str = "") -> dict[str, Any]:
+        return self._edge_call("purchase_review", {"purchase_id": purchase_id, "decision": decision, "admin_note": admin_note})
+
     def license_list(self) -> dict[str, Any]:
         """Return license metadata for the server-authorized owner only."""
         return self._edge_call("license_list")
