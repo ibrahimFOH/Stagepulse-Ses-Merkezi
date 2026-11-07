@@ -74,6 +74,8 @@ let browserRtaFrequencyData = null;
 let rtaCommandQueue = Promise.resolve();
 let rtaLastTime = 0;
 let rtaSampleRate = 0;
+let rtaSplOffsetDb = null;
+let rtaSplReferenceDb = null;
 let rtaFftSize = 16384;
 let rtaSmoothed = null;
 let rtaPeak = null;
@@ -468,6 +470,9 @@ function rtaFormatHz(f){return f>=1000?(f/1000).toLocaleString('tr-TR',{maximumF
 function resetRtaHistory(){rtaSmoothed=null;rtaPeak=null;rtaTraceHistory=[];rtaLastTime=0;rtaOptimizerHistory=[];if($('rtaOptimizerOutput'))$('rtaOptimizerOutput').textContent='Kararlı spektrum örneği bekleniyor.';}
 function initRtaControls(){
  $('rtaStart').addEventListener('click',startRta);$('rtaStop').addEventListener('click',()=>stopRta(true));
+ $('rtaCalibrate')?.addEventListener('click',calibrateAndroidSpl);
+ $('rtaClearCalibration')?.addEventListener('click',clearAndroidSplCalibration);
+ initAndroidTfControls();
  $('rtaResetPeak').addEventListener('click',()=>{rtaPeak=null;if(rtaSmoothed)drawRta(rtaSmoothed);});
  $('rtaRefreshDevices').addEventListener('click',refreshRtaDevices);
  $('rtaDevice').addEventListener('change',()=>{if(rtaRunning)startRta();});
@@ -496,10 +501,23 @@ function initRtaControls(){
 async function refreshRtaDevices(){
  const select=$('rtaDevice');if(!select)return;
  if(!api()){
- // Android'de enumerateDevices() kamera aygıtlarını da tarayabilir.
- // Uygulama kamera kullanmadığından yalnızca varsayılan mikrofonu sun.
- select.innerHTML='<option value="">Varsayılan mikrofon</option>';
- $('rtaCaptureInfo').textContent='Varsayılan Android mikrofonu kullanılacak. Mikrofon izni yalnızca başlat düğmesine basıldığında istenir.';
+ const current=select.value;
+ select.innerHTML='<option value="">Varsayılan Android mikrofonu</option>';
+ try{
+  const devices=await navigator.mediaDevices?.enumerateDevices?.()||[];
+  const inputs=devices.filter(d=>d.kind==='audioinput');
+  inputs.forEach((device,index)=>{
+   const option=document.createElement('option');option.value=device.deviceId;
+   option.textContent=device.label||('Android giriş '+(index+1));
+   select.appendChild(option);
+  });
+  if(inputs.some(d=>d.deviceId===current))select.value=current;
+  $('rtaCaptureInfo').textContent=inputs.length
+   ? inputs.length+' Android ses girişi bulundu. USB ses kartı takıldığında girişleri yenile.'
+   : 'Varsayılan Android mikrofonu kullanılacak. USB ses kartı takılıysa mikrofon izni verdikten sonra girişleri yenile.';
+ }catch(error){
+  $('rtaCaptureInfo').textContent='Android ses girişleri listelenemedi: '+(error.message||String(error));
+ }
  return;
 }
  const current=select.value;select.innerHTML='<option value="">Varsayılan Windows giriş aygıtı</option>';
@@ -562,6 +580,7 @@ function requestAndroidRuntimePermission(permission){
 async function startBrowserRta(){
  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){$('rtaStatus').textContent='Android WebView mikrofon yakalamayı desteklemiyor. WebView güncellemesini kontrol et.';return;}
  const token=++rtaGeneration;
+ rtaSplOffsetDb=null;rtaSplReferenceDb=null;updateAndroidSplStatus();
  if(rtaPollTimer)clearTimeout(rtaPollTimer);
  rtaPollTimer=0;rtaRunning=false;rtaBusy=false;
  $('rtaStart').disabled=true;$('rtaStop').disabled=false;
@@ -657,7 +676,7 @@ async function stopRta(showStatus=true){
  if(rtaPollTimer)clearTimeout(rtaPollTimer);rtaPollTimer=0;rtaRunning=false;rtaBusy=false;
  await stopBrowserRta();
  try{if(api())await enqueueRtaCommand(()=>api().stop_rta());}catch(_){}
- rtaSampleRate=0;rtaDeviceName='';resetRtaHistory();
+ rtaSampleRate=0;rtaDeviceName='';rtaSplOffsetDb=null;rtaSplReferenceDb=null;updateAndroidSplStatus();resetRtaHistory();
  if($('rtaStart'))$('rtaStart').disabled=false;if($('rtaStop'))$('rtaStop').disabled=true;
  if($('homeMicStatus'))$('homeMicStatus').textContent='Kapalı';
  if($('rtaInputMeter'))$('rtaInputMeter').textContent='Giriş seviyesi: ölçüm durduruldu.';
@@ -709,7 +728,9 @@ async function tickRta(token){
    const bin=snapshot.sample_rate/snapshot.fft_size;
    const status=snapshot.stream_status?`\nSürücü uyarısı: ${snapshot.stream_status}`:'';
    const bandNote=rtaAvailableMax&&rtaViewMax>rtaAvailableMax?`\nTam bandın üst merkezi: ${rtaFormatHz(rtaAvailableMax)}; daha üst bantlar akış örnekleme hızında eksik kalır.`:'';
-   $('rtaCaptureInfo').textContent=`Aygıt: ${snapshot.device||rtaDeviceName}\n${api()?'Yerel PortAudio akışı':'Android WebAudio akışı'}: ${Number(snapshot.sample_rate).toLocaleString('tr-TR')} Hz · FFT: ${snapshot.fft_size} · bin aralığı: ${bin.toFixed(2)} Hz · Nyquist: ${rtaFormatHz(snapshot.sample_rate/2)}\nBant güçleri dBFS RMS olarak gösterilir; mikrofon frekans cevabı veya akustik SPL kalibre edilmemiştir.${bandNote}${status}`;
+   const splText=rtaSplOffsetDb===null?'SPL kalibrasyonu yok.':`Kalibre edilmiş Z-benzeri RMS gösterimi: ${(rms+rtaSplOffsetDb).toFixed(1)} dB SPL · referans ${rtaSplReferenceDb} dB SPL.`;
+   $('rtaCaptureInfo').textContent=`Aygıt: ${snapshot.device||rtaDeviceName}\n${api()?'Yerel PortAudio akışı':'Android WebAudio akışı'}: ${Number(snapshot.sample_rate).toLocaleString('tr-TR')} Hz · FFT: ${snapshot.fft_size} · bin aralığı: ${bin.toFixed(2)} Hz · Nyquist: ${rtaFormatHz(snapshot.sample_rate/2)}\nBant güçleri dBFS RMS olarak gösterilir. ${splText} Mikrofon frekans düzeltmesi veya IEC uygunluğu sağlanmaz.${bandNote}${status}`;
+   if($('rtaCalibrationStatus'))updateAndroidSplStatus();
    if(snapshot.ready)$('rtaStatus').textContent=`${centers.length} bant · ${snapshot.sample_rate.toLocaleString('tr-TR')} Hz giriş · FFT ${snapshot.fft_size}${snapshot.stream_status?' · sürücü uyarısını kontrol et.':''}`;
    else if(Number(snapshot.seconds_since_last_callback||0)>2)$('rtaStatus').textContent='Mikrofon akışı açıldı ancak örnek verisi gelmiyor. Windows giriş aygıtını, izinleri ve sürücü durumunu kontrol et.';else $('rtaStatus').textContent='Mikrofondan örnekler alınıyor; ilk FFT penceresi hazırlanıyor…';
   }
@@ -775,6 +796,29 @@ function updateRtaMeters(peak,rms){
  if($('rtaRmsMeterValue'))$('rtaRmsMeterValue').textContent=Number(rms).toFixed(1)+' dBFS';
 }
 
+
+function updateAndroidSplStatus(){
+ const out=$('rtaCalibrationStatus');if(!out)return;
+ out.textContent=rtaSplOffsetDb===null
+  ?'Kalibrasyon yapılmadı. dBFS gösterimi kullanılacak.'
+  :`Oturum kalibrasyonu etkin · ${rtaSplReferenceDb} dB SPL referans · düzeltme ${rtaSplOffsetDb.toFixed(1)} dB. Mikrofon ve giriş kazancı değişirse yeniden kalibre et.`;
+}
+function calibrateAndroidSpl(){
+ if(!rtaRunning||!browserRtaAnalyser){$('rtaCalibrationStatus').textContent='Önce mikrofonu başlat.';return;}
+ const reference=Number($('rtaCalibratorLevel')?.value||94);
+ const snapshot=browserRtaSnapshot();
+ const measured=Number(snapshot?.rms_dbfs);
+ if(!Number.isFinite(measured)||measured < -70 || measured > -3){
+  $('rtaCalibrationStatus').textContent='Kalibrasyon yapılamadı. 1 kHz kalibratör açıkken sabit sinyal ver; giriş seviyesi -70 ile -3 dBFS arasında olmalı.';
+  return;
+ }
+ rtaSplReferenceDb=reference;rtaSplOffsetDb=reference-measured;
+ updateAndroidSplStatus();
+ $('rtaCalibrationStatus').textContent+=` Ölçülen RMS: ${measured.toFixed(1)} dBFS.`;
+}
+function clearAndroidSplCalibration(){
+ rtaSplOffsetDb=null;rtaSplReferenceDb=null;updateAndroidSplStatus();
+}
 // --- WAV local native analysis ---
 async function analyzeWavBrowser(file){
  if(!file)throw new Error('WAV dosyası seçilmedi.');
