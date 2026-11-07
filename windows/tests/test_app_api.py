@@ -159,7 +159,7 @@ def test_all_ai_providers_require_a_paid_license(tmp_path, monkeypatch):
 
     monkeypatch.setattr(Merkez, "LICENSE_CACHE_PATH", tmp_path / "no-license.dat")
     api = Merkez.AppApi()
-    with pytest.raises(RuntimeError, match="ödemesi onaylı lisans gerekir"):
+    with pytest.raises(RuntimeError, match="FULL PAKET lisansı veya süresi dolmamış demo gerekir"):
         api.ai_chat("groq", "openai/gpt-oss-120b", "dummy-key", "hello", "https://api.groq.com/openai/v1/chat/completions")
     with pytest.raises(RuntimeError, match="ödemesi onaylı lisans gerekir"):
         api.ai_chat("ollama", "llama3.2", "", "hello", "http://127.0.0.1:11434/api/chat")
