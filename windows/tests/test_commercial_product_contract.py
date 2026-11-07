@@ -225,3 +225,19 @@ def test_device_revoke_is_atomic_and_inactive_bindings_can_transfer():
     assert 'grant execute on function public.sesm_revoke_activation(uuid,uuid) to service_role' in migration
     assert 'is_active=true and user_id is not null and user_id<>p_user_id' in migration
     assert 'admin.rpc("sesm_revoke_activation"' in edge
+
+
+def test_live_measurement_controls_are_exposed_with_explicit_limits():
+    html = (ROOT / 'ui' / 'index.html').read_text('utf-8')
+    app = (ROOT / 'ui' / 'app.js').read_text('utf-8')
+    core = (ROOT / 'core' / 'rta_capture.py').read_text('utf-8')
+    tf = (ROOT / 'core' / 'tf_capture.py').read_text('utf-8')
+    bridge = (ROOT / 'Merkez.py').read_text('utf-8')
+
+    assert 'id="startLiveTf"' in html and 'id="liveTfDevice"' in html
+    assert 'list_tf_devices' in bridge and 'start_tf' in bridge and 'get_tf_snapshot' in bridge
+    assert 'function initLiveTfControls()' in app
+    assert 'calibrate_spl' in core and 'id="rtaCalibrate"' in html
+    assert 'stream_stale' in core and 'stream_stale' in tf
+    assert 'SPL kalibrasyonu' in app
+    assert 'IEC sınıfı' in app or 'IEC' in html
