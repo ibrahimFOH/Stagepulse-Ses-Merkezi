@@ -950,6 +950,9 @@ async function stopAndroidTf(showMessage=true){
  if(androidTfContext){const c=androidTfContext;androidTfContext=null;try{await c.close();}catch(_){}}
  if($('androidTfStart'))$('androidTfStart').disabled=false;
  if($('androidTfStop'))$('androidTfStop').disabled=true;
+ drawAndroidTfChart('androidTfMagnitude',[],[],-36,18,' dB');
+ drawAndroidTfChart('androidTfPhase',[],[],-180,180,'°');
+ drawAndroidTfChart('androidTfCoherence',[],[],0,1,'');
  if(showMessage&&$('androidTfStatus'))$('androidTfStatus').textContent='Canlı TF durduruldu.';
 }
 async function startAndroidTf(){
