@@ -1,7 +1,7 @@
-# Stagepulse Ses Mühendisliği Merkezi 3.8.9 · Android
+# Stagepulse Ses Mühendisliği Merkezi 3.8.10 · Android
 
 **Uygulama kimliği:** `com.stagepulse.sesmerkezi`  
-**Sürüm kodu:** `30809`  
+**Sürüm kodu:** `30810`  
 **Minimum Android:** API 26  
 **Hedef Android:** API 35  
 **Derleme:** JDK 17 · Gradle 8.9 · Android SDK 35
@@ -56,7 +56,7 @@ APK yolu:
 
 `android/app/build/outputs/apk/debug/app-debug.apk`
 
-Debug APK geliştirme/test paketidir. 3.8.9 yayın manifestinde kalıcı Stagepulse keystore ile imzalanmış APK ve SHA-256 bilgileri bulunur. Bu kaynak doküman, yeni değişikliklerin release APK olarak derlendiğini veya fiziksel cihaz kabul testlerinin tamamlandığını tek başına kanıtlamaz.
+Debug APK geliştirme/test paketidir. 3.8.10 yayın manifestinde kalıcı Stagepulse keystore ile imzalanmış APK ve SHA-256 bilgileri bulunur. Bu kaynak doküman, yeni değişikliklerin release APK olarak derlendiğini veya fiziksel cihaz kabul testlerinin tamamlandığını tek başına kanıtlamaz.
 
 ## Gerçek cihaz kabul listesi
 
