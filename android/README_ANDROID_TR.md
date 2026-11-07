@@ -1,7 +1,7 @@
-# Stagepulse Ses Mühendisliği Merkezi 3.7.8 · Android
+# Stagepulse Ses Mühendisliği Merkezi 3.8.9 · Android
 
 **Uygulama kimliği:** `com.stagepulse.sesmerkezi`  
-**Sürüm kodu:** `30708`  
+**Sürüm kodu:** `30809`  
 **Minimum Android:** API 26  
 **Hedef Android:** API 35  
 **Derleme:** JDK 17 · Gradle 8.9 · Android SDK 35
@@ -18,7 +18,7 @@
 
 - WebView içinde yerel paketlenmiş arayüz; çevrimdışı eğitim belgeleri ve araçlar.
 - Telefon ve tablet boyutlarına göre uyarlanan gezinme ve çalışma alanı.
-- WebAudio tabanlı mikrofon/RTA görünümü. Kalibre edilmiş dB SPL, faz veya transfer-function ölçümü değildir.
+- WebAudio tabanlı mikrofon/RTA görünümü. Göreli seviye ve spektrum analizi sunar; fiziksel kalibratör entegrasyonu, kalibre edilmiş dB SPL, canlı stereo Transfer Function veya faz ölçümü sunmaz.
 - Android dosya seçicisi üzerinden ses dosyası alma ve desteklenen WAV biçimleri için peak/RMS analizi.
 - Saha ve sistem mühendisliği araçları: ölçekli sahne/AV planı, Midas M32/Behringer X32 .scn patch raporu, kablosuz kanal planı, 70/100 V hat hesabı, oda SPL haritası ve hoparlör/DSP ön hesabı.
 - Dalga/Faz/Gecikme Laboratuvarı: frekans, dalga boyu, periyot, iki kaynak girişimi, faz ve dB SPL formülleri; isteğe bağlı canlı mikrofon gecikme deneyi 0–5.000 ms. Mikrofon izlemesi varsayılan olarak sessizdir ve kamera açılmaz.
@@ -56,7 +56,7 @@ APK yolu:
 
 `android/app/build/outputs/apk/debug/app-debug.apk`
 
-Debug APK geliştirme/test paketidir. 3.7.6 için Stagepulse-Releases CI hattında kalıcı Stagepulse keystore ile Release APK derlendi; Gradle birim testleri, imza sertifikası, zipalign, sürüm kodu ve SHA-256 kontrolleri geçti. Bu otomatik sonuç fiziksel cihaz kabul testinin yerine geçmez.
+Debug APK geliştirme/test paketidir. 3.8.9 yayın manifestinde kalıcı Stagepulse keystore ile imzalanmış APK ve SHA-256 bilgileri bulunur. Bu kaynak doküman, yeni değişikliklerin release APK olarak derlendiğini veya fiziksel cihaz kabul testlerinin tamamlandığını tek başına kanıtlamaz.
 
 ## Gerçek cihaz kabul listesi
 
