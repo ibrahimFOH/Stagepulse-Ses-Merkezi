@@ -73,13 +73,74 @@ async function getRole(userId: string) {
 async function audit(actor: string, action: string, subject?: string | null, licenseId?: string | null, details: Record<string, unknown> = {}) {
   await admin.from("sesm_audit_events").insert({ actor_user_id: actor, action, subject_user_id: subject ?? null, license_id: licenseId ?? null, details });
 }
+function trialStatus(row: any, now = Date.now()) {
+  if (row.revoked) return { active: false, reason: "trial_revoked", remaining_seconds: 0, started_at: row.started_at, expires_at: row.expires_at };
+  const expires = Date.parse(String(row.expires_at ?? ""));
+  if (!Number.isFinite(expires)) return { active: false, reason: "trial_service_unavailable", remaining_seconds: 0 };
+  if (expires <= now) return { active: false, reason: "trial_expired", remaining_seconds: 0, started_at: row.started_at, expires_at: row.expires_at };
+  return { active: true, reason: null, started_at: row.started_at, expires_at: row.expires_at, remaining_seconds: Math.max(0, Math.ceil((expires - now) / 1000)) };
+}
+
+async function trialContext(userId: string, deviceHash: string, platform: unknown, requestedAppId: string, licensed: any) {
+  if (licensed.active) return { active: false, reason: "paid_license_active", remaining_seconds: 0 };
+  if (!["ses-merkezi", "ses-merkezi-android"].includes(requestedAppId)) return { active: false, reason: "trial_start_failed", remaining_seconds: 0 };
+  if (!/^[0-9a-f]{64}$/.test(deviceHash)) return { active: false, reason: "device_id_invalid", remaining_seconds: 0 };
+  const expectedPlatform = requestedAppId === "ses-merkezi-android" ? "android" : "windows";
+  if (platform !== expectedPlatform) return { active: false, reason: "device_id_invalid", remaining_seconds: 0 };
+
+  const { data: activeDevices, error: devicesError } = await admin.from("license_core_devices")
+    .select("license_id").eq("user_id", userId).eq("app_id", requestedAppId).eq("is_active", true);
+  if (devicesError) return { active: false, reason: "trial_service_unavailable", remaining_seconds: 0 };
+  const assignedIds = [...new Set((activeDevices ?? []).map((item: any) => item.license_id).filter(Boolean))];
+  if (assignedIds.length) {
+    const { data: assignedLicenses, error: assignedError } = await admin.from("license_core")
+      .select("id,product_code,status,payment_status,expires_at").in("id", assignedIds);
+    if (assignedError) return { active: false, reason: "trial_service_unavailable", remaining_seconds: 0 };
+    const hasPaidLicense = (assignedLicenses ?? []).some((item: any) =>
+      item.product_code === "ses-merkezi" && item.status === "active" && item.payment_status === "paid"
+      && (!item.expires_at || Date.parse(item.expires_at) > Date.now()));
+    if (hasPaidLicense) return { active: false, reason: "license_already_assigned", remaining_seconds: 0 };
+  }
+
+  const { data: existing, error: existingError } = await admin.from("sesm_trials")
+    .select("user_id,device_hash,platform,started_at,expires_at,revoked").eq("user_id", userId).maybeSingle();
+  if (existingError) return { active: false, reason: "trial_service_unavailable", remaining_seconds: 0 };
+  if (existing) {
+    if (existing.device_hash !== deviceHash) return { active: false, reason: "trial_device_mismatch", remaining_seconds: 0 };
+    const status = trialStatus(existing);
+    if (status.active) await admin.from("sesm_trials").update({ last_seen_at: new Date().toISOString() }).eq("user_id", userId);
+    return status;
+  }
+
+  const { data: usedDevice, error: usedDeviceError } = await admin.from("sesm_trials")
+    .select("user_id").eq("device_hash", deviceHash).maybeSingle();
+  if (usedDeviceError) return { active: false, reason: "trial_service_unavailable", remaining_seconds: 0 };
+  if (usedDevice) return { active: false, reason: "device_trial_already_used", remaining_seconds: 0 };
+
+  const { data: created, error: createError } = await admin.from("sesm_trials")
+    .insert({ user_id: userId, device_hash: deviceHash, platform: expectedPlatform })
+    .select("user_id,device_hash,platform,started_at,expires_at,revoked").single();
+  if (createError || !created) {
+    if (createError?.code === "23505") {
+      const { data: racedUser, error: racedUserError } = await admin.from("sesm_trials")
+        .select("user_id,device_hash,platform,started_at,expires_at,revoked").eq("user_id", userId).maybeSingle();
+      if (racedUserError) return { active: false, reason: "trial_service_unavailable", remaining_seconds: 0 };
+      if (racedUser) return racedUser.device_hash === deviceHash ? trialStatus(racedUser) : { active: false, reason: "trial_device_mismatch", remaining_seconds: 0 };
+      const { data: racedDevice, error: racedDeviceError } = await admin.from("sesm_trials")
+        .select("user_id").eq("device_hash", deviceHash).maybeSingle();
+      if (racedDeviceError) return { active: false, reason: "trial_service_unavailable", remaining_seconds: 0 };
+      if (racedDevice) return { active: false, reason: "device_trial_already_used", remaining_seconds: 0 };
+    }
+    return { active: false, reason: "trial_start_failed", remaining_seconds: 0 };
+  }
+  return trialStatus(created);
+}
+
 async function entitlementContext(userId: string, deviceHash: string, role: string, platform: unknown, requestedAppId = "") {
   const licensed = await licensedContext(userId, deviceHash, role, requestedAppId);
-  return {
-    licensed,
-    trial: { active: false, reason: "trial_disabled", remaining_seconds: 0 },
-    paid: role === "owner" || licensed.active,
-  };
+  const trial = role === "owner" ? { active: false, reason: "owner_account", remaining_seconds: 0 }
+    : await trialContext(userId, deviceHash, platform, requestedAppId, licensed);
+  return { licensed, trial, paid: role === "owner" || licensed.active };
 }
 
 async function licensedContext(userId: string, deviceHash: string, role: string, requestedAppId = "") {
@@ -154,17 +215,17 @@ Deno.serve(async (req: Request) => {
       const entitlement = await entitlementContext(user.id, deviceHash, role, body.platform, String(body.app_id ?? ""));
       const { data: ownStudent } = await admin.from("sesm_students").select("display_name, email, teacher_user_id")
         .eq("user_id", user.id).eq("is_active", true).maybeSingle();
-      return reply({ ok: true, user: { id: user.id, email: user.email, name: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? "" }, role, licensed: entitlement.licensed, trial: entitlement.trial, entitlements: { paid: entitlement.paid, demo: false }, student: ownStudent ?? null, app: "Stagepulse Ses Mühendisliği Merkezi" });
+      return reply({ ok: true, user: { id: user.id, email: user.email, name: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? "" }, role, licensed: entitlement.licensed, trial: entitlement.trial, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active === true }, student: ownStudent ?? null, app: "Stagepulse Ses Mühendisliği Merkezi" });
     }
     if (action === "license_status") {
       const entitlement = await entitlementContext(user.id, String(body.device_hash ?? ""), role, body.platform, String(body.app_id ?? ""));
-      return reply({ ok: true, licensed: entitlement.licensed, trial: entitlement.trial, entitlements: { paid: entitlement.paid, demo: false }, role });
+      return reply({ ok: true, licensed: entitlement.licensed, trial: entitlement.trial, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active === true }, role });
     }
     if (action === "feature_access" || action === "pdf_access") {
       const entitlement = await entitlementContext(user.id, String(body.device_hash ?? ""), role, body.platform, String(body.app_id ?? ""));
       const feature = action === "pdf_access" ? "pdf_library" : String(body.feature ?? "");
-      const allowed = entitlement.paid;
-      return reply({ ok: true, feature, allowed, paid: entitlement.paid, trial: entitlement.trial, reason: allowed ? null : "license_required" });
+      const allowed = entitlement.paid || entitlement.trial.active === true;
+      return reply({ ok: true, feature, allowed, paid: entitlement.paid, trial: entitlement.trial, reason: allowed ? null : (entitlement.trial.reason || "license_required") });
     }
     if (action === "license_list") {
       await requireOwner(user.id);
