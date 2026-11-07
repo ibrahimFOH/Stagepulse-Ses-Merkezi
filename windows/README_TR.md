@@ -53,6 +53,7 @@ Lisans kaydındaki teknik kapsam alanı veritabanı uyumluluğu için korunur; g
 - Yalnızca mevcut Stagepulse sahibi yönetici hesabı ile giriş yapılabilir; herkese açık kayıt ekranı yoktur. Supabase Auth oturumu ve Edge Function içindeki sahip/rol denetimi birlikte kullanılır.
 - Müşteri FULL PAKET satın alma bildirimi gönderirken banka transfer referansını girer. Yönetici banka hesabındaki hareketi kontrol edip onaylar veya reddeder. Onay verilmeden lisans anahtarı oluşturulmaz ve lisans etkinleştirilmez.
 - Eski doğrudan yönetici lisans üretme API yolları Ses Merkezi için kapalıdır. Yeni lisans yalnızca havale/EFT satın alma kaydının yönetici onayıyla üretilir; mevcut lisansların aktivasyonu ve yönetimi korunur.
+- Canlı satışa başlamadan önce yönetici mağaza ayarlarından banka adı, hesap sahibi, IBAN ve ödeme açıklamasını tanımlamalıdır. Banka bilgileri eksikse satın alma bildirimi `BANK_DETAILS_NOT_CONFIGURED` ile reddedilir; lisans üretilmez.
 - Yeni lisans anahtarı oluşturulduğunda yalnızca o anda gösterilir. Kopyalayıp müşteriye güvenli şekilde teslim et. Sunucuda anahtarın kendisi yerine SHA-256 özeti saklanır. Anahtarı kaybedersen yeniden göstermeye çalışmak yerine yeni anahtar oluşturman ve eski lisansı iptal etmen gerekir.
 - Yönetim paneli HTTPS ve internet bağlantısı ister; kayıtlar çevrimdışı oluşturulmaz. Mobil tarayıcı ve masaüstü tarayıcı aynı paneli kullanır.
 - Tahsilat/CSV kayıtları iç yönetim kaydıdır; fatura, e-Arşiv veya yasal muhasebe belgesi değildir. Online ödeme altyapısı bu sürüme dahil değildir.
