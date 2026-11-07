@@ -196,6 +196,8 @@ def test_ses_merkezi_requires_paid_license_or_authenticated_trial():
     assert 'const allowed = entitlement.paid || entitlement.trial.active === true;' in edge
     assert 'demo: entitlement.trial.active === true' in edge
     assert 'trial.active===true' in windows_ui and 'trial.active===true' in android_ui
+    assert 'trial_active = bool(trial_info.get("active")) and not licensed' in desktop
+    assert 'val trial = context.optJSONObject("trial")?.optBoolean("active", false) == true' in android_native
     assert '"demo_mode": False' in desktop
     assert '"license_required_for_local_tools": True' in desktop
     assert 'Yerel demo açık' not in windows_ui
