@@ -11,19 +11,19 @@
 - **Oda ses basınç seviyesi haritası:** Ölçüm CSV verilerinden enterpolasyonlu ısı haritası.
 - **Hoparlör ve sayısal sinyal işleme eğitimi:** Kapalı kutu Thiele–Small ön hesabı ve Butterworth geçiş eğrisi.
 - **Sahne ve ses-görüntü planı:** Ölçekli 2B yerleşim, ekipman listesi, JSON/CSV dışa aktarımı.
-- **Akustik sistem analizi:** Stereo WAV üzerinden H1 Transfer Function, Magnitude, Phase, Coherence, Delay Finder ve Impulse Response/ETC. Bu ilk sürüm dosya tabanlıdır; canlı çift kanal yakalama ve dB SPL kalibrasyonu içermez.
+- **Akustik sistem analizi:** Stereo WAV üzerinden H1 Transfer Function, Magnitude, Phase, Coherence, Delay Finder ve Impulse Response/ETC. Windows masaüstü sürümünde aynı ses kartının iki girişinden canlı H1 magnitude/faz/coherence yakalama da bulunur; CH0 referans, CH1 ölçüm mikrofonudur. Canlı akış aynı saat kaynağındaki iki kanalı gerektirir.
 
 Yeni araçların hesaplama kodu Stagepulse içinde bağımsızdır. Kaynak ZIP arşivleri uygulamaya kopyalanmaz. Araçlar dış CDN veya çevrimiçi hesaplama servisi kullanmaz. RF planı yasal tahsis belgesi değildir; kullanıcı izinli bandı kendisi doğrular. M32/X32 sahne okuyucusu yalnızca temel verileri çözümler ve sahne dosyasını değiştirmez.
 
 ## Öğrenci / müşteri kurulumu
 
-3.8.6 kararlı sürümü Windows kurulum EXE'si ve kalıcı anahtarla imzalanmış Android APK'sı ile yayımlanır. Her iki paket SHA-256 ile doğrulanır. Windows kurulum dosyası `Stagepulse-Ses-Merkezi-Windows-3.8.6.exe`, Android paketi `Stagepulse-Ses-Merkezi-Android-3.8.6.apk` olarak sunulur. En son kararlı sürüm 3.8.6'dır. Bu kurucu uygulamayı `%LOCALAPPDATA%\Programs\Stagepulse\SesMerkezi` altına yerleştirir, masaüstüne ve Başlat menüsüne kısayol ekler ve Windows uygulama kaldırma kaydı oluşturur. Son kullanıcıya Python, CMD, BAT veya ayrı araç EXE'leri verilmez. Güncelleme aynı kurucunun sessiz yükseltme modunu kullanır; öğrenci profilleri kurulum güncellemesinde silinmez.
+3.8.9 kararlı sürümü Windows kurulum EXE'si ve kalıcı Android anahtarıyla imzalanmış APK ile yayımlanır. Her iki paket SHA-256 ile doğrulanır. Windows ve Android yayın varlıkları `Stagepulse-Releases` deposundaki `latest.json` manifestinden izlenir. Güncel sürüm doğrulaması için depo kökündeki README ve yayın manifestini esas al. Bu kurucu uygulamayı `%LOCALAPPDATA%\Programs\Stagepulse\SesMerkezi` altına yerleştirir, masaüstüne ve Başlat menüsüne kısayol ekler ve Windows uygulama kaldırma kaydı oluşturur. Son kullanıcıya Python, CMD, BAT veya ayrı araç EXE'leri verilmez. Güncelleme aynı kurucunun sessiz yükseltme modunu kullanır; öğrenci profilleri kurulum güncellemesinde silinmez.
 
-Bu depo kaynak koddur. Windows kurulum EXE'si, Windows x64 ortamındaki `EXE_OLUSTUR.bat` veya `EXE_OLUSTUR.ps1` ile üretilir. 3.8.6 kararlı kaynak sürümüdür; Windows x64 EXE, imzalı Android APK, SHA-256 ve GitHub Release doğrulamaları yayın hattında yapılır. Derleme bilgisayarında Python 3.11/3.12/3.13/3.14 x64 gerekir; son kullanıcıda gerekmez. Node.js derleme ortamında isteğe bağlıdır; kuruluysa JavaScript sözdizimi ve yerel araç çalışma zamanı testleri çalıştırılır. Kurulu değilse bu iki Node testi atlanır, Python kaynak testleri yine yürütülür. Betik önce testleri çalıştırır, Microsoft WebView2 yükleyicisinin dijital imzasını ve NSIS paketinin SHA-256 değerini doğrular; derleme sonunda geçici araçları siler ve `dist` klasöründe yalnızca tek kurulum EXE'si bırakır.
+Bu depo kaynak koddur. Windows kurulum EXE'si, Windows x64 ortamındaki `EXE_OLUSTUR.bat` veya `EXE_OLUSTUR.ps1` ile üretilir. 3.8.9 kaynak sürümüdür; Windows x64 EXE, kalıcı anahtarla imzalı Android APK, SHA-256 ve GitHub Release doğrulamaları yayın hattında yapılır. Derleme bilgisayarında Python 3.11/3.12/3.13/3.14 x64 gerekir; son kullanıcıda gerekmez. Node.js derleme ortamında isteğe bağlıdır; kuruluysa JavaScript sözdizimi ve yerel araç çalışma zamanı testleri çalıştırılır. Kurulu değilse bu iki Node testi atlanır, Python kaynak testleri yine yürütülür. Betik önce testleri çalıştırır, Microsoft WebView2 yükleyicisinin dijital imzasını ve NSIS paketinin SHA-256 değerini doğrular; derleme sonunda geçici araçları siler ve `dist` klasöründe yalnızca tek kurulum EXE'si bırakır.
 
 ## Eğitim dalları ve fiyatlandırma
 
-Uygulamaya **Eğitim dalları / usta yolu** ekranı eklendi. Sekiz dal, L0–L5 yeterlilik basamakları, uygulama görevleri, dal bazlı kısa bilgi testleri ve önerilen paket fiyatları `docs/EGITIM_DALLARI_USTA_YOLU_VE_FIYATLANDIRMA_TR.md` içinde ayrıntılıdır. Makine tarafından okunabilir katalog `egitim_paketleri/stagepulse_egitim_katalogu_v1.json` dosyasıdır. Fiyatlar öneri taslağıdır, onaylanmış canlı fiyat değildir.
+Uygulamaya **Eğitim dalları / usta yolu** ekranı eklendi. Sekiz öğrenme alanı, L0–L5 yeterlilik basamakları, uygulama görevleri ve dal bazlı kısa bilgi testleri `docs/EGITIM_DALLARI_USTA_YOLU_VE_FIYATLANDIRMA_TR.md` içinde ayrıntılıdır. Makine tarafından okunabilir katalog `egitim_paketleri/stagepulse_egitim_katalogu_v1.json` dosyasıdır. Eğitim dalları içerik ve yeterlilik sınıflandırmasıdır; ayrı satılan modüller değildir. Ticari satış yalnızca FULL PAKET üzerinden yapılır.
 
 Lisans üretiminde eğitim kapsamı `bundle_code` alanında tutulur. Yayına almadan önce `supabase/migrations/20261029190000_ses_merkezi_education_bundles.sql` migration dosyası uygulanmalıdır. Bu alanın saklanması tek başına paket özelliklerini güvenli biçimde kilitlemez; ücretli özelliklerin her birinde Edge Function tarafı yetkilendirmesi ayrıca yapılmalıdır.
 
@@ -71,7 +71,7 @@ Uygulama güncellemeleri Supabase `ses-merkezi-updates` Edge Function üzerinden
 
 ## RTA ve teknik sınırlar
 
-RTA, bilgisayarın yerel ses girişinden FFT ve göreli dBFS bant seviyeleri alır. Kapsül/driver düzeltmesi ve akustik kalibrasyon olmadan mutlak dB SPL, IEC sınıfı 1/2 ölçüm, faz/impulse-response veya üreticiye özel line-array tahmini iddiasında bulunmaz. Otomatik optimizasyon sadece öneridir ve EQ'yu miksere kendiliğinden uygulamaz. RTA ve ses kayıtları için Windows mikrofon izni/cihaz seçimi gerekir.
+RTA, bilgisayarın yerel ses girişinden FFT ve göreli dBFS bant seviyeleri alır. Windows masaüstünde 94/114 dB SPL, 1 kHz fiziksel ses kalibratörüyle oturumluk referans kalibrasyonu yapılabilir; uygulama yeniden başlatıldığında kalibrasyon sıfırlanır. Bu işlem mikrofon frekans cevabı düzeltmesi, A/C ağırlıklandırması veya IEC sınıfı 1/2 uygunluğu sağlamaz. Kalibrasyon yapılmadan mutlak dB SPL iddiasında bulunulmaz. Canlı stereo TF magnitude/faz/coherence verir; bu, mikrofon kalibrasyonu veya üreticiye özel line-array tahmini değildir. Otomatik optimizasyon sadece öneridir ve EQ'yu miksere kendiliğinden uygulamaz. RTA ve ses kayıtları için Windows mikrofon izni/cihaz seçimi gerekir.
 
 ## Test ve geliştirici komutları
 
@@ -102,7 +102,7 @@ Windows PowerShell 5.1 ile uyumluluk için derleme betiğindeki akıllı tırnak
 
 ## Öğrenciye nasıl gönderilir?
 
-Windows x64 derleme bilgisayarında `EXE_OLUSTUR.bat` çalıştır. Testler başarılı olursa `dist` içinde yalnızca `StagepulseSesMerkezi-Kurulum-3.8.6.exe` bulunur. Aynı işlem `ogrenciye_gonder/Stagepulse_Ogrenci_Kurulum_3.8.4.zip` dosyasını üretir; bu ZIP'in içinde yalnızca `Stagepulse_Kurulum.exe` vardır. Öğrenciye kaynak depo, Python, NSIS, PowerShell veya ara uygulama EXE'si gönderilmez.
+Windows x64 derleme bilgisayarında `EXE_OLUSTUR.bat` çalıştır. Testler başarılı olursa `dist` içinde yalnızca güncel sürüm numarasını taşıyan Stagepulse kurulum EXE'si bulunur. Aynı işlem `ogrenciye_gonder/Stagepulse_Ogrenci_Kurulum_3.8.4.zip` dosyasını üretir; bu ZIP'in içinde yalnızca `Stagepulse_Kurulum.exe` vardır. Öğrenciye kaynak depo, Python, NSIS, PowerShell veya ara uygulama EXE'si gönderilmez.
 
 Kurulum sırasında WebView2 Runtime yoksa tek kurulum sihirbazı bunu sessizce yükler. Kurulum dizininde `StagepulseSesMerkezi.exe`, PyInstaller bağımlılıklarını taşıyan `_internal` klasörü ve `Uninstall.exe` bulunur. Bu yapı, her uygulama açılışında tek dosyalı paketin yeniden çıkarılmasını önler. Kaldırıcı Windows'un Program Kaldır bölümüne kayıtlıdır ve öğrenci profillerini korur.
 
