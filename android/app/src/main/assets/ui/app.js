@@ -827,7 +827,7 @@ let androidTfTimer=0,androidTfRunning=false,androidTfGeneration=0,androidTfError
 let androidTfFftSize=16384,androidTfAveragesTarget=8,androidTfAverageCount=0,androidTfSampleRate=0;
 let androidTfRefBuffer=null,androidTfMicBuffer=null,androidTfWritePos=0,androidTfFilled=0,androidTfFramesSince=0;
 let androidTfSxx=null,androidTfSyy=null,androidTfSyxRe=null,androidTfSyxIm=null;
-let androidTfPeakRef=-120,androidTfPeakMic=-120,androidTfDeviceName='';
+let androidTfPeakRef=-120,androidTfPeakMic=-120,androidTfDeviceName='',androidTfChannelVerified=false;
 function androidTfFft(real,imag){
  const n=real.length;
  for(let i=1,j=0;i<n;i++){
@@ -852,6 +852,7 @@ function androidTfProcessBlock(input){
  if(!androidTfRunning||!androidTfRefBuffer)return;
  if(input.numberOfChannels<2){androidTfError='Seçilen giriş yalnızca mono kanal sağlıyor. Stereo TF için aynı USB ses kartında iki bağımsız giriş gerekir.';return;}
  const ref=input.getChannelData(0),mic=input.getChannelData(1),n=Math.min(ref.length,mic.length),size=androidTfFftSize;
+ if(!androidTfChannelVerified){let p0=0,p1=0,diff=0;for(let i=0;i<n;i++){p0+=ref[i]*ref[i];p1+=mic[i]*mic[i];const d=ref[i]-mic[i];diff+=d*d;}const r0=Math.sqrt(p0/Math.max(1,n)),r1=Math.sqrt(p1/Math.max(1,n)),rd=Math.sqrt(diff/Math.max(1,n));if(r0>.001&&r1>.001&&rd<Math.max(r0,r1)*.0001){androidTfError='Android iki kanalı aynı mono sinyal olarak sunuyor. Gerçek bağımsız CH0/CH1 girişleri olan USB ses kartı kullan.';return;}if(r0>.001&&r1>.001)androidTfChannelVerified=true;}
  let peakR=0,peakM=0;
  for(let i=0;i<n;i++){
   const x=Number.isFinite(ref[i])?ref[i]:0,y=Number.isFinite(mic[i])?mic[i]:0;
@@ -950,7 +951,7 @@ async function stopAndroidTf(showMessage=true){
 async function startAndroidTf(){
  await stopAndroidTf(false);
  const token=++androidTfGeneration,select=$('androidTfDevice'),deviceId=select?.value||'';
- androidTfError='';androidTfAverageCount=0;androidTfLastCallback=0;androidTfFilled=0;androidTfWritePos=0;androidTfFramesSince=0;
+ androidTfError='';androidTfChannelVerified=false;androidTfAverageCount=0;androidTfLastCallback=0;androidTfFilled=0;androidTfWritePos=0;androidTfFramesSince=0;
  androidTfFftSize=Number($('androidTfFft')?.value||16384);androidTfAveragesTarget=Number($('androidTfAverages')?.value||8);
  $('androidTfStart').disabled=true;$('androidTfStop').disabled=false;
  $('androidTfStatus').textContent='Mikrofon izni ve iki kanallı USB giriş bekleniyor…';
@@ -960,11 +961,12 @@ async function startAndroidTf(){
   const audio={echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:{exact:2}};
   if(deviceId)audio.deviceId={exact:deviceId};
   androidTfStream=await navigator.mediaDevices.getUserMedia({audio});
+  if(token!==androidTfGeneration){androidTfStream.getTracks().forEach(t=>t.stop());androidTfStream=null;return;}
   const track=androidTfStream.getAudioTracks()[0],settings=track?.getSettings?.()||{};
   if(Number(settings.channelCount)>0&&Number(settings.channelCount)<2)throw new Error('Seçilen aygıt Android tarafından mono olarak sunuldu. İki bağımsız giriş kanalı olan USB ses kartı gerekli.');
   androidTfContext=new (window.AudioContext||window.webkitAudioContext)();
   await androidTfContext.resume();androidTfSampleRate=androidTfContext.sampleRate;
-  androidTfSampleRate=androidTfContext.sampleRate;androidTfDeviceName=track?.label||'Android USB ses girişi';
+  androidTfDeviceName=track?.label||'Android USB ses girişi';
   const size=androidTfFftSize,bins=size/2+1;
   androidTfRefBuffer=new Float32Array(size);androidTfMicBuffer=new Float32Array(size);
   androidTfSxx=new Float64Array(bins);androidTfSyy=new Float64Array(bins);androidTfSyxRe=new Float64Array(bins);androidTfSyxIm=new Float64Array(bins);
