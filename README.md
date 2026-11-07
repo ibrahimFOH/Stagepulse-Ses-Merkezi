@@ -21,6 +21,12 @@ Windows EXE ve Android APK aynı kararlı sürümde doğrulanır ve yayımlanır
 
 Stagepulse ana web sitesi içeriği bu çalışma kapsamında değiştirilmedi.
 
+## Ölçüm araçlarının güncel kapsamı
+
+Windows masaüstü sürümünde canlı RTA, oturumluk 1 kHz ses kalibratörü referansıyla dB SPL Z gösterimi ve aynı ses kartının iki giriş kanalından canlı H1 Transfer Function bulunur. Stereo TF'de CH0 referans, CH1 ölçüm mikrofonudur. Kalibrasyon mikrofon frekans düzeltmesi veya IEC sınıfı ölçüm uygunluğu sağlamaz. Gerçek ses kartı, mikrofon ve saha kabul testleri otomatik kaynak testlerinden ayrı doğrulanmalıdır.
+
+Ticari satış modeli yalnızca FULL PAKET'tir. Eğitim dalları ayrı satış ürünü değil, Full Paket içindeki öğrenme/yeterlilik yapısıdır.
+
 ## Android geliştirme ve doğrulama
 
 Gerekli araçlar: JDK 17, Android SDK Platform 35, Android Build Tools 35.0.0, Gradle 8.9, Node.js 22 ve Python 3.12.
