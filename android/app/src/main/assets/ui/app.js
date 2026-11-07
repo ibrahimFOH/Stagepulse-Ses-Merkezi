@@ -709,7 +709,8 @@ function updateRtaOptimizer(centers, values){
 }
 
 async function tickRta(token){
- if(!rtaRunning||activeRoute!=='rta'||token!==rtaGeneration)return;
+ if(!rtaRunning||token!==rtaGeneration)return;
+ if(activeRoute!=='rta'){stopRta(false);return;}
  if(rtaBusy){rtaPollTimer=setTimeout(()=>tickRta(token),120);return;}
  rtaBusy=true;
  try{
@@ -989,6 +990,7 @@ async function startAndroidTf(){
 }
 function tickAndroidTf(token){
  if(!androidTfRunning||token!==androidTfGeneration)return;
+ if(activeRoute!=='rta'){stopAndroidTf(false);return;}
  if(androidTfError){$('androidTfStatus').textContent=androidTfError;stopAndroidTf(false);return;}
  const snapshot=androidTfSnapshot();
  if(snapshot.stale){
