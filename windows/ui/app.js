@@ -223,7 +223,7 @@ function initShell(){
   const initSteps=[
     ['Hesaplayıcılar',initCalculators],['SPL / alan planı',initAcoustics],
     ['Kulak eğitimi',initEarTraining],['Ses katmanı atölyesi',initMixer],
-    ['Canlı RTA arayüzü',initRtaControls],['Akustik sistem analizi',initAcousticAnalyzer],['WAV analizi',initWav],
+    ['Canlı RTA arayüzü',initRtaControls],['Akustik sistem analizi',initAcousticAnalyzer],['Canlı stereo Transfer Function',initLiveTfControls],['WAV analizi',initWav],
     ['LUFS normalizasyonu',initLufs],['Cue notları',initCues],
     ['Kontrol listeleri',initChecklists],['Öğrenci profilleri',initStudent],
     ['Ders kılavuzları',initDocs],['AI asistanı',initAssistant],
@@ -427,6 +427,88 @@ function drawAcousticChart(canvasId, frequencies, values, minValue, maxValue, un
  for(let i=1;i<frequencies.length;i+=stride){const freq=frequencies[i],value=values[i];if(!Number.isFinite(freq)||!Number.isFinite(value)||freq<=0)continue;const x=left+(Math.log10(freq)-logMin)/(logMax-logMin)*plotW,y=top+(maxValue-value)/(maxValue-minValue)*plotH;if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);}
  if(started)ctx.stroke();
 }
+let liveTfRunning=false,liveTfBusy=false,liveTfTimer=null,liveTfGeneration=0;
+async function refreshLiveTfDevices(){
+ const select=$('liveTfDevice');if(!select)return;
+ if(!api()||typeof api().list_tf_devices!=='function'){
+  select.innerHTML='<option value="">Yalnızca Windows masaüstü EXE</option>';
+  $('liveTfStatus').textContent='Canlı stereo TF, Windows masaüstü EXE içinde kullanılabilir.';
+  return;
+ }
+ try{
+  const devices=await api().list_tf_devices();
+  select.innerHTML='';
+  if(!Array.isArray(devices)||!devices.length){
+   select.innerHTML='<option value="">Stereo giriş aygıtı bulunamadı</option>';
+   $('liveTfStatus').textContent='En az iki eşzamanlı giriş kanalı olan bir ses kartı bağla.';
+   return;
+  }
+  devices.forEach(device=>{
+   const option=document.createElement('option');option.value=String(device.index);
+   option.textContent=String(device.name)+' · '+String(device.host_api||'Ses aygıtı')+' · '+device.max_input_channels+' giriş';
+   select.appendChild(option);
+  });
+  $('liveTfStatus').textContent=devices.length+' stereo giriş aygıtı bulundu. CH0 referans, CH1 ölçüm mikrofonu.';
+ }catch(error){$('liveTfStatus').textContent='Stereo girişler listelenemedi: '+(error.message||String(error));}
+}
+async function stopLiveTf(showMessage=true){
+ liveTfGeneration++;liveTfRunning=false;liveTfBusy=false;
+ if(liveTfTimer!==null){clearTimeout(liveTfTimer);liveTfTimer=null;}
+ $('startLiveTf').disabled=false;$('stopLiveTf').disabled=true;
+ if(api()&&typeof api().stop_tf==='function'){
+  try{await api().stop_tf();}catch(error){if(showMessage)$('liveTfStatus').textContent='TF durdurma uyarısı: '+(error.message||String(error));}
+ }
+ if(showMessage)$('liveTfStatus').textContent='Canlı TF durduruldu.';
+}
+async function tickLiveTf(token){
+ if(!liveTfRunning||token!==liveTfGeneration)return;
+ if(liveTfBusy){liveTfTimer=setTimeout(()=>tickLiveTf(token),120);return;}
+ liveTfBusy=true;
+ try{
+  const snapshot=await api().get_tf_snapshot('third',20,20000);
+  if(!liveTfRunning||token!==liveTfGeneration)return;
+  if(!snapshot||!snapshot.ok)throw new Error(snapshot?.error||'TF verisi alınamadı.');
+  const age=Number(snapshot.seconds_since_last_callback||0);
+  if(snapshot.ready){
+   drawAcousticChart('acousticMagnitudeChart',snapshot.centers,snapshot.mag_db,-36,18,' dB');
+   drawAcousticChart('acousticPhaseChart',snapshot.centers,snapshot.phase_deg,-180,180,'°');
+   drawAcousticChart('acousticCoherenceChart',snapshot.centers,snapshot.coherence,0,1,'');
+  }
+  const streamNote=snapshot.stream_stale||age>2?'\nUYARI: Ses akışı durdu veya iki saniyeden uzun süredir veri gelmiyor.':'';
+  $('liveTfStatus').textContent='Canlı H1 · '+snapshot.device+'\n'+Number(snapshot.sample_rate).toLocaleString('tr-TR')+' Hz · FFT '+snapshot.fft_size+' · Ortalama '+snapshot.averages+'/'+snapshot.averages_target+'\nCH0 referans: '+Number(snapshot.peak_ref_dbfs).toFixed(1)+' dBFS peak · CH1 ölçüm: '+Number(snapshot.peak_mic_dbfs).toFixed(1)+' dBFS peak'+streamNote+(snapshot.callback_status?'\nSürücü: '+snapshot.callback_status:'');
+ }catch(error){
+  $('liveTfStatus').textContent='Canlı TF hatası: '+(error.message||String(error));
+ }finally{
+  liveTfBusy=false;
+  if(liveTfRunning&&token===liveTfGeneration)liveTfTimer=setTimeout(()=>tickLiveTf(token),120);
+ }
+}
+function initLiveTfControls(){
+ const start=$('startLiveTf');if(!start)return;
+ $('refreshLiveTfDevices').addEventListener('click',refreshLiveTfDevices);
+ start.addEventListener('click',async()=>{
+  if(!api()||typeof api().start_tf!=='function'){ $('liveTfStatus').textContent='Canlı stereo TF yalnızca Windows masaüstü EXE içinde kullanılabilir.';return;}
+  start.disabled=true;
+  try{
+   await stopLiveTf(false);
+   const device=$('liveTfDevice').value||'default';
+   const result=await api().start_tf(device,Number($('liveTfFft').value||16384),Number($('liveTfAverages').value||8));
+   if(!result||!result.ok)throw new Error(result?.error||'Stereo ses akışı başlatılamadı.');
+   liveTfRunning=true;liveTfGeneration++;const token=liveTfGeneration;
+   $('stopLiveTf').disabled=false;
+   $('liveTfStatus').textContent=result.message||'Stereo TF başlatıldı; ilk ortalamalar bekleniyor.';
+   tickLiveTf(token);
+  }catch(error){
+   liveTfRunning=false;start.disabled=false;$('stopLiveTf').disabled=true;
+   $('liveTfStatus').textContent='Canlı TF başlatılamadı: '+(error.message||String(error));
+  }
+ });
+ $('stopLiveTf').addEventListener('click',()=>stopLiveTf(true));
+ if(api())refreshLiveTfDevices();
+ window.addEventListener('pywebviewready',refreshLiveTfDevices,{once:true});
+ window.addEventListener('pagehide',()=>{if(liveTfRunning)stopLiveTf(false);});
+}
+
 function initAcousticAnalyzer(){
  const run=$('acousticAnalyze');if(!run)return;
  run.addEventListener('click',async()=>{
