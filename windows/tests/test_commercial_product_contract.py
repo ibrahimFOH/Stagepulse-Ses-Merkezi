@@ -257,3 +257,18 @@ def test_full_package_bank_transfer_requires_owner_approval_and_server_license_c
     assert 'admin.rpc("sesm_review_full_package_purchase"' in edge
     assert "'bank_transfer','paid'" in migration
     assert 'purchase_reference' not in edge
+
+
+def test_full_package_sales_cannot_bypass_bank_transfer_owner_approval():
+    desktop_edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
+    core_edge = (ROOT / 'supabase/functions/license-core/index.ts').read_text('utf-8')
+
+    direct_create = desktop_edge[desktop_edge.index('if (action === "license_create")'):]
+    direct_create = direct_create[:direct_create.index('if (action === "license_payment_update")')]
+    assert 'BANK_TRANSFER_APPROVAL_REQUIRED' in direct_create
+    assert 'sesm_review_full_package_purchase' in desktop_edge
+    assert 'purchase_review' in desktop_edge
+    admin_create = core_edge[core_edge.index('async function adminCreate'):core_edge.index('Deno.serve')]
+    assert 'appId === "ses-merkezi"' in admin_create
+    assert 'appId === "ses-merkezi-android"' in admin_create
+    assert 'BANK_TRANSFER_APPROVAL_REQUIRED' in admin_create
