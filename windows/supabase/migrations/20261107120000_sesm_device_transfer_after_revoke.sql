@@ -76,4 +76,47 @@ $$;
 revoke all on function public.license_core_activate(uuid,uuid,text,text,text) from public,anon,authenticated;
 grant execute on function public.license_core_activate(uuid,uuid,text,text,text) to service_role;
 
+-- Eski ve ortak lisans aktivasyon kayıtlarını tek transaction içinde iptal et.
+create or replace function public.sesm_revoke_activation(
+  p_license_id uuid,
+  p_activation_id uuid
+) returns jsonb
+language plpgsql
+security definer
+set search_path=''
+as $
+declare
+  activation public.sesm_activations%rowtype;
+  core_license_id uuid;
+begin
+  select * into activation
+    from public.sesm_activations
+   where id=p_activation_id and license_id=p_license_id
+   for update;
+  if not found then
+    raise exception 'ACTIVATION_NOT_FOUND' using errcode='P0002';
+  end if;
+
+  update public.sesm_activations
+     set is_active=false
+   where id=activation.id;
+
+  select id into core_license_id
+    from public.license_core
+   where legacy_system='ses-merkezi' and legacy_license_id=p_license_id
+   for update;
+
+  if core_license_id is not null then
+    update public.license_core_devices
+       set is_active=false
+     where license_id=core_license_id and device_hash=activation.device_hash;
+  end if;
+
+  return jsonb_build_object('ok',true,'device_hash',activation.device_hash);
+end;
+$;
+
+revoke all on function public.sesm_revoke_activation(uuid,uuid) from public,anon,authenticated;
+grant execute on function public.sesm_revoke_activation(uuid,uuid) to service_role;
+
 commit;
