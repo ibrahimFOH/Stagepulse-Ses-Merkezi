@@ -154,18 +154,44 @@ def test_initial_window_size_adapts_to_laptop_and_desktop_screens():
     assert large_width > width and large_height > height
 
 
-def test_remote_ai_requires_license_but_local_ollama_is_demo_accessible(tmp_path, monkeypatch):
+def test_all_ai_providers_require_a_paid_license(tmp_path, monkeypatch):
     import core.ai_providers
 
     monkeypatch.setattr(Merkez, "LICENSE_CACHE_PATH", tmp_path / "no-license.dat")
     api = Merkez.AppApi()
-    with pytest.raises(RuntimeError, match="Groq yedek bağlantısı için etkin Stagepulse lisansı gerekir"):
+    with pytest.raises(RuntimeError, match="ödemesi onaylı lisans gerekir"):
         api.ai_chat("groq", "openai/gpt-oss-120b", "dummy-key", "hello", "https://api.groq.com/openai/v1/chat/completions")
+    with pytest.raises(RuntimeError, match="ödemesi onaylı lisans gerekir"):
+        api.ai_chat("ollama", "llama3.2", "", "hello", "http://127.0.0.1:11434/api/chat")
 
+    monkeypatch.setattr(api, "_cached_license_status", lambda: {"active": True})
     monkeypatch.setattr(core.ai_providers, "chat", lambda *args, **kwargs: {"ok": True, "provider": "ollama", "content": "yerel"})
     result = api.ai_chat("ollama", "llama3.2", "", "hello", "http://127.0.0.1:11434/api/chat")
     assert result["provider"] == "ollama"
     assert result["content"] == "yerel"
+
+
+def test_auth_restore_keeps_paid_license_available_during_network_outage(monkeypatch, tmp_path):
+    monkeypatch.setattr(Merkez, "SESSION_PATH", tmp_path / "session.dat")
+    stored = {
+        "access_token": "last-access-token",
+        "refresh_token": "last-refresh-token",
+        "user": {"id": "student-user"},
+    }
+    monkeypatch.setattr(Merkez, "_secure_read", lambda path, fallback: stored if path == Merkez.SESSION_PATH else fallback)
+    api = Merkez.AppApi()
+    monkeypatch.setattr(api, "_auth_user_request", lambda access: (_ for _ in ()).throw(RuntimeError("Stagepulse hesabına ulaşılamadı. İnternet bağlantısını kontrol et.")))
+    monkeypatch.setattr(api, "_cached_license_status", lambda: {
+        "active": True, "user_id": "student-user", "reason": "offline_grace",
+    })
+
+    result = api.auth_restore()
+
+    assert result["ok"] is True
+    assert result["authenticated"] is False
+    assert result["offline"] is True
+    assert result["license"]["active"] is True
+    assert api._session is stored
 
 
 
