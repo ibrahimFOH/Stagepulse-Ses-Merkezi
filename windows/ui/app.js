@@ -30,7 +30,8 @@ const prompts = {
 let activeRoute = 'home';
 let apiReady = false;
 let nativeInitStarted = false;
-let appAuthorized = false;\nlet appPaidAuthorized = false;
+let appAuthorized = false;
+let appPaidAuthorized = false;
 let licenseGatePending = true;
 let currentRole = 'guest';
 let currentAccountContext = null;
