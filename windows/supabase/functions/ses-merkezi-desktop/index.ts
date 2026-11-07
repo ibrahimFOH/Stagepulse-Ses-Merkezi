@@ -262,8 +262,8 @@ Deno.serve(async (req: Request) => {
       const hash = await sha256Hex(normalizeKey(rawKey));
       const label = String(body.label ?? "Öğrenci lisansı").trim().slice(0, 120) || "Öğrenci lisansı";
       const plan = ["student", "classroom", "lifetime"].includes(String(body.plan_code)) ? String(body.plan_code) : "student";
-      const allowedBundles = ["start", "live_sound", "rf_wireless", "pa_system", "studio_post", "spl_acoustics", "digital_console", "full_master", "institution"];
-      const bundle = allowedBundles.includes(String(body.bundle_code)) ? String(body.bundle_code) : "start";
+      // Ses Merkezi tek ürün olarak lisanslanır; paket seçimi erişimi bölmez.
+      const bundle = "full_master";
       const maxActivations = Math.max(1, Math.min(100, Math.trunc(Number(body.max_activations) || 1)));
       const days = Math.max(0, Math.min(3650, Math.trunc(Number(body.expires_days) || 0)));
       const expiresAt = days > 0 ? new Date(Date.now() + days * 86400000).toISOString() : null;
