@@ -300,7 +300,7 @@ Deno.serve(async (req: Request) => {
       await requireOwner(user.id);
       const price=Number(body.price), bankName=String(body.bank_name??"").trim().slice(0,120), accountHolder=String(body.account_holder??"").trim().slice(0,120);
       const iban=String(body.iban??"").replace(/\s+/g,"").toUpperCase().slice(0,34), paymentInstructions=String(body.payment_instructions??"").trim().slice(0,1000), contactPhone=String(body.contact_phone??"").trim().slice(0,40);
-      if(!Number.isFinite(price)||price<0||price>2500)return fail("FULL_PACKAGE_PRICE_LIMIT",400);
+      if (!Number.isFinite(price) || price < 0 || price > 2500) return fail("FULL_PACKAGE_PRICE_LIMIT", 400);
       if(iban&&!/^TR[0-9]{24}$/.test(iban))return fail("STORE_IBAN_INVALID",400);
       const {data,error}=await admin.from("sesm_store_settings").update({price,currency:"TRY",product_code:"full_package",product_name:"FULL PAKET",bank_name:bankName,account_holder:accountHolder,iban,payment_instructions:paymentInstructions,contact_phone:contactPhone,updated_at:new Date().toISOString(),updated_by:user.id}).eq("id",true).select("product_code,product_name,price,currency,bank_name,account_holder,iban,payment_instructions,contact_phone").single();
       if(error||!data)return fail("STORE_SETTINGS_SAVE_FAILED",500);
