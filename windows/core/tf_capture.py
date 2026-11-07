@@ -244,6 +244,9 @@ class TFCapture:
             peak_ref, peak_mic = self._peak_ref, self._peak_mic
             started, last_cb, device = self._started, self._last_callback, self._device_name
             callback_status = self._callback_status
+        seconds_since_last_callback = max(0.0, time.monotonic() - (last_cb or started))
+        # Keep the live result honest if the driver stops delivering frames.
+        stream_stale = seconds_since_last_callback > 2.0
         centers = supported_centers(sr, mode, min_hz, max_hz)
         if count == 0:
             return {
@@ -252,8 +255,10 @@ class TFCapture:
                 "mag_db": [-60.0] * len(centers), "phase_deg": [0.0] * len(centers),
                 "coherence": [0.0] * len(centers), "averages": 0,
                 "peak_ref_dbfs": peak_ref, "peak_mic_dbfs": peak_mic,
-                "seconds_since_last_callback": max(0.0, time.monotonic() - (last_cb or started)),
-                "callback_status": callback_status, "message": "TF ortalaması hazırlanıyor.",
+                "seconds_since_last_callback": seconds_since_last_callback,
+                "stream_stale": stream_stale, "stream_healthy": not stream_stale,
+                "callback_status": callback_status,
+                "message": "Ses akışı durdu; giriş aygıtını kontrol et." if stream_stale else "TF ortalaması hazırlanıyor.",
             }
         if count < self._num_avg:
             sxx /= count
@@ -287,13 +292,15 @@ class TFCapture:
             phase.append(float(np.degrees(np.angle(h_band))))
             coh_band.append(float(np.average(coherence[idx], weights=weights)))
         return {
-            "ok": True, "running": True, "ready": count >= self._num_avg,
+            "ok": True, "running": True, "ready": count >= self._num_avg and not stream_stale,
             "device": device, "sample_rate": sr, "fft_size": fft,
             "centers": centers, "mag_db": magnitude, "phase_deg": phase,
             "coherence": coh_band, "averages": count,
             "peak_ref_dbfs": peak_ref, "peak_mic_dbfs": peak_mic,
-            "seconds_since_last_callback": max(0.0, time.monotonic() - (last_cb or started)),
-            "callback_status": callback_status, "message": "TF güncel.",
+            "seconds_since_last_callback": seconds_since_last_callback,
+            "stream_stale": stream_stale, "stream_healthy": not stream_stale,
+            "callback_status": callback_status,
+            "message": "Ses akışı durdu; giriş aygıtını kontrol et." if stream_stale else "TF güncel.",
         }
 
     def stop(self) -> dict[str, Any]:
