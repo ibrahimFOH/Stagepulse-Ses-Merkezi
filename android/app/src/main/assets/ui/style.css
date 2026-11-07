@@ -578,3 +578,12 @@ canvas,img,iframe{max-width:100%}
 #rtaCanvas{height:440px;background:#09111f;border:1px solid #30445f;border-radius:8px;box-shadow:inset 0 0 32px rgba(25,64,111,.16)}
 .rta-diagnostics .rta-input-meter{margin-top:10px;color:#c6d5e8}
 @media(max-width:800px){#rtaCanvas{height:340px}.rta-meter-row{grid-template-columns:42px minmax(0,1fr) 76px;gap:7px}.rta-meter-track{height:10px}}
+
+
+/* Android canlı TF grafikleri: telefon/tablet uyumlu üçlü karşılaştırma. */
+.acoustic-chart-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:16px}
+.acoustic-chart-card{min-width:0;padding:12px;border:1px solid var(--line,rgba(255,255,255,.12));border-radius:12px;background:rgba(255,255,255,.025)}
+.acoustic-chart-card h4{margin:0 0 8px;font-size:13px;color:var(--text,#f2f2f2)}
+.acoustic-chart-card canvas{display:block;width:100%;height:210px;max-width:100%}
+@media(max-width:1024px){.acoustic-chart-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.acoustic-chart-grid{grid-template-columns:minmax(0,1fr)}}
