@@ -4,16 +4,15 @@ plugins {
 }
 
 def ciReleaseStorePath = System.getenv('ANDROID_KEYSTORE_PATH')
-def ciReleaseStorePassword = System.getenv('ANDROID_KEYSTORE_PASSWORD')
-def ciReleaseKeyAlias = System.getenv('ANDROID_KEY_ALIAS')
-def ciReleaseKeyPassword = System.getenv('ANDROID_KEY_PASSWORD')
 def updateChannel = 'stable'
 
 android {
     namespace 'com.stagepulse.sesmerkezi'
     compileSdk 35
 
-    buildFeatures { buildConfig true }
+    buildFeatures {
+        buildConfig true
+    }
 
     defaultConfig {
         applicationId 'com.stagepulse.sesmerkezi'
@@ -25,15 +24,12 @@ android {
     }
 
     if (ciReleaseStorePath) {
-        if (!ciReleaseStorePassword || !ciReleaseKeyAlias || !ciReleaseKeyPassword) {
-            throw new GradleException('Android Release imzalama Secrets eksik.')
-        }
         signingConfigs {
             ciRelease {
                 storeFile file(ciReleaseStorePath)
-                storePassword ciReleaseStorePassword
-                keyAlias ciReleaseKeyAlias
-                keyPassword ciReleaseKeyPassword
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                keyPassword System.getenv('ANDROID_KEY_PASSWORD')
             }
         }
     }
@@ -42,8 +38,6 @@ android {
         release {
             if (ciReleaseStorePath) {
                 signingConfig signingConfigs.ciRelease
-            } else if (System.getenv('CI') == 'true') {
-                throw new GradleException('CI ortamında imzasız Release APK üretilemez.')
             }
         }
     }
@@ -52,7 +46,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = '17' }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 }
 
 dependencies {
