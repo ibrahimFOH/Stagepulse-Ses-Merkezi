@@ -883,7 +883,7 @@ async function sendAiText(){
  const button=$('sendAI');
  if(!api()){$('aiStatus').textContent='Yerel AI çağrısı masaüstü uygulama köprüsünü gerektirir.';return;}
  const provider=$('aiProvider').value,endpoint=$('aiEndpoint').value.trim(),model=$('aiModel').value.trim(),key=$('aiKey').value,prompt=$('promptOutput').value.trim()||$('promptContext').value.trim();
- if(!appAuthorized){$('aiStatus').textContent='AI araçları için ödeme onaylı etkin Stagepulse lisansı gerekir.';return;}
+ if(!appPaidAuthorized){$('aiStatus').textContent='AI araçları için ödeme onaylı etkin Stagepulse lisansı gerekir. Deneme lisansı bulut AI erişimi sağlamaz.';return;}
  if(!$('aiConsent').checked){$('aiStatus').textContent='Önce veri gönderim iznini işaretle.';return;}
  if(!endpoint||!model||!prompt){$('aiStatus').textContent='Bağlantı, otomatik model yönlendirmesi ve istem gerekli.';return;}
  try{
@@ -899,17 +899,26 @@ async function sendAiText(){
 }
 
 // --- Commercial account, license and teacher progress ---
+function formatTrialRemaining(seconds){
+ const total=Math.max(0,Math.floor(Number(seconds)||0));
+ const days=Math.floor(total/86400),hours=Math.floor((total%86400)/3600);
+ return days>0?days+' gün '+hours+' saat':hours>0?hours+' saat '+Math.floor((total%3600)/60)+' dakika':Math.max(1,Math.floor(total/60))+' dakika';
+}
 function applyAccountContext(context){
  currentAccountContext=context||null;currentRole=context?.role||'guest';
- const license=context?.licensed||{};appAuthorized=currentRole==='owner'||license.active===true;
+ const license=context?.licensed||{},trial=context?.trial||{};
+ appPaidAuthorized=currentRole==='owner'||license.active===true;
+ appAuthorized=appPaidAuthorized||trial.active===true;
  if(licenseGatePending){licenseGatePending=false;setPage(appAuthorized?'home':'account');}
  else if(!appAuthorized&&activeRoute!=='account')setPage('account');
  if($('accountRoleBadge'))$('accountRoleBadge').textContent=currentRole==='owner'?'Sahip / öğretmen':currentRole==='student'?'Lisanslı öğrenci':'Misafir / lisans gerekli';
  if($('progressRoleBadge'))$('progressRoleBadge').textContent=currentRole==='owner'?'Öğretmen / yönetici':currentRole==='student'?'Öğrenci · salt okunur':'Hesap gerekli';
  const admin=currentRole==='owner';$('teacherLicensePanel').classList.toggle('hidden',!admin);$('teacherProgressPanel').classList.toggle('hidden',!admin);
  $('licenseActivate').disabled=currentRole==='owner';$('licenseActivate').textContent=currentRole==='owner'?'Sahip hesabı lisans gerektirmez':'Bu cihazı etkinleştir';
- if(license.active){$('licenseStatusText').textContent=`Lisans etkin · ${license.plan_code||'student'}${license.expires_at?' · son tarih '+new Date(license.expires_at).toLocaleDateString('tr-TR'):''}`;appAuthorized=true;}
- else $('licenseStatusText').textContent=currentRole==='owner'?'Stagepulse sahibi hesabı doğrulandı.':'Ödeme onaylı etkin lisans gerekli. Lisans etkinleştirilene kadar uygulama kilitli.';
+ if(license.active){$('licenseStatusText').textContent=`Lisans etkin · ${license.plan_code||'student'}${license.expires_at?' · son tarih '+new Date(license.expires_at).toLocaleDateString('tr-TR'):''}`;}
+ else if(trial.active){$('licenseStatusText').textContent='7 günlük demo etkin · kalan '+formatTrialRemaining(trial.remaining_seconds);}
+ else $('licenseStatusText').textContent=currentRole==='owner'?'Stagepulse sahibi hesabı doğrulandı.':'Ödeme onaylı lisans veya etkin demo gerekli.';
+ if(trial.active&&!license.active)$('accountStatus').textContent='7 günlük demo etkin. Kalan süre: '+formatTrialRemaining(trial.remaining_seconds)+'. Bulut AI ve yönetici yetkileri demo kapsamında değildir.';
  $('accountStatus').textContent=`Hesap: ${context?.user?.email||'—'}\nYetki: ${currentRole}\nLisans: ${license.active?'etkin':'etkin değil'}\nWeb: https://stagepulse.com.tr`;
  if(context?.user?.email&&!$('accountEmail').value)$('accountEmail').value=context.user.email;
  refreshProfiles();renderStudentModules();
