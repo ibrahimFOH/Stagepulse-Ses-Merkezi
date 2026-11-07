@@ -204,3 +204,14 @@ def test_ses_merkezi_uses_one_license_scope_without_bundle_picker():
     assert 'paket ${' not in ui
     assert 'const bundle = "full_master";' in edge
     assert 'allowedBundles' not in edge
+
+def test_device_revoke_is_atomic_and_inactive_bindings_can_transfer():
+    migration = (
+        ROOT / 'supabase/migrations/20261107120000_sesm_device_transfer_after_revoke.sql'
+    ).read_text('utf-8')
+    edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
+
+    assert 'create or replace function public.sesm_revoke_activation' in migration
+    assert 'grant execute on function public.sesm_revoke_activation(uuid,uuid) to service_role' in migration
+    assert 'is_active=true and user_id is not null and user_id<>p_user_id' in migration
+    assert 'admin.rpc("sesm_revoke_activation"' in edge
