@@ -48,11 +48,11 @@ jobs:
           import re
           from pathlib import Path
           gradle = Path("android/app/build.gradle").read_text(encoding="utf-8")
-          name = re.search(r"\\bversionName\\s+'([^']+)'", gradle)
-          code = re.search(r"\\bversionCode\\s+(\\d+)", gradle)
+          name = re.search(r"\bversionName\s+'([^']+)'", gradle)
+          code = re.search(r"\bversionCode\s+(\d+)", gradle)
           if not name or not code:
               raise SystemExit("Android sürüm bilgisi bulunamadı.")
-          m = re.fullmatch(r"(\\d+)\\.(\\d+)\\.(\\d+)", name.group(1))
+          m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", name.group(1))
           if not m:
               raise SystemExit("Android sürümü X.Y.Z biçiminde değil.")
           expected = int(m.group(1))*10000 + int(m.group(2))*100 + int(m.group(3))
@@ -86,7 +86,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          SDK_ROOT="${{{ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SDK_ROOT="$ANDROID_HOME"
           SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager 2>/dev/null | sort -V | tail -n 1)"
           test -n "$SDKMANAGER"
           yes | "$SDKMANAGER" --sdk_root="$SDK_ROOT" --licenses >/dev/null || true
@@ -108,12 +108,10 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           set -euo pipefail
-          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
-            if [[ -z "${{!name:-}}" ]]; then
-              echo "::error::GitHub Actions Secrets içinde $name bulunamadı."
-              exit 1
-            fi
-          done
+          if [[ -z "$ANDROID_KEYSTORE_BASE64" || -z "$ANDROID_KEYSTORE_PASSWORD" || -z "$ANDROID_KEY_ALIAS" || -z "$ANDROID_KEY_PASSWORD" ]]; then
+            echo "::error::Android Release imza Secrets değerlerinden biri eksik."
+            exit 1
+          fi
           SIGNING_DIR="$RUNNER_TEMP/stagepulse-release-signing"
           mkdir -p "$SIGNING_DIR"
           STORE="$SIGNING_DIR/stagepulse-release.jks"
@@ -148,7 +146,7 @@ jobs:
       - name: İmzalı Release APK artifact yükle
         uses: actions/upload-artifact@v4
         with:
-          name: Stagepulse-Ses-Merkezi-Android-__VERSION_NAME__-RELEASE
+          name: Stagepulse-Ses-Merkezi-Android-${{ steps.android_version.outputs.version_name }}-RELEASE
           path: android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 30
