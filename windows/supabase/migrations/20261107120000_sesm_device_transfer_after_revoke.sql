@@ -84,7 +84,7 @@ create or replace function public.sesm_revoke_activation(
 language plpgsql
 security definer
 set search_path=''
-as $
+as $fn$
 declare
   activation public.sesm_activations%rowtype;
   core_license_id uuid;
@@ -114,7 +114,7 @@ begin
 
   return jsonb_build_object('ok',true,'device_hash',activation.device_hash);
 end;
-$;
+$fn$;
 
 revoke all on function public.sesm_revoke_activation(uuid,uuid) from public,anon,authenticated;
 grant execute on function public.sesm_revoke_activation(uuid,uuid) to service_role;
