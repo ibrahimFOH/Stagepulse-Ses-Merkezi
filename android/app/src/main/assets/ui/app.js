@@ -724,11 +724,12 @@ async function tickRta(token){
    if(changed){rtaFreqs=centers.slice();resetRtaHistory();}
    if(snapshot.ready){const now=performance.now(),dt=rtaLastTime?Math.max(.001,(now-rtaLastTime)/1000):.1;rtaLastTime=now;const tau={fast:.12,medium:.18,slow:.5}[$('rtaSmooth').value]||.18;rtaSmoothed=RtaMath.smooth(rtaSmoothed,values,dt,tau);rtaPeak=rtaPeak&&rtaPeak.length===rtaSmoothed.length?rtaPeak.map((v,i)=>Math.max(v,rtaSmoothed[i])):rtaSmoothed.slice();rtaTraceHistory.push(rtaSmoothed.slice());if(rtaTraceHistory.length>4)rtaTraceHistory.shift();drawRta(rtaSmoothed);updateRtaOptimizer(centers,rtaSmoothed);}
    const peak=Number(snapshot.peak_dbfs??-120),rms=Number(snapshot.rms_dbfs??-120),peakWarn=peak>-1?' · Kırpılmaya çok yakın!':peak<-60?' · Çok düşük giriş; kazancı kontrol et.':' · Giriş alınıyor.';
-   $('rtaInputMeter').textContent=`Giriş peak: ${peak.toFixed(1)} dBFS · RMS: ${rms.toFixed(1)} dBFS${peakWarn}`;updateRtaMeters(peak,rms);
+   const splReadout=rtaSplOffsetDb===null?'':' · RMS '+(rms+rtaSplOffsetDb).toFixed(1)+' dB SPL (oturum kalibrasyonu)';
+   $('rtaInputMeter').textContent=`Giriş peak: ${peak.toFixed(1)} dBFS · RMS: ${rms.toFixed(1)} dBFS${splReadout}${peakWarn}`;updateRtaMeters(peak,rms);
    const bin=snapshot.sample_rate/snapshot.fft_size;
    const status=snapshot.stream_status?`\nSürücü uyarısı: ${snapshot.stream_status}`:'';
    const bandNote=rtaAvailableMax&&rtaViewMax>rtaAvailableMax?`\nTam bandın üst merkezi: ${rtaFormatHz(rtaAvailableMax)}; daha üst bantlar akış örnekleme hızında eksik kalır.`:'';
-   const splText=rtaSplOffsetDb===null?'SPL kalibrasyonu yok.':`Kalibre edilmiş Z-benzeri RMS gösterimi: ${(rms+rtaSplOffsetDb).toFixed(1)} dB SPL · referans ${rtaSplReferenceDb} dB SPL.`;
+   const splText=rtaSplOffsetDb===null?'SPL kalibrasyonu yok.':`Kalibre edilmiş ağırlıksız RMS gösterimi: ${(rms+rtaSplOffsetDb).toFixed(1)} dB SPL · referans ${rtaSplReferenceDb} dB SPL.`;
    $('rtaCaptureInfo').textContent=`Aygıt: ${snapshot.device||rtaDeviceName}\n${api()?'Yerel PortAudio akışı':'Android WebAudio akışı'}: ${Number(snapshot.sample_rate).toLocaleString('tr-TR')} Hz · FFT: ${snapshot.fft_size} · bin aralığı: ${bin.toFixed(2)} Hz · Nyquist: ${rtaFormatHz(snapshot.sample_rate/2)}\nBant güçleri dBFS RMS olarak gösterilir. ${splText} Mikrofon frekans düzeltmesi veya IEC uygunluğu sağlanmaz.${bandNote}${status}`;
    if($('rtaCalibrationStatus'))updateAndroidSplStatus();
    if(snapshot.ready)$('rtaStatus').textContent=`${centers.length} bant · ${snapshot.sample_rate.toLocaleString('tr-TR')} Hz giriş · FFT ${snapshot.fft_size}${snapshot.stream_status?' · sürücü uyarısını kontrol et.':''}`;
