@@ -140,3 +140,14 @@
 - Önerilen eğitim fiyatları ve makine tarafından okunabilir eğitim kataloğu eklendi. Fiyatlar yayın öncesi işletme maliyetiyle onaylanmalıdır.
 - Lisans kaydına `bundle_code` kapsamı eklendi; yeni Supabase migration uygulanmalıdır. Paket kodu veritabanında saklanır, ancak her özellik için sunucu tarafı yetkilendirme ayrıca tamamlanmalıdır.
 - Yeni sürüm kaynak testleriyle doğrulanır; Windows kurulum EXE'si, gerçek cihaz uygulamaları ve canlı Supabase deployment bu ortamda otomatik olarak yayımlanmış sayılmaz.
+
+
+## 3.8.10 · Ölçüm güvenilirliği ve ticari akış temizliği
+
+- Canlı stereo Transfer Function arayüzü Windows masaüstünde etkinleştirildi. Aynı ses kartında CH0 referans, CH1 ölçüm mikrofonu olarak kullanılır.
+- RTA ve canlı TF, iki saniyeden uzun süren ses akışı kesintisini algılar; son spektrumu canlı veri olarak işaretlemez.
+- Windows RTA'ya 1 kHz fiziksel ses kalibratörüyle 94/114 dB SPL oturumluk Z-ağırlıksız referans kalibrasyonu eklendi. Uygulama yeniden başlatıldığında kalibrasyon sıfırlanır.
+- Kalibrasyonun mikrofon frekans cevabı düzeltmesi veya IEC sınıf 1/2 uygunluğu olmadığı arayüzde ve belgelerde açıklandı.
+- Android belgeleri 3.8.10 ile hizalandı; Android'de canlı stereo TF ve fiziksel kalibratör entegrasyonu bulunmadığı belirtildi.
+- Satış dokümantasyonu yalnızca FULL PAKET banka havalesi/EFT ve yönetici onayı modeline göre temizlendi.
+- RTA/TF akış sağlığı ve SPL kalibrasyonu için regresyon testleri eklendi.
