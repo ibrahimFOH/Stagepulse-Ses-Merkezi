@@ -174,6 +174,11 @@ function accountApi() {
    auth_restore: () => call('auth_restore'),
   auth_logout: () => call('auth_logout'),
   license_activate: key => call('license_activate', { key }),
+  store_get: () => call('store_get'),
+  store_update: payload => call('store_update', payload),
+  purchase_submit: payload => call('purchase_submit', payload),
+  purchase_list: () => call('purchase_list'),
+  purchase_review: (purchase_id, decision, admin_note) => call('purchase_review', { purchase_id, decision, admin_note }),
   license_create: (label, plan_code, max_activations, expires_days, customer_name, customer_email, payment_method, payment_status, amount, currency, payment_reference, bundle_code) =>
    call('license_create', { label, plan_code, max_activations, expires_days, customer_name, customer_email, payment_method, payment_status, amount, currency, payment_reference, bundle_code }),
   license_list: () => call('license_list'),
@@ -1105,7 +1110,7 @@ async function sendAiText(){const client=accountApi();if(!client?.ai_chat){$('ai
 
 // --- Commercial account, license and teacher progress ---
 
-function commerceApi(){return api();}
+function commerceApi(){return accountApi();}
 function applyAccountContext(context){
  currentAccountContext=context||null;currentRole=context?.role||'guest';
  const license=context?.licensed||{};appAuthorized=currentRole==='owner'||license.active===true;
