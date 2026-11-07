@@ -241,6 +241,8 @@ def test_live_measurement_controls_are_exposed_with_explicit_limits():
     assert 'function initLiveTfControls()' in app
     assert 'calibrate_spl' in core and 'id="rtaCalibrate"' in html
     assert 'stream_stale' in core and 'stream_stale' in tf
+    assert "if(snapshot.stream_stale){rtaSmoothed=null;rtaTraceHistory=[];drawRta([]);}" in app
+    assert "if(snapshot.stream_stale){" in app and "const blank=Array(snapshot.centers.length).fill(Number.NaN);" in app
     assert 'SPL kalibrasyonu' in app
     assert 'IEC sınıfı' in app or 'IEC' in html
 
