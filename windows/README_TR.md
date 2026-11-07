@@ -21,11 +21,11 @@ Yeni araçların hesaplama kodu Stagepulse içinde bağımsızdır. Kaynak ZIP a
 
 Bu depo kaynak koddur. Windows kurulum EXE'si, Windows x64 ortamındaki `EXE_OLUSTUR.bat` veya `EXE_OLUSTUR.ps1` ile üretilir. 3.8.9 kaynak sürümüdür; Windows x64 EXE, kalıcı anahtarla imzalı Android APK, SHA-256 ve GitHub Release doğrulamaları yayın hattında yapılır. Derleme bilgisayarında Python 3.11/3.12/3.13/3.14 x64 gerekir; son kullanıcıda gerekmez. Node.js derleme ortamında isteğe bağlıdır; kuruluysa JavaScript sözdizimi ve yerel araç çalışma zamanı testleri çalıştırılır. Kurulu değilse bu iki Node testi atlanır, Python kaynak testleri yine yürütülür. Betik önce testleri çalıştırır, Microsoft WebView2 yükleyicisinin dijital imzasını ve NSIS paketinin SHA-256 değerini doğrular; derleme sonunda geçici araçları siler ve `dist` klasöründe yalnızca tek kurulum EXE'si bırakır.
 
-## Eğitim dalları ve fiyatlandırma
+## Eğitim yolları ve yeterlilik
 
 Uygulamaya **Eğitim dalları / usta yolu** ekranı eklendi. Sekiz öğrenme alanı, L0–L5 yeterlilik basamakları, uygulama görevleri ve dal bazlı kısa bilgi testleri `docs/EGITIM_DALLARI_USTA_YOLU_VE_FIYATLANDIRMA_TR.md` içinde ayrıntılıdır. Makine tarafından okunabilir katalog `egitim_paketleri/stagepulse_egitim_katalogu_v1.json` dosyasıdır. Eğitim dalları içerik ve yeterlilik sınıflandırmasıdır; ayrı satılan modüller değildir. Ticari satış yalnızca FULL PAKET üzerinden yapılır.
 
-Lisans üretiminde eğitim kapsamı `bundle_code` alanında tutulur. Yayına almadan önce `supabase/migrations/20261029190000_ses_merkezi_education_bundles.sql` migration dosyası uygulanmalıdır. Bu alanın saklanması tek başına paket özelliklerini güvenli biçimde kilitlemez; ücretli özelliklerin her birinde Edge Function tarafı yetkilendirmesi ayrıca yapılmalıdır.
+Lisans kaydındaki teknik kapsam alanı veritabanı uyumluluğu için korunur; güncel ticari ürün tek FULL PAKET'tir. Eğitim dalları ayrı ürün veya ayrı lisans kapsamı değildir. Ücretli erişim ve cihaz yetkisi sunucu tarafında doğrulanır.
 
 ## Uygulama bölümleri
 
@@ -45,13 +45,13 @@ Lisans üretiminde eğitim kapsamı `bundle_code` alanında tutulur. Yayına alm
 - Öğrenci ilerlemesi sunucuda tutulur ve öğrenci yalnızca görüntüler. Aşama işaretleme işlemi Edge Function'da yalnızca sabit Stagepulse sahibi UUID'si ve `owner` üyeliğiyle yetkilendirilir; düğmeyi gizlemek tek başına güvenlik sınırı değildir.
 - Profil dosyaları Windows'ta DPAPI ile mevcut Windows kullanıcısına bağlanarak şifrelenir. Bu dosyalar başka bir Windows hesabında doğrudan açılamaz. Eski düz JSON profil dosyası bulunursa bir defalık şifreli depoya geçiş yapılır.
 - Yönetici/öğretmen yetkisi çevrimdışı lisans önbelleğinden geri yüklenmez. Öğrenci araçları yerelde çalışabilir; lisans ve öğretmen kontrolü için internet gerekir.
-- Mobil ve masaüstü lisans yönetimi: `https://stagepulse.com.tr/ses-merkezi-lisans/`. Yönetici oturumu ve sunucu tarafı sahip yetkisi doğrulanır; panel manuel nakit/havale/POS satış kaydı, benzersiz anahtar üretimi, ödeme onayı/iade, lisans iptali, süre uzatma, cihaz aktivasyonunu kaldırma, işlem geçmişi ve CSV dışa aktarma sunar. Online kart tahsilatı/Stripe/iyzico entegrasyonu yoktur. Paneldeki tahsilat kaydı muhasebe belgesi veya fatura yerine geçmez.
+- Mobil ve masaüstü lisans yönetimi: `https://stagepulse.com.tr/ses-merkezi-lisans/`. Yönetici oturumu ve sunucu tarafı sahip yetkisi doğrulanır. Müşteri FULL PAKET için banka havalesi/EFT bildirimi gönderir; yönetici banka hareketini kontrol edip onaylar veya reddeder. Onayda lisans anahtarı sunucuda üretilir. Nakit, POS veya çevrimiçi kart tahsilatı bu satış akışında kullanılmaz. Paneldeki işlem kaydı muhasebe belgesi veya fatura yerine geçmez.
 
 ## Lisans yönetim paneli (PC ve telefon)
 
 - Panel: `https://stagepulse.com.tr/ses-merkezi-lisans/`
 - Yalnızca mevcut Stagepulse sahibi yönetici hesabı ile giriş yapılabilir; herkese açık kayıt ekranı yoktur. Supabase Auth oturumu ve Edge Function içindeki sahip/rol denetimi birlikte kullanılır.
-- Yeni satışta müşteri, lisans türü/süresi, cihaz sayısı, ödeme yöntemi ve tutarı kaydet. Nakit veya havale tahsilatını gerçekten yaptıktan sonra `Ödeme alındı` seç. Ödeme bekleyen lisans etkinleştirilemez.
+- Müşteri FULL PAKET satın alma bildirimi gönderirken banka transfer referansını girer. Yönetici banka hesabındaki hareketi kontrol edip onaylar veya reddeder. Onay verilmeden lisans anahtarı oluşturulmaz ve lisans etkinleştirilmez.
 - Yeni lisans anahtarı oluşturulduğunda yalnızca o anda gösterilir. Kopyalayıp müşteriye güvenli şekilde teslim et. Sunucuda anahtarın kendisi yerine SHA-256 özeti saklanır. Anahtarı kaybedersen yeniden göstermeye çalışmak yerine yeni anahtar oluşturman ve eski lisansı iptal etmen gerekir.
 - Yönetim paneli HTTPS ve internet bağlantısı ister; kayıtlar çevrimdışı oluşturulmaz. Mobil tarayıcı ve masaüstü tarayıcı aynı paneli kullanır.
 - Tahsilat/CSV kayıtları iç yönetim kaydıdır; fatura, e-Arşiv veya yasal muhasebe belgesi değildir. Online ödeme altyapısı bu sürüme dahil değildir.
@@ -114,7 +114,7 @@ Kurulum sırasında WebView2 Runtime yoksa tek kurulum sihirbazı bunu sessizce 
 - Başlangıçtaki otomatik güncelleme ağ isteği kaldırıldı; güncelleme kullanıcı isteğiyle denetlenir.
 - NSIS kaynağı UTF-8 BOM ile yazılır; Türkçe kurulum ve kaldırma metinleri Unicode olarak derlenir.
 - Windows EXE ve masaüstü kısayolu için Stagepulse altın/siyah marka simgesi eklenir.
-- Manuel satış kaydı: müşteri, ödeme yöntemi/durumu, tutar, para birimi ve dekont notu. Ödeme bekleyen lisans etkinleştirilemez.
+- FULL PAKET banka transferi bildirimi: müşteri ve transfer referansı kaydedilir; ödeme onayı yalnızca yönetici tarafından gerçek banka hareketi kontrol edildikten sonra verilir.
 - Öğrenci kitaplığına Midas M32 Live, Yamaha CL5 ve Allen & Heath Avantis uygulamalı eğitimleri eklendi.
 
 ## Windows yeniden derleme
