@@ -2,7 +2,7 @@
 
 **Tek Windows kurulum dosyası · tek pencere uygulama · lisanssız yerel demo · çevrimiçi lisans, satış ve öğretmen kontrolü**
 
-## 3.8.4 sürümündeki yerel araçlar
+## 3.8.10 sürümündeki yerel araçlar
 
 - **Kulak eğitimi:** Frekans ve EQ çalışmalarına kompresör ve gürültü kapısı (Noise Gate) A/B dinleme alıştırmaları eklendi.
 - **70,7 / 100 V hoparlör hattı hesabı:** Hoparlör tap yükleri, yükselteç güç payı ve bakır kablo gerilim düşümü.
