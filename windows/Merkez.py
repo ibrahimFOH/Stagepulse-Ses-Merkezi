@@ -232,7 +232,7 @@ class AppApi(AcousticAnalysisApi):
         cached = self._cached_license_status()
         return {
             "name": APP_NAME, "version": APP_VERSION,
-            "mode": "tek kurulum / tek pencere / lisans zorunlu / çevrimdışı öncelikli",
+            "mode": "7 günlük hesap denemesi veya FULL PAKET lisansı / çevrimdışı öncelikli",
             "demo_mode": False,
             "license_required_for_local_tools": True,
             "data_dir": str(DATA_ROOT), "runtime": "WebView2",
@@ -257,7 +257,7 @@ class AppApi(AcousticAnalysisApi):
             if expires and time.time() >= __import__("datetime").datetime.fromisoformat(str(expires).replace("Z", "+00:00")).timestamp():
                 return {"active": False, "reason": "license_expired"}
             # A cached owner role never restores teacher/admin access while offline.
-            return {"active": True, "reason": "offline_grace", "plan_code": cached.get("plan_code", "student"), "bundle_code": cached.get("bundle_code", "start"), "expires_at": expires, "verified_at": checked, "user_id": cached.get("user_id")}
+            return {"active": True, "trial": bool(cached.get("trial")), "reason": "offline_trial_grace" if cached.get("trial") else "offline_grace", "plan_code": cached.get("plan_code", "student"), "bundle_code": cached.get("bundle_code", "full_master"), "expires_at": expires, "verified_at": checked, "user_id": cached.get("user_id")}
         except (ValueError, TypeError, OverflowError):
             return {"active": False, "reason": "cache_invalid"}
 
@@ -416,14 +416,14 @@ class AppApi(AcousticAnalysisApi):
     def ai_chat(self, provider: str, model: str, api_key: str, prompt: str, endpoint: str = "",
                 request_options: dict[str, Any] | None = None, keep_alive: str = "30m",
                 think: bool = False) -> dict[str, Any]:
-        """Run AI providers only while a paid license is valid, including offline grace."""
+        """Run AI providers while a paid license or the authenticated demo is valid."""
         from core.ai_providers import PROVIDERS, _validate_endpoint, chat
         provider_id = str(provider or "auto").strip().lower()
         if provider_id == "auto":
             local_endpoint = PROVIDERS["ollama"]["endpoint"]
             _validate_endpoint("ollama", local_endpoint)
             if not self._cached_license_status().get("active"):
-                raise RuntimeError("Stagepulse Ses Merkezi için etkin ve ödemesi onaylı lisans gerekir.")
+                raise RuntimeError("Stagepulse Ses Merkezi için etkin FULL PAKET lisansı veya süresi dolmamış demo gerekir.")
             try:
                 result = chat("ollama", "auto", "", prompt, local_endpoint, request_options, keep_alive, think)
                 result["provider"] = "auto"
@@ -437,7 +437,7 @@ class AppApi(AcousticAnalysisApi):
                     ) from local_error
                 if not self._cached_license_status().get("active"):
                     raise RuntimeError(
-                        "Yerel Ollama yanıt vermedi. Groq yedeğine geçmek için etkin Stagepulse lisansı gerekir. "
+                        "Yerel Ollama yanıt vermedi. Groq yedeğine geçmek için etkin FULL PAKET lisansı veya demo gerekir. "
                         f"Ollama hatası: {local_error}"
                     ) from local_error
                 fallback = chat(
@@ -671,10 +671,14 @@ class AppApi(AcousticAnalysisApi):
         if not isinstance(context, dict):
             return
         license_info = context.get("licensed") if isinstance(context.get("licensed"), dict) else {}
+        trial_info = context.get("trial") if isinstance(context.get("trial"), dict) else {}
+        licensed = bool(license_info.get("active"))
+        trial_active = bool(trial_info.get("active")) and not licensed
         cache = {
-            "active": bool(license_info.get("active")), "verified_at": time.time(),
-            "expires_at": license_info.get("expires_at"), "plan_code": license_info.get("plan_code"),
-            "bundle_code": license_info.get("bundle_code", "start"),
+            "active": licensed or trial_active, "trial": trial_active, "verified_at": time.time(),
+            "expires_at": license_info.get("expires_at") if licensed else trial_info.get("expires_at"),
+            "plan_code": license_info.get("plan_code") if licensed else "trial",
+            "bundle_code": license_info.get("bundle_code", "full_master") if licensed else "full_master",
             "user_id": (context.get("user") or {}).get("id"),
         }
         _secure_write(LICENSE_CACHE_PATH, cache)
