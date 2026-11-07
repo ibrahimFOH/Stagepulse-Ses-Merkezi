@@ -4,7 +4,7 @@
 **Sürüm kodu:** `30810`  
 **Minimum Android:** API 26  
 **Hedef Android:** API 35  
-**Derleme:** JDK 17 · Gradle 8.9 · Android SDK 35
+**Derleme:** JDK 17 · Gradle 8.13 · Android Gradle Plugin 8.13.2 · Android SDK 35
 
 ## Proje yapısı
 
