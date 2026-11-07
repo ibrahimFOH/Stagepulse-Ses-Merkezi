@@ -504,8 +504,9 @@ class MainActivity : Activity() {
 
         val context = fetchMobileContext()
         val licensed = context.optJSONObject("licensed")?.optBoolean("active", false) == true
-        if (context.optString("role") != "owner" && !licensed) {
-            throw IllegalStateException("Bulut AI kullanımı için etkin Stagepulse lisansı gerekli.")
+        val trial = context.optJSONObject("trial")?.optBoolean("active", false) == true
+        if (context.optString("role") != "owner" && !licensed && !trial) {
+            throw IllegalStateException("Bulut AI kullanımı için etkin FULL PAKET lisansı veya süresi dolmamış demo gerekli.")
         }
 
         val systemPrompt = "Türkçe yanıt ver. Ses mühendisliği eğitiminde teknik doğruluğu gözet; ölçülmemiş SPL, true-peak, faz veya akustik değerleri uydurma. Varsayım ile ölçüm sonucunu ayır. Tehlikeli ses seviyesi, elektrik, rigging ve işitme maruziyetinde güvenlik uyarısı ver. API anahtarını veya özel bilgileri yanıta koyma."
@@ -821,22 +822,30 @@ class MainActivity : Activity() {
                 val cached = readSecret("account_context")?.let { JSONObject(it) }
                 val validatedAt = readSecret("validated_at")?.toLongOrNull() ?: 0L
                 val licensed = cached?.optJSONObject("licensed")
+                val trial = cached?.optJSONObject("trial")
+                val licensedActive = licensed?.optBoolean("active", false) == true
+                val trialActive = trial?.optBoolean("active", false) == true && !licensedActive
                 val cachedUserId = cached?.optJSONObject("user")?.optString("id").orEmpty()
                 val storedSession = readSecret("session")?.let { JSONObject(it) }
                 val sessionUserId = storedSession?.optJSONObject("user")?.optString("id").orEmpty()
                 val sameUser = sessionUserId.isBlank() || cachedUserId == sessionUserId
-                val expiresAt = licensed?.optString("expires_at").orEmpty()
+                val expiresAt = if (licensedActive) licensed?.optString("expires_at").orEmpty() else trial?.optString("expires_at").orEmpty()
                 val notExpired = expiresAt.isBlank() || runCatching {
                     java.time.Instant.parse(expiresAt).toEpochMilli() > System.currentTimeMillis()
                 }.getOrDefault(false)
                 val now = System.currentTimeMillis()
-                val validCache = licensed?.optBoolean("active", false) == true && sameUser
+                val hasEntitlement = licensedActive || trialActive
+                val validCache = hasEntitlement && sameUser
                     && validatedAt > 0L && validatedAt <= now + 5L * 60L * 1000L
                     && now - validatedAt <= 7L * 24L * 60L * 60L * 1000L && notExpired
+                val cachedEntitlement = JSONObject()
+                    .put("active", validCache)
+                    .put("trial", validCache && trialActive)
+                    .put("expires_at", expiresAt)
                 return JSONObject()
                     .put("platform", "android")
                     .put("version", BuildConfig.VERSION_NAME)
-                    .put("cached_license", if (validCache) licensed ?: JSONObject() else JSONObject().put("active", false))
+                    .put("cached_license", cachedEntitlement)
                     .put("offline_cache", validCache)
             }
             "auth_login" -> {
