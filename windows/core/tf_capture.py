@@ -251,7 +251,7 @@ class TFCapture:
         if count == 0:
             return {
                 "ok": True, "running": True, "ready": False, "device": device,
-                "sample_rate": sr, "fft_size": fft, "centers": centers,
+                "sample_rate": sr, "fft_size": fft, "averages_target": self._num_avg, "centers": centers,
                 "mag_db": [-60.0] * len(centers), "phase_deg": [0.0] * len(centers),
                 "coherence": [0.0] * len(centers), "averages": 0,
                 "peak_ref_dbfs": peak_ref, "peak_mic_dbfs": peak_mic,
@@ -293,7 +293,7 @@ class TFCapture:
             coh_band.append(float(np.average(coherence[idx], weights=weights)))
         return {
             "ok": True, "running": True, "ready": count >= self._num_avg and not stream_stale,
-            "device": device, "sample_rate": sr, "fft_size": fft,
+            "device": device, "sample_rate": sr, "fft_size": fft, "averages_target": self._num_avg,
             "centers": centers, "mag_db": magnitude, "phase_deg": phase,
             "coherence": coh_band, "averages": count,
             "peak_ref_dbfs": peak_ref, "peak_mic_dbfs": peak_mic,
