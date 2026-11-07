@@ -1,5 +1,16 @@
 # Değişiklik günlüğü
 
+## 3.8.10
+- Windows ve Android uygulama sürümleri 3.8.10 / Android versionCode 30810 olarak eşitlendi.
+- Windows canlı RTA, iki saniyeyi aşan ses akışı kesintisini güncel olmayan veri olarak işaretler.
+- Windows RTA'ya fiziksel 1 kHz / 94 veya 114 dB SPL ses kalibratörüyle oturumluk Z-ağırlıksız referans kalibrasyonu eklendi. Mikrofon frekans cevabı düzeltmesi veya IEC sınıf 1/2 uygunluğu iddia edilmez.
+- Windows Acoustic Engine ekranına aynı ses kartının iki girişinden canlı H1 Transfer Function magnitude, phase ve coherence yakalama eklendi. CH0 referans, CH1 ölçüm mikrofonudur.
+- Canlı RTA, SPL kalibrasyonu ve canlı TF için regresyon ve ürün sözleşmesi testleri eklendi.
+- Ticari satış dokümantasyonu tek FULL PAKET ve yönetici onaylı havale/EFT modeline hizalandı.
+- Yayın kararı Windows/Android CI, imza, SHA-256 ve fiziksel cihaz kabulü yeşil olmadan verilmez.
+
+
+
 ## 3.8.4
 - Android sürümü 3.8.4 / versionCode 30804 olarak güncellendi.
 - Windows uygulaması, kurulum betiği ve NSIS kurucu sürümü 3.8.4 ile eşitlendi.
