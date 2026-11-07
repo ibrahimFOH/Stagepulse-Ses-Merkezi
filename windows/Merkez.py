@@ -200,6 +200,12 @@ class AppApi(AcousticAnalysisApi):
             self._tf_capture = TFCapture()
         return self._tf_capture
 
+    def list_tf_devices(self) -> list[dict[str, Any]]:
+        """List only native input devices with at least two simultaneous channels."""
+        from core.rta_capture import list_input_devices
+        return [device for device in list_input_devices()
+                if int(device.get("max_input_channels", 0) or 0) >= 2]
+
     def start_tf(self, device_index: Any = None, fft_size: int = 16384,
                  averages: int = 8) -> dict[str, Any]:
         if device_index in (None, "", "default"):
