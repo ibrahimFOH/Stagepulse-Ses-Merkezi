@@ -1,9 +1,9 @@
 # Stagepulse Ses Merkezi yayın kontrolü
 
-## Windows ve Android kaynak sürümü 3.8.10
+## Windows ve Android kaynak sürümü 3.9.0
 
 1. Windows x64 geliştirme bilgisayarında `EXE_OLUSTUR.bat` tamamlanıp tüm testler yeşil olmadan uygulamayı dağıtma.
-2. `dist/StagepulseSesMerkezi-Kurulum-3.8.10.exe` dosyasını `/downloads/ses-merkezi/StagepulseSesMerkezi-Kurulum-3.8.10.exe` hedefine yükle.
+2. `dist/StagepulseSesMerkezi-Kurulum-3.9.0.exe` dosyasını `/downloads/ses-merkezi/StagepulseSesMerkezi-Kurulum-3.9.0.exe` hedefine yükle.
 3. Derlemenin oluşturduğu `website_release/latest.json` dosyasını `/downloads/ses-merkezi/latest.json` adresine yükle. İçindeki `sha256` aynı kurulum EXE'sinin SHA-256 özeti olmalı.
 4. Tarayıcıda manifestin JSON döndürdüğünü ve kurucunun indirildiğini doğrula. Güncelleme kontrolünü uygulamanın Hesap/Güncelleme ekranından test et.
 5. Ücretli genel dağıtımdan önce Stagepulse adına Windows Authenticode kod-imzalama sertifikası kullan. Bu depoda özel kod-imzalama anahtarı tutulmaz. HTTPS ve SHA-256, kod imzasının yerine geçmez.
@@ -23,7 +23,7 @@ Bu çalışma paketindeki Python testleri ve JavaScript sözdizimi kontrolleri y
 
 ## Öğrenciye teslim
 
-Windows derleme bilgisayarında `EXE_OLUSTUR.bat` çalıştır. Öğrenciye yalnızca kurulum EXE'sini ya da içeriğinde tek kurulum EXE'si olan `ogrenciye_gonder/Stagepulse_Ogrenci_Kurulum_3.8.10.zip` dosyasını ver. Kaynak depo, Python, NSIS veya ara uygulama EXE'lerini gönderme.
+Windows derleme bilgisayarında `EXE_OLUSTUR.bat` çalıştır. Öğrenciye yalnızca kurulum EXE'sini ya da içeriğinde tek kurulum EXE'si olan `ogrenciye_gonder/Stagepulse_Ogrenci_Kurulum_3.9.0.zip` dosyasını ver. Kaynak depo, Python, NSIS veya ara uygulama EXE'lerini gönderme.
 
 
 ## Android yayın imzası (kalıcı)
