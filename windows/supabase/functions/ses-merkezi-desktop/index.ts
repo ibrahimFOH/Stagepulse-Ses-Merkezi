@@ -318,7 +318,7 @@ Deno.serve(async (req: Request) => {
       const {data:existing,error:lookupError}=await admin.from("sesm_purchase_requests").select("id").eq("user_id",user.id).eq("status","pending").maybeSingle();
       if(lookupError)return fail("PURCHASE_LOOKUP_FAILED",500); if(existing)return fail("PURCHASE_ALREADY_PENDING",409);
       const {data:purchase,error}=await admin.from("sesm_purchase_requests").insert({user_id:user.id,product_code:"full_package",product_name:"FULL PAKET",amount:settings.price,currency:"TRY",customer_name:customerName,customer_email:customerEmail,customer_phone:customerPhone,transfer_reference:transferReference,customer_note:customerNote}).select("id,product_name,amount,currency,status,created_at").single();
-      if(error||!purchase)return fail("PURCHASE_SUBMIT_FAILED",500);
+      if(error?.code==="23505")return fail("PURCHASE_ALREADY_PENDING",409);\n      if(error||!purchase)return fail("PURCHASE_SUBMIT_FAILED",500);
       await audit(user.id,"full_package_purchase_submitted",user.id,null,{purchase_id:purchase.id,amount:purchase.amount});
       return reply({ok:true,purchase});
     }
