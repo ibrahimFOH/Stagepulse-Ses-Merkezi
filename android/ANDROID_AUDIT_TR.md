@@ -1,7 +1,7 @@
 # Stagepulse Android kaynak ve kabul denetimi
 
-**Kaynak sürümü:** 3.8.10  
-**Sürüm kodu:** 30810  
+**Kaynak sürümü:** 3.9.0  
+**Sürüm kodu:** 30900  
 **Denetim kapsamı:** Android kaynak ağacı ve paketleme sözleşmeleri
 
 ## Mevcut mimari
