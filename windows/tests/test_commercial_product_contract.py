@@ -241,3 +241,19 @@ def test_live_measurement_controls_are_exposed_with_explicit_limits():
     assert 'stream_stale' in core and 'stream_stale' in tf
     assert 'SPL kalibrasyonu' in app
     assert 'IEC sınıfı' in app or 'IEC' in html
+
+
+def test_full_package_bank_transfer_requires_owner_approval_and_server_license_creation():
+    migration = (ROOT / 'supabase/migrations/20261107143000_sesm_full_package_bank_transfer.sql').read_text('utf-8')
+    edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
+
+    assert "product_code text not null default 'full_package' check (product_code = 'full_package')" in migration
+    assert "payment_method in ('cash','bank_transfer','legacy')" in migration
+    assert 'revoke all on public.sesm_purchase_requests from anon, authenticated' in migration
+    assert 'sesm_purchase_requests_one_open_or_approved_per_user_idx' in migration
+    assert 'if (action === "purchase_submit")' in edge
+    assert 'if (action === "purchase_review")' in edge
+    assert 'await requireOwner(user.id)' in edge
+    assert 'admin.rpc("sesm_review_full_package_purchase"' in edge
+    assert "'bank_transfer','paid'" in migration
+    assert 'purchase_reference' not in edge
