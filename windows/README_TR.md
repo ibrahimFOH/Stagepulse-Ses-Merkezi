@@ -45,7 +45,7 @@ Lisans kaydındaki teknik kapsam alanı veritabanı uyumluluğu için korunur; g
 - Öğrenci ilerlemesi sunucuda tutulur ve öğrenci yalnızca görüntüler. Aşama işaretleme işlemi Edge Function'da yalnızca sabit Stagepulse sahibi UUID'si ve `owner` üyeliğiyle yetkilendirilir; düğmeyi gizlemek tek başına güvenlik sınırı değildir.
 - Profil dosyaları Windows'ta DPAPI ile mevcut Windows kullanıcısına bağlanarak şifrelenir. Bu dosyalar başka bir Windows hesabında doğrudan açılamaz. Eski düz JSON profil dosyası bulunursa bir defalık şifreli depoya geçiş yapılır.
 - Yönetici/öğretmen yetkisi çevrimdışı lisans önbelleğinden geri yüklenmez. Öğrenci araçları yerelde çalışabilir; lisans ve öğretmen kontrolü için internet gerekir.
-- Mobil ve masaüstü lisans yönetimi: `https://stagepulse.com.tr/ses-merkezi-lisans/`. Yönetici oturumu ve sunucu tarafı sahip yetkisi doğrulanır. Müşteri FULL PAKET için banka havalesi/EFT bildirimi gönderir; yönetici banka hareketini kontrol edip onaylar veya reddeder. Onayda lisans anahtarı sunucuda üretilir. Nakit, POS veya çevrimiçi kart tahsilatı bu satış akışında kullanılmaz. Paneldeki işlem kaydı muhasebe belgesi veya fatura yerine geçmez.
+- Mobil ve masaüstü lisans yönetimi: `https://stagepulse.com.tr/ses-merkezi-lisans/`. Yönetici oturumu ve sunucu tarafı sahip yetkisi doğrulanır. Müşteri yalnızca FULL PAKET için banka havalesi/EFT bildirimi gönderir; fiyat yönetici mağaza ayarından belirlenir ve 2.500 TL'yi aşamaz. Yönetici banka hareketini kontrol edip onaylar veya reddeder. Onayda lisans anahtarı sunucuda üretilir. Nakit, POS veya çevrimiçi kart tahsilatı bu satış akışında kullanılmaz. Paneldeki işlem kaydı muhasebe belgesi veya fatura yerine geçmez.
 
 ## Lisans yönetim paneli (PC ve telefon)
 
