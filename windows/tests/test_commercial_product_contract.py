@@ -208,11 +208,13 @@ def test_ses_merkezi_uses_one_license_scope_without_bundle_picker():
     html = (ROOT / 'ui/index.html').read_text('utf-8')
     ui = (ROOT / 'ui/app.js').read_text('utf-8')
     edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
+    migration = (ROOT / 'supabase/migrations/20261107143000_sesm_full_package_bank_transfer.sql').read_text('utf-8')
 
     assert 'licenseBundle' not in html
     assert 'licenseBundle' not in ui
     assert 'paket ${' not in ui
-    assert 'const bundle = "full_master";' in edge
+    assert 'sesm_review_full_package_purchase' in edge
+    assert "'full_master'" in migration
     assert 'allowedBundles' not in edge
 
 def test_device_revoke_is_atomic_and_inactive_bindings_can_transfer():
