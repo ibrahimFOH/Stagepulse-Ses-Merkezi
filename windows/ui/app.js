@@ -31,6 +31,7 @@ let activeRoute = 'home';
 let apiReady = false;
 let nativeInitStarted = false;
 let appAuthorized = false;
+let licenseGatePending = true;
 let currentRole = 'guest';
 let currentAccountContext = null;
 let remoteProgress = {};
@@ -144,8 +145,7 @@ function safeText(value) { return String(value ?? '').replace(/[&<>"']/g, c => (
 function downloadBlob(blob, filename) { const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500); }
 function setPage(route) {
   if (!routes[route]) route='home';
-  // Local tools and the student PDF library remain usable without a paid license.
-  // License checks guard cloud AI and server-backed teacher/student services only.
+  if (!appAuthorized && currentRole !== 'owner' && route !== 'account') route='account';
   if (activeRoute==='rta' && route!=='rta') stopRta();
   if (activeRoute==='wavelab' && route!=='wavelab') window.StagepulseWaveLabStop?.();
   activeRoute=route;
@@ -258,6 +258,7 @@ window.addEventListener('pywebviewready',()=>{apiReady=true;initializeNativeData
 async function initializeNativeData(){
   if(nativeInitStarted || !api())return;
   nativeInitStarted = true;
+  setPage('account');
   try { await ensureProfilesLoaded(); }
   catch(err) { setStatus('Profil deposu okunamadı. Veriler sıfırlanmadı: '+err.message); }
 
@@ -275,6 +276,7 @@ async function initializeNativeData(){
     api().app_info().then(info=>{
       const cached=info&&info.cached_license;
       if(cached&&cached.active)appAuthorized=true;
+      if(licenseGatePending){licenseGatePending=false;setPage(appAuthorized?'home':'account');}
       refreshAccountUi();
     }).catch(()=>{});
   }
@@ -863,7 +865,7 @@ async function testAiConnection(){
  const button=$('testAIConnection');
  if(!api()){$('aiStatus').textContent='Bağlantı testi masaüstü uygulamasını gerektirir.';return;}
  const provider=$('aiProvider').value,endpoint=$('aiEndpoint').value.trim(),model=$('aiModel').value.trim(),key=$('aiKey').value;
- if(!isLocalAiEndpoint(provider,endpoint)&&!appAuthorized){$('aiStatus').textContent='Groq yedek bağlantısı için lisanslı hesaba giriş yap.';return;}
+ if(!appAuthorized){$('aiStatus').textContent='AI araçları için ödeme onaylı etkin Stagepulse lisansı gerekir.';return;}
  if(!$('aiConsent').checked){$('aiStatus').textContent='Önce seçili sağlayıcıya metin gönderme iznini işaretle.';return;}
  if(!endpoint||!model){$('aiStatus').textContent='Bağlantı adresi ve otomatik model yönlendirmesi gerekli.';return;}
  try{
@@ -881,7 +883,7 @@ async function sendAiText(){
  const button=$('sendAI');
  if(!api()){$('aiStatus').textContent='Yerel AI çağrısı masaüstü uygulama köprüsünü gerektirir.';return;}
  const provider=$('aiProvider').value,endpoint=$('aiEndpoint').value.trim(),model=$('aiModel').value.trim(),key=$('aiKey').value,prompt=$('promptOutput').value.trim()||$('promptContext').value.trim();
- if(!isLocalAiEndpoint(provider,endpoint)&&!appAuthorized){$('aiStatus').textContent='Groq yedek bağlantısı için lisanslı hesaba giriş yap.';return;}
+ if(!appAuthorized){$('aiStatus').textContent='AI araçları için ödeme onaylı etkin Stagepulse lisansı gerekir.';return;}
  if(!$('aiConsent').checked){$('aiStatus').textContent='Önce veri gönderim iznini işaretle.';return;}
  if(!endpoint||!model||!prompt){$('aiStatus').textContent='Bağlantı, otomatik model yönlendirmesi ve istem gerekli.';return;}
  try{
@@ -900,12 +902,14 @@ async function sendAiText(){
 function applyAccountContext(context){
  currentAccountContext=context||null;currentRole=context?.role||'guest';
  const license=context?.licensed||{};appAuthorized=currentRole==='owner'||license.active===true;
+ if(licenseGatePending){licenseGatePending=false;setPage(appAuthorized?'home':'account');}
+ else if(!appAuthorized&&activeRoute!=='account')setPage('account');
  if($('accountRoleBadge'))$('accountRoleBadge').textContent=currentRole==='owner'?'Sahip / öğretmen':currentRole==='student'?'Lisanslı öğrenci':'Misafir / lisans gerekli';
  if($('progressRoleBadge'))$('progressRoleBadge').textContent=currentRole==='owner'?'Öğretmen / yönetici':currentRole==='student'?'Öğrenci · salt okunur':'Hesap gerekli';
  const admin=currentRole==='owner';$('teacherLicensePanel').classList.toggle('hidden',!admin);$('teacherProgressPanel').classList.toggle('hidden',!admin);
  $('licenseActivate').disabled=currentRole==='owner';$('licenseActivate').textContent=currentRole==='owner'?'Sahip hesabı lisans gerektirmez':'Bu cihazı etkinleştir';
  if(license.active){$('licenseStatusText').textContent=`Lisans etkin · ${license.plan_code||'student'} · paket ${license.bundle_code||'start'}${license.expires_at?' · son tarih '+new Date(license.expires_at).toLocaleDateString('tr-TR'):''}`;appAuthorized=true;}
- else $('licenseStatusText').textContent=currentRole==='owner'?'Stagepulse sahibi hesabı doğrulandı.':currentRole==='student'?'Lisans durumunu yeniden doğrula.':'Yerel demo açık; lisans isteğe bağlı yerel araçları kilitlemez.';
+ else $('licenseStatusText').textContent=currentRole==='owner'?'Stagepulse sahibi hesabı doğrulandı.':'Ödeme onaylı etkin lisans gerekli. Lisans etkinleştirilene kadar uygulama kilitli.';
  $('accountStatus').textContent=`Hesap: ${context?.user?.email||'—'}\nYetki: ${currentRole}\nLisans: ${license.active?'etkin':'etkin değil'}\nWeb: https://stagepulse.com.tr`;
  if(context?.user?.email&&!$('accountEmail').value)$('accountEmail').value=context.user.email;
  refreshProfiles();renderStudentModules();
@@ -916,7 +920,19 @@ function applyAccountContext(context){
 function refreshAccountUi(){
  if(!api()){$('accountStatus').textContent='Masaüstü çalışma köprüsü bulunamadı. Kaynak önizlemesinde hesap/lisans işlemleri devre dışıdır.';return;}
  if(currentAccountContext){applyAccountContext(currentAccountContext);return;}
- api().app_info().then(info=>{const cached=info?.cached_license;if(cached?.active){appAuthorized=true;$('licenseStatusText').textContent='Son çevrimiçi lisans doğrulaması geçerli; çevrimdışı kullanım süresi içinde.';$('accountStatus').textContent='Çevrimdışı lisans: geçici olarak etkin\nBu cihazın öğretmen/admin yetkisi çevrimdışında açılmaz.';if(!currentAccountContext)currentRole='guest';}else{$('licenseStatusText').textContent='Yerel demo açık · lisans etkin değil.';$('accountStatus').textContent='Yerel araçlar, profil kayıtları ve eğitim PDF’leri lisans olmadan kullanılabilir. Ücretli bulut AI ve resmî öğretmen/öğrenci ilerleme özellikleri için hesap ve lisans gerekir.';}}).catch(()=>{});
+ api().app_info().then(info=>{
+  const cached=info?.cached_license;
+  if(cached?.active){
+   appAuthorized=true;
+   $('licenseStatusText').textContent='Ödeme onaylı lisans önbelleği geçerli; çevrimdışı kullanım açık.';
+   $('accountStatus').textContent='Çevrimdışı lisans etkin. Öğretmen/yönetici işlemleri için yeniden internet bağlantısı gerekir.';
+   if(!currentAccountContext)currentRole='guest';
+  }else{
+   $('licenseStatusText').textContent='Ödeme onaylı lisans gerekli.';
+   $('accountStatus').textContent='Bu uygulamayı kullanmak için Stagepulse hesabına giriş yapıp ödeme onaylı lisansı etkinleştir.';
+  }
+  if(licenseGatePending){licenseGatePending=false;setPage(appAuthorized?'home':'account');}
+ }).catch(()=>{});
 }
 async function initAccount(){
  $('accountLogin').addEventListener('click',async()=>{try{$('accountLogin').disabled=true;$('accountStatus').textContent='Hesap doğrulanıyor…';const result=await api().auth_login($('accountEmail').value,$('accountPassword').value);applyAccountContext(result.context);$('accountPassword').value='';setStatus('Stagepulse hesabına giriş yapıldı.');}catch(err){$('accountStatus').textContent='Giriş başarısız: '+err.message;}finally{$('accountLogin').disabled=false;}});
