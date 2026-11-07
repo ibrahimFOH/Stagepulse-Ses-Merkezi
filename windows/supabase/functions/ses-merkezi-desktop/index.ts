@@ -73,7 +73,7 @@ async function getRole(userId: string) {
 async function audit(actor: string, action: string, subject?: string | null, licenseId?: string | null, details: Record<string, unknown> = {}) {
   await admin.from("sesm_audit_events").insert({ actor_user_id: actor, action, subject_user_id: subject ?? null, license_id: licenseId ?? null, details });
 }
-async function entitlementContext(userId: string, deviceHash: string, role: string, requestedAppId = "") {
+async function entitlementContext(userId: string, deviceHash: string, role: string, platform: unknown, requestedAppId = "") {
   const licensed = await licensedContext(userId, deviceHash, role, requestedAppId);
   return {
     licensed,
