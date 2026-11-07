@@ -41,14 +41,14 @@ begin
   -- Yönetici tarafından pasifleştirilmiş bağ, yeni aktivasyonla devredilebilir.
   if exists (
     select 1 from public.license_core_devices
-    where license_id=lic.id and app_id=p_app_id and device_hash=p_device_hash
+    where license_id=lic.id and device_hash=p_device_hash
       and is_active=true and user_id is not null and user_id<>p_user_id
   ) then
     raise exception 'DEVICE_BOUND_TO_OTHER_USER' using errcode='P0001';
   end if;
 
   select * into existing from public.license_core_devices
-   where license_id=lic.id and app_id=p_app_id and device_hash=p_device_hash
+   where license_id=lic.id and device_hash=p_device_hash
    order by last_seen_at desc limit 1 for update;
   has_existing := found;
 
