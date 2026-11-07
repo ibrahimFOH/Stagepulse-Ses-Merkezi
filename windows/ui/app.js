@@ -926,7 +926,7 @@ function refreshAccountUi(){
   const cached=info?.cached_license;
   if(cached?.active){
    appAuthorized=true;
-   $('licenseStatusText').textContent='Ödeme onaylı lisans önbelleği geçerli; çevrimdışı kullanım açık.';
+   $('licenseStatusText').textContent=cached.trial?'7 günlük demo önbelleği geçerli; demo bitişine kadar çevrimdışı kullanım açık.':'FULL PAKET lisans önbelleği geçerli; çevrimdışı kullanım açık.';
    $('accountStatus').textContent='Çevrimdışı lisans etkin. Öğretmen/yönetici işlemleri için yeniden internet bağlantısı gerekir.';
    if(!currentAccountContext)currentRole='guest';
   }else{
