@@ -1,7 +1,7 @@
 # Değişiklik günlüğü
 
-## 3.8.10
-- Windows ve Android uygulama sürümleri 3.8.10 / Android versionCode 30810 olarak eşitlendi.
+## 3.9.0
+- Windows ve Android uygulama sürümleri 3.9.0 / Android versionCode 30900 olarak eşitlendi.
 - Windows canlı RTA, iki saniyeyi aşan ses akışı kesintisini güncel olmayan veri olarak işaretler.
 - Windows RTA'ya fiziksel 1 kHz / 94 veya 114 dB SPL ses kalibratörüyle oturumluk Z-ağırlıksız referans kalibrasyonu eklendi. Mikrofon frekans cevabı düzeltmesi veya IEC sınıf 1/2 uygunluğu iddia edilmez.
 - Windows Acoustic Engine ekranına aynı ses kartının iki girişinden canlı H1 Transfer Function magnitude, phase ve coherence yakalama eklendi. CH0 referans, CH1 ölçüm mikrofonudur.
@@ -153,12 +153,12 @@
 - Yeni sürüm kaynak testleriyle doğrulanır; Windows kurulum EXE'si, gerçek cihaz uygulamaları ve canlı Supabase deployment bu ortamda otomatik olarak yayımlanmış sayılmaz.
 
 
-## 3.8.10 · Ölçüm güvenilirliği ve ticari akış temizliği
+## 3.9.0 · Ölçüm güvenilirliği ve ticari akış temizliği
 
 - Canlı stereo Transfer Function arayüzü Windows masaüstünde etkinleştirildi. Aynı ses kartında CH0 referans, CH1 ölçüm mikrofonu olarak kullanılır.
 - RTA ve canlı TF, iki saniyeden uzun süren ses akışı kesintisini algılar; son spektrumu canlı veri olarak işaretlemez.
 - Windows RTA'ya 1 kHz fiziksel ses kalibratörüyle 94/114 dB SPL oturumluk Z-ağırlıksız referans kalibrasyonu eklendi. Uygulama yeniden başlatıldığında kalibrasyon sıfırlanır.
 - Kalibrasyonun mikrofon frekans cevabı düzeltmesi veya IEC sınıf 1/2 uygunluğu olmadığı arayüzde ve belgelerde açıklandı.
-- Android belgeleri 3.8.10 ile hizalandı; Android'de canlı stereo TF ve fiziksel kalibratör entegrasyonu bulunmadığı belirtildi.
+- Android belgeleri 3.9.0 ile hizalandı; Android'de canlı stereo TF ve fiziksel kalibratör entegrasyonu bulunmadığı belirtildi.
 - Satış dokümantasyonu yalnızca FULL PAKET banka havalesi/EFT ve yönetici onayı modeline göre temizlendi.
 - RTA/TF akış sağlığı ve SPL kalibrasyonu için regresyon testleri eklendi.
