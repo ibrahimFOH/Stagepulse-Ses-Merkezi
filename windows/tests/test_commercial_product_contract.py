@@ -75,7 +75,7 @@ def test_owner_license_inventory_and_revoke_controls_are_connected():
     assert 'if (action === "license_revoke")' in edge
 
 
-def test_ollama_default_groq_fallback_and_lifetime_license_contract():
+def test_ollama_default_groq_fallback_and_full_package_sales_contract():
     ai = (ROOT / 'core' / 'ai_providers.py').read_text('utf-8')
     ui = (ROOT / 'ui' / 'app.js').read_text('utf-8')
     assert 'http://127.0.0.1:11434/api/chat' in ai
@@ -83,8 +83,15 @@ def test_ollama_default_groq_fallback_and_lifetime_license_contract():
     assert '"model": "openai/gpt-oss-120b"' in ai
     assert "auto:{endpoint:'http://127.0.0.1:11434/api/chat',model:'auto'}" in ui
     assert "groq:{endpoint:'https://api.groq.com/openai/v1/chat/completions',model:'openai/gpt-oss-120b'}" in ui
-    assert "if($('licensePlan').value==='lifetime')$('licenseDays').value='0'" in ui
-    assert 'await refreshLicenseList();' in ui
+    html = (ROOT / 'ui' / 'index.html').read_text('utf-8')
+    edge = (ROOT / 'supabase' / 'functions' / 'ses-merkezi-desktop' / 'index.ts').read_text('utf-8')
+    assert 'id="fullPackagePurchasePanel"' in html
+    assert 'id="fullPackageAdminPanel"' in html
+    assert 'licensePlan' not in html and 'licenseBundle' not in html
+    assert 'function commerceApi()' in ui and 'purchase_submit' in ui and 'purchase_review' in ui
+    assert 'store_update' in ui and 'await refreshLicenseList();' in ui
+    assert 'price > 2500' in edge and 'sesm_review_full_package_purchase' in edge
+    assert 'purchase_submit' in edge and 'purchase_review' in edge
 
 
 
