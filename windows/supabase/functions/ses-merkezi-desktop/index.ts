@@ -315,8 +315,10 @@ Deno.serve(async (req: Request) => {
       const customerEmail=String(user.email??"").trim().toLowerCase().slice(0,320), customerPhone=String(body.customer_phone??"").trim().slice(0,40);
       const transferReference=String(body.transfer_reference??"").trim().slice(0,120), customerNote=String(body.customer_note??"").trim().slice(0,500);
       if(customerName.length<2||!customerEmail.includes("@")||transferReference.length<3)return fail("PURCHASE_DETAILS_INVALID",400);
-      const {data:existing,error:lookupError}=await admin.from("sesm_purchase_requests").select("id").eq("user_id",user.id).eq("status","pending").maybeSingle();
-      if(lookupError)return fail("PURCHASE_LOOKUP_FAILED",500); if(existing)return fail("PURCHASE_ALREADY_PENDING",409);
+      const {data:existing,error:lookupError}=await admin.from("sesm_purchase_requests").select("id,status").eq("user_id",user.id).in("status",["pending","approved"]).maybeSingle();
+      if(lookupError)return fail("PURCHASE_LOOKUP_FAILED",500);
+      if(existing?.status==="approved")return fail("PURCHASE_ALREADY_APPROVED",409);
+      if(existing?.status==="pending")return fail("PURCHASE_ALREADY_PENDING",409);
       const {data:purchase,error}=await admin.from("sesm_purchase_requests").insert({user_id:user.id,product_code:"full_package",product_name:"FULL PAKET",amount:settings.price,currency:"TRY",customer_name:customerName,customer_email:customerEmail,customer_phone:customerPhone,transfer_reference:transferReference,customer_note:customerNote}).select("id,product_name,amount,currency,status,created_at").single();
       if(error?.code==="23505")return fail("PURCHASE_ALREADY_PENDING",409);
       if(error||!purchase)return fail("PURCHASE_SUBMIT_FAILED",500);
