@@ -173,7 +173,7 @@ def test_stagepulse_release_version_is_consistent_across_platforms():
 
 
 
-def test_ses_merkezi_requires_paid_license_and_has_no_demo_path():
+def test_ses_merkezi_trial_is_seven_days_and_never_grants_paid_cloud_access():
     edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
     desktop = (ROOT / 'Merkez.py').read_text('utf-8')
     windows_ui = (ROOT / 'ui/app.js').read_text('utf-8')
@@ -183,16 +183,24 @@ def test_ses_merkezi_requires_paid_license_and_has_no_demo_path():
     android_native = (
         ROOT.parent / 'android/app/src/main/java/com/stagepulse/sesmerkezi/MainActivity.kt'
     ).read_text('utf-8')
+    secure_store = (ROOT / 'core/secure_store.py').read_text('utf-8')
 
     assert 'DEMO_FEATURES' not in edge
-    assert 'trialContext(' not in edge
-    assert 'const allowed = entitlement.paid;' in edge
-    assert 'demo: false' in edge
+    assert 'trialContext(' in edge
+    assert 'trial_disabled' not in edge
+    assert 'entitlement.paid || entitlement.trial.active === true' in edge
+    assert 'demo: entitlement.trial.active === true' in edge
     assert '"demo_mode": False' in desktop
     assert '"license_required_for_local_tools": True' in desktop
-    assert 'Yerel demo açık' not in windows_ui
-    assert 'Yerel demo açık' not in android_ui
+    for source in (windows_ui, android_ui):
+        assert 'formatTrialRemaining' in source
+        assert 'appAuthorized=appPaidAuthorized||trial.active===true' in source
+        assert 'if(!appPaidAuthorized)' in source
+        assert 'Deneme lisansı' in source
     assert '7L * 24L * 60L * 60L * 1000L' in android_native
+    assert 'OFFLINE_LICENSE_GRACE_DAYS = 14' in desktop
+    assert 'OFFLINE_PAID_LEASE_MS = 14 * 24 * 60 * 60 * 1000' in secure_store
+    assert 'OFFLINE_TRIAL_LEASE_MS = 7 * 24 * 60 * 60 * 1000' in secure_store
 
 def test_ses_merkezi_uses_one_license_scope_without_bundle_picker():
     html = (ROOT / 'ui/index.html').read_text('utf-8')
