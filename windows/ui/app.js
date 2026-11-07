@@ -469,7 +469,12 @@ async function tickLiveTf(token){
   if(!liveTfRunning||token!==liveTfGeneration)return;
   if(!snapshot||!snapshot.ok)throw new Error(snapshot?.error||'TF verisi alınamadı.');
   const age=Number(snapshot.seconds_since_last_callback||0);
-  if(snapshot.ready){
+  if(snapshot.stream_stale){
+   const blank=Array(snapshot.centers.length).fill(Number.NaN);
+   drawAcousticChart('acousticMagnitudeChart',snapshot.centers,blank,-36,18,' dB');
+   drawAcousticChart('acousticPhaseChart',snapshot.centers,blank,-180,180,'°');
+   drawAcousticChart('acousticCoherenceChart',snapshot.centers,blank,0,1,'');
+  }else if(snapshot.ready){
    drawAcousticChart('acousticMagnitudeChart',snapshot.centers,snapshot.mag_db,-36,18,' dB');
    drawAcousticChart('acousticPhaseChart',snapshot.centers,snapshot.phase_deg,-180,180,'°');
    drawAcousticChart('acousticCoherenceChart',snapshot.centers,snapshot.coherence,0,1,'');
@@ -654,7 +659,8 @@ async function tickRta(token){
    const centers=snapshot.centers||[],values=snapshot.band_dbfs||[];
    const changed=centers.length!==rtaFreqs.length||centers.some((f,i)=>f!==rtaFreqs[i]);
    if(changed){rtaFreqs=centers.slice();resetRtaHistory();}
-   if(snapshot.ready){const now=performance.now(),dt=rtaLastTime?Math.max(.001,(now-rtaLastTime)/1000):.1;rtaLastTime=now;const tau={fast:.12,medium:.18,slow:.5}[$('rtaSmooth').value]||.18;rtaSmoothed=RtaMath.smooth(rtaSmoothed,values,dt,tau);rtaPeak=rtaPeak&&rtaPeak.length===rtaSmoothed.length?rtaPeak.map((v,i)=>Math.max(v,rtaSmoothed[i])):rtaSmoothed.slice();rtaTraceHistory.push(rtaSmoothed.slice());if(rtaTraceHistory.length>4)rtaTraceHistory.shift();drawRta(rtaSmoothed);updateRtaOptimizer(centers,rtaSmoothed);}
+   if(snapshot.stream_stale){rtaSmoothed=null;rtaTraceHistory=[];drawRta([]);}
+   else if(snapshot.ready){const now=performance.now(),dt=rtaLastTime?Math.max(.001,(now-rtaLastTime)/1000):.1;rtaLastTime=now;const tau={fast:.12,medium:.18,slow:.5}[$('rtaSmooth').value]||.18;rtaSmoothed=RtaMath.smooth(rtaSmoothed,values,dt,tau);rtaPeak=rtaPeak&&rtaPeak.length===rtaSmoothed.length?rtaPeak.map((v,i)=>Math.max(v,rtaSmoothed[i])):rtaSmoothed.slice();rtaTraceHistory.push(rtaSmoothed.slice());if(rtaTraceHistory.length>4)rtaTraceHistory.shift();drawRta(rtaSmoothed);updateRtaOptimizer(centers,rtaSmoothed);}
    const peak=Number(snapshot.peak_dbfs??-120),rms=Number(snapshot.rms_dbfs??-120),peakWarn=snapshot.stream_stale?' · AKIŞ DURDU; son örnek değerleri':peak>-1?' · Kırpılmaya çok yakın!':peak<-60?' · Çok düşük giriş; kazancı kontrol et.':' · Giriş alınıyor.';
    const splNote=snapshot.calibrated_spl&&Number.isFinite(Number(snapshot.spl_db))?' · '+Number(snapshot.spl_db).toFixed(1)+' dB SPL Z (kalibre)':'';
    $('rtaInputMeter').textContent=`Giriş peak: ${peak.toFixed(1)} dBFS · RMS: ${rms.toFixed(1)} dBFS${splNote}${peakWarn}`;updateRtaMeters(peak,rms);
