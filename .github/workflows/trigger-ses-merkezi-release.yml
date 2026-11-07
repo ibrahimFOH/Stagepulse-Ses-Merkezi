@@ -1,22 +1,13 @@
 name: Stagepulse Ses Merkezi ana dal kararlı yayın tetikleyicisi
 
 on:
+  # Kararlı yayın yalnızca main'e alınan uygulama kaynak değişikliklerinde başlar.
+  # PR/research derlemeleri hiçbir zaman stable kanalına gönderilmez.
   push:
     branches: [main]
     paths:
-      - "android/app/build.gradle"
-      - "windows/Merkez.py"
-      - "windows/EXE_OLUSTUR.ps1"
-      - "windows/setup/StagepulseSesMerkezi.nsi"
-      - "windows/ui/app.js"
-      - "windows/ui/index.html"
-      - "android/app/src/main/assets/ui/app.js"
-      - "android/app/src/main/assets/ui/index.html"
-      - "windows/ui/first_party_tools.js"
-      - "windows/tests/**"
-      - "android/app/src/main/assets/ui/first_party_tools.js"
-      - "README.md"
-      - ".github/workflows/trigger-ses-merkezi-release.yml"
+      - "android/**"
+      - "windows/**"
   workflow_dispatch:
 
 permissions:
@@ -28,16 +19,28 @@ concurrency:
 
 jobs:
   trigger-release:
-    name: Ana uygulama sürümünü doğrula ve yayın deposunu tetikle
+    name: Kaynak sürümünü doğrula ve yayın deposunu otomatik tetikle
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
-        name: Ana dal kaynak kodunu al
+      - name: Ana dal kaynak kodunu al
+        uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
-      - name: Tüm uygulama sürümlerini doğrula ve yayın etiketini oluştur
+
+      - name: Yayın deposu erişim anahtarını doğrula
+        shell: bash
+        env:
+          RELEASE_REPO_DISPATCH_TOKEN: ${{ secrets.RELEASE_REPO_DISPATCH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${RELEASE_REPO_DISPATCH_TOKEN:-}" ]]; then
+            echo "::error::RELEASE_REPO_DISPATCH_TOKEN eksik. Stagepulse-Releases deposuna repository_dispatch yetkili fine-grained token eklenmeli."
+            exit 1
+          fi
+
+      - name: Platform sürümlerini doğrula, çakışmasız kaynak etiketi oluştur ve yayın başlat
         shell: bash
         env:
           RELEASE_REPO_DISPATCH_TOKEN: ${{ secrets.RELEASE_REPO_DISPATCH_TOKEN }}
@@ -46,10 +49,12 @@ jobs:
           RELEASE_VERSION="$(python3 - <<'PY'
           import re
           from pathlib import Path
+
           files = {
-              "ana Android": ("android/app/build.gradle", r"versionName\s+'([^']+)'"),
-              "ana Windows": ("windows/Merkez.py", r'APP_VERSION\s*=\s*"([^"]+)"'),
+              "Android": ("android/app/build.gradle", r"versionName\s+'([^']+)'"),
+              "Windows": ("windows/Merkez.py", r'APP_VERSION\s*=\s*"([^"]+)"'),
               "Windows kurucu": ("windows/EXE_OLUSTUR.ps1", r"\$version\s*=\s*'([^']+)'"),
+              "NSIS": ("windows/setup/StagepulseSesMerkezi.nsi", r'!define\s+VERSION\s+"([^"]+)"'),
           }
           values = {}
           for label, (filename, pattern) in files.items():
@@ -57,46 +62,68 @@ jobs:
               if not match:
                   raise SystemExit(f"{label} sürüm alanı bulunamadı.")
               values[label] = match.group(1)
-          unique = set(values.values())
-          if len(unique) != 1:
-              raise SystemExit("Ana uygulama sürümleri eşleşmiyor: " + repr(values))
-          version = next(iter(unique))
+
+          if len(set(values.values())) != 1:
+              raise SystemExit("Windows/Android sürümleri eşleşmiyor: " + repr(values))
+
+          version = next(iter(values.values()))
           match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", version)
           if not match:
               raise SystemExit("Sürüm X.Y.Z biçiminde olmalı: " + version)
-          expected_code = int(match.group(1))*10000 + int(match.group(2))*100 + int(match.group(3))
+
+          expected_code = int(match.group(1)) * 10000 + int(match.group(2)) * 100 + int(match.group(3))
           gradle = Path("android/app/build.gradle").read_text(encoding="utf-8")
           code = re.search(r"versionCode\s+(\d+)", gradle)
           if not code or int(code.group(1)) != expected_code:
-              raise SystemExit("Ana Android versionCode sürümle eşleşmiyor.")
+              raise SystemExit(f"Android versionCode hatalı: beklenen {expected_code}")
+
           print(version)
           PY
           )"
+
           TAG="ses-merkezi-v$RELEASE_VERSION"
           EXISTING_SHA="$(git ls-remote --refs origin "refs/tags/$TAG" | awk 'NR==1 {print $1}')"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -f "$TAG" "$GITHUB_SHA"
+
+          if [[ -n "$EXISTING_SHA" && "$EXISTING_SHA" != "$GITHUB_SHA" ]]; then
+            echo "::error:: $TAG etiketi başka bir commit'e bağlı. Aynı sürüm yeniden yayımlanamaz; Android ve Windows sürüm numaralarını artırın."
+            exit 1
+          fi
+
           if [[ -z "$EXISTING_SHA" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag "$TAG" "$GITHUB_SHA"
             git push origin "refs/tags/$TAG"
-          elif [[ "$EXISTING_SHA" != "$GITHUB_SHA" ]]; then
-            git push --force origin "refs/tags/$TAG"
+          else
+            echo "Kaynak etiketi zaten bu commit'i gösteriyor: $TAG"
           fi
-          if [[ -z "${RELEASE_REPO_DISPATCH_TOKEN:-}" ]]; then
-            echo "::warning::RELEASE_REPO_DISPATCH_TOKEN tanımlı değil. Kaynak etiketi oluşturuldu; yayın deposundaki workflow_dispatch ile derleme başlatılmalı."
-            exit 0
-          fi
+
           PAYLOAD="$(python3 - "$RELEASE_VERSION" "refs/tags/$TAG" <<'PY'
           import json, sys
-          print(json.dumps({"event_type":"ses-merkezi-release","client_payload":{"release_version":sys.argv[1],"source_ref":sys.argv[2]}}))
+          print(json.dumps({
+              "event_type": "ses-merkezi-release",
+              "client_payload": {
+                  "release_version": sys.argv[1],
+                  "source_ref": sys.argv[2]
+              }
+          }))
           PY
           )"
-          curl --fail-with-body --silent --show-error --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 --max-time 90 \
+
+          HTTP_STATUS="$(curl --silent --show-error --output "$RUNNER_TEMP/dispatch-response.json" --write-out '%{http_code}' \
+            --retry 5 --retry-all-errors --retry-delay 2 --connect-timeout 15 --max-time 90 \
             --request POST \
             --url "https://api.github.com/repos/ibrahimFOH/Stagepulse-Releases/dispatches" \
             --header "Accept: application/vnd.github+json" \
             --header "Authorization: Bearer $RELEASE_REPO_DISPATCH_TOKEN" \
             --header "X-GitHub-Api-Version: 2022-11-28" \
             --header "Content-Type: application/json" \
-            --data "$PAYLOAD"
+            --data "$PAYLOAD")"
+
+          if [[ "$HTTP_STATUS" != "204" ]]; then
+            echo "::error::Yayın deposu tetiklenemedi. GitHub HTTP: $HTTP_STATUS"
+            cat "$RUNNER_TEMP/dispatch-response.json"
+            exit 1
+          fi
+
           echo "STABLE_RELEASE_TRIGGERED $TAG"
