@@ -800,12 +800,22 @@ class AppApi(AcousticAnalysisApi):
         version = str(manifest.get("version", ""))
         url = str(manifest.get("url", ""))
         digest = str(manifest.get("sha256", "")).lower()
-        if not version or not url or not __import__("re").fullmatch(r"[0-9a-f]{64}", digest):
-            raise RuntimeError("Güncelleme bildirimi version, url ve SHA-256 alanlarını içermeli.")
+        import re
+        if (manifest.get("ok") is not True or
+                manifest.get("channel") != UPDATE_CHANNEL or
+                manifest.get("prerelease") is not False):
+            raise RuntimeError("Yalnızca yayımlanmış kararlı güncellemeler kabul edilir.")
+        if (not re.fullmatch(r"\\d+\\.\\d+\\.\\d+", version) or
+                not re.fullmatch(r"[0-9a-f]{64}", digest)):
+            raise RuntimeError("Güncelleme bildiriminin sürüm veya SHA-256 alanı geçersiz.")
+        filename = f"Stagepulse-Ses-Merkezi-Windows-{version}.exe"
+        expected_path = f"/ibrahimFOH/Stagepulse-Releases/releases/download/v{version}/{filename}"
         parsed = urlparse(url)
         if (parsed.scheme != "https" or parsed.hostname != "github.com" or
-                parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.port):
-            raise RuntimeError("Güncelleme indirme adresi güvenilir Stagepulse yayın deposuna ait değil.")
+                parsed.path != expected_path or parsed.username or parsed.password or
+                parsed.query or parsed.fragment or parsed.port or
+                manifest.get("filename") != filename):
+            raise RuntimeError("Güncelleme adresi beklenen Stagepulse kararlı yayın dosyası değil.")
         available = _version_tuple(version) > _version_tuple(APP_VERSION)
         return {"ok": True, "published": True, "available": available, "current_version": APP_VERSION, "version": version,
                 "url": url, "sha256": digest, "channel": str(manifest.get("channel", UPDATE_CHANNEL)), "notes": str(manifest.get("notes", ""))[:2000],
