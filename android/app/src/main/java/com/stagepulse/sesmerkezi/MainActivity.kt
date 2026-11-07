@@ -820,11 +820,19 @@ class MainActivity : Activity() {
             "app_info" -> {
                 val cached = readSecret("account_context")?.let { JSONObject(it) }
                 val validatedAt = readSecret("validated_at")?.toLongOrNull() ?: 0L
-                val validCache = cached != null && System.currentTimeMillis() - validatedAt < 24L * 60L * 60L * 1000L
+                val licensed = cached?.optJSONObject("licensed")
+                val expiresAt = licensed?.optString("expires_at").orEmpty()
+                val notExpired = expiresAt.isBlank() || runCatching {
+                    java.time.Instant.parse(expiresAt).toEpochMilli() > System.currentTimeMillis()
+                }.getOrDefault(false)
+                val now = System.currentTimeMillis()
+                val validCache = licensed?.optBoolean("active", false) == true
+                    && validatedAt > 0L && validatedAt <= now + 5L * 60L * 1000L
+                    && now - validatedAt <= 7L * 24L * 60L * 60L * 1000L && notExpired
                 return JSONObject()
                     .put("platform", "android")
                     .put("version", BuildConfig.VERSION_NAME)
-                    .put("cached_license", if (validCache) cached!!.optJSONObject("licensed") ?: JSONObject() else JSONObject().put("active", false))
+                    .put("cached_license", if (validCache) licensed ?: JSONObject() else JSONObject().put("active", false))
                     .put("offline_cache", validCache)
             }
             "auth_login" -> {
