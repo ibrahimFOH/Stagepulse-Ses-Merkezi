@@ -453,7 +453,7 @@ class AppApi(AcousticAnalysisApi):
         raw_endpoint = str(endpoint or PROVIDERS[provider_id]["endpoint"]).strip()
         _validate_endpoint(provider_id, raw_endpoint)
         if not self._cached_license_status().get("active"):
-            raise RuntimeError("Stagepulse Ses Merkezi için etkin ve ödemesi onaylı lisans gerekir.")
+            raise RuntimeError("Stagepulse Ses Merkezi için etkin FULL PAKET lisansı veya süresi dolmamış demo gerekir.")
         return chat(provider_id, model, api_key, prompt, raw_endpoint, request_options, keep_alive, think)
 
 
