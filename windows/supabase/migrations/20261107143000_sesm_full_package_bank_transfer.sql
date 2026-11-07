@@ -15,6 +15,15 @@ create table if not exists public.sesm_store_settings (
 
 insert into public.sesm_store_settings (id) values (true) on conflict (id) do nothing;
 
+alter table public.sesm_license_keys
+  drop constraint if exists sesm_license_keys_plan_code_check;
+alter table public.sesm_license_keys
+  add constraint sesm_license_keys_plan_code_check check (plan_code = 'student');
+alter table public.sesm_license_keys
+  drop constraint if exists sesm_license_keys_bundle_code_check;
+alter table public.sesm_license_keys
+  add constraint sesm_license_keys_bundle_code_check check (bundle_code = 'full_master');
+
 create table if not exists public.sesm_purchase_requests (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete restrict,
