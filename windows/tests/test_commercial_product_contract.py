@@ -171,3 +171,47 @@ def test_stagepulse_release_version_is_consistent_across_platforms():
     assert f"| Android Ses Merkezi | {android_version.group(1)} ({android_expected_code}) |" in readme
     assert f"version:'{version}'" in windows_js
 
+
+
+def test_ses_merkezi_requires_paid_license_and_has_no_demo_path():
+    edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
+    desktop = (ROOT / 'Merkez.py').read_text('utf-8')
+    windows_ui = (ROOT / 'ui/app.js').read_text('utf-8')
+    android_ui = (
+        ROOT.parent / 'android/app/src/main/assets/ui/app.js'
+    ).read_text('utf-8')
+    android_native = (
+        ROOT.parent / 'android/app/src/main/java/com/stagepulse/sesmerkezi/MainActivity.kt'
+    ).read_text('utf-8')
+
+    assert 'DEMO_FEATURES' not in edge
+    assert 'trialContext(' not in edge
+    assert 'const allowed = entitlement.paid;' in edge
+    assert 'demo: false' in edge
+    assert '"demo_mode": False' in desktop
+    assert '"license_required_for_local_tools": True' in desktop
+    assert 'Yerel demo açık' not in windows_ui
+    assert 'Yerel demo açık' not in android_ui
+    assert '7L * 24L * 60L * 60L * 1000L' in android_native
+
+def test_ses_merkezi_uses_one_license_scope_without_bundle_picker():
+    html = (ROOT / 'ui/index.html').read_text('utf-8')
+    ui = (ROOT / 'ui/app.js').read_text('utf-8')
+    edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
+
+    assert 'licenseBundle' not in html
+    assert 'licenseBundle' not in ui
+    assert 'paket ${' not in ui
+    assert 'const bundle = "full_master";' in edge
+    assert 'allowedBundles' not in edge
+
+def test_device_revoke_is_atomic_and_inactive_bindings_can_transfer():
+    migration = (
+        ROOT / 'supabase/migrations/20261107120000_sesm_device_transfer_after_revoke.sql'
+    ).read_text('utf-8')
+    edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
+
+    assert 'create or replace function public.sesm_revoke_activation' in migration
+    assert 'grant execute on function public.sesm_revoke_activation(uuid,uuid) to service_role' in migration
+    assert 'is_active=true and user_id is not null and user_id<>p_user_id' in migration
+    assert 'admin.rpc("sesm_revoke_activation"' in edge

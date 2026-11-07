@@ -73,47 +73,13 @@ async function getRole(userId: string) {
 async function audit(actor: string, action: string, subject?: string | null, licenseId?: string | null, details: Record<string, unknown> = {}) {
   await admin.from("sesm_audit_events").insert({ actor_user_id: actor, action, subject_user_id: subject ?? null, license_id: licenseId ?? null, details });
 }
-const DEMO_FEATURES = new Set(["home", "frequency", "calculators", "ear_basic", "docs", "checklists", "curriculum", "account", "settings"]);
-async function trialContext(userId: string, deviceHash: string, platformValue: unknown) {
-  if (!/^[0-9a-f]{64}$/.test(deviceHash)) return { active: false, reason: "device_id_invalid" };
-  const platform = ["windows", "android"].includes(String(platformValue)) ? String(platformValue) : "unknown";
-  const { data: existing, error: lookupError } = await admin.from("sesm_trials").select("user_id,device_hash,platform,started_at,expires_at,last_seen_at,revoked").eq("user_id", userId).maybeSingle();
-  if (lookupError) return { active: false, reason: "trial_service_unavailable" };
-  if (existing) {
-    const expires = Date.parse(existing.expires_at);
-    const sameDevice = existing.device_hash === deviceHash;
-    const active = sameDevice && !existing.revoked && Number.isFinite(expires) && expires > Date.now();
-    if (active) await admin.from("sesm_trials").update({ last_seen_at: new Date().toISOString() }).eq("user_id", userId).eq("device_hash", deviceHash).eq("revoked", false);
-    const reason = active ? null : (!sameDevice ? "trial_device_mismatch" : (existing.revoked ? "trial_revoked" : "trial_expired"));
-    return { active, started_at: existing.started_at, expires_at: existing.expires_at, remaining_seconds: active ? Math.max(0, Math.floor((expires - Date.now()) / 1000)) : 0, reason, platform: existing.platform };
-  }
-  const { data: deviceTrial, error: deviceLookupError } = await admin.from("sesm_trials").select("user_id").eq("device_hash", deviceHash).maybeSingle();
-  if (deviceLookupError) return { active: false, reason: "trial_service_unavailable" };
-  if (deviceTrial) return { active: false, reason: "device_trial_already_used" };
-  const { data: created, error: createError } = await admin.from("sesm_trials").insert({ user_id: userId, device_hash: deviceHash, platform }).select("started_at,expires_at,platform").single();
-  if (createError || !created) {
-    const { data: raced } = await admin.from("sesm_trials").select("user_id,device_hash,platform,started_at,expires_at,revoked").eq("user_id", userId).maybeSingle();
-    if (raced) {
-      const expires = Date.parse(raced.expires_at);
-      const sameDevice = raced.device_hash === deviceHash;
-      const active = sameDevice && !raced.revoked && Number.isFinite(expires) && expires > Date.now();
-      const reason = active ? null : (!sameDevice ? "trial_device_mismatch" : (raced.revoked ? "trial_revoked" : "trial_expired"));
-      return { active, started_at: raced.started_at, expires_at: raced.expires_at, remaining_seconds: active ? Math.max(0, Math.floor((expires - Date.now()) / 1000)) : 0, reason, platform: raced.platform };
-    }
-    const { data: deviceRaced } = await admin.from("sesm_trials").select("user_id").eq("device_hash", deviceHash).maybeSingle();
-    if (deviceRaced) return { active: false, reason: "device_trial_already_used" };
-    return { active: false, reason: "trial_start_failed" };
-  }
-  const expires = Date.parse(created.expires_at);
-  return { active: true, started_at: created.started_at, expires_at: created.expires_at, remaining_seconds: Math.max(0, Math.floor((expires - Date.now()) / 1000)), reason: null, platform: created.platform };
-}
-
 async function entitlementContext(userId: string, deviceHash: string, role: string, platform: unknown, requestedAppId = "") {
   const licensed = await licensedContext(userId, deviceHash, role, requestedAppId);
-  const trial = role === "owner" || licensed.active
-    ? { active: false, reason: role === "owner" ? "owner_account" : "paid_license_active", remaining_seconds: 0 }
-    : await trialContext(userId, deviceHash, platform);
-  return { licensed, trial, paid: role === "owner" || licensed.active };
+  return {
+    licensed,
+    trial: { active: false, reason: "trial_disabled", remaining_seconds: 0 },
+    paid: role === "owner" || licensed.active,
+  };
 }
 
 async function licensedContext(userId: string, deviceHash: string, role: string, requestedAppId = "") {
@@ -188,17 +154,17 @@ Deno.serve(async (req: Request) => {
       const entitlement = await entitlementContext(user.id, deviceHash, role, body.platform, String(body.app_id ?? ""));
       const { data: ownStudent } = await admin.from("sesm_students").select("display_name, email, teacher_user_id")
         .eq("user_id", user.id).eq("is_active", true).maybeSingle();
-      return reply({ ok: true, user: { id: user.id, email: user.email, name: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? "" }, role, licensed: entitlement.licensed, trial: entitlement.trial, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active, demo_days: 7 }, student: ownStudent ?? null, app: "Stagepulse Ses Mühendisliği Merkezi" });
+      return reply({ ok: true, user: { id: user.id, email: user.email, name: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? "" }, role, licensed: entitlement.licensed, trial: entitlement.trial, entitlements: { paid: entitlement.paid, demo: false }, student: ownStudent ?? null, app: "Stagepulse Ses Mühendisliği Merkezi" });
     }
     if (action === "license_status") {
       const entitlement = await entitlementContext(user.id, String(body.device_hash ?? ""), role, body.platform, String(body.app_id ?? ""));
-      return reply({ ok: true, licensed: entitlement.licensed, trial: entitlement.trial, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active, demo_days: 7 }, role });
+      return reply({ ok: true, licensed: entitlement.licensed, trial: entitlement.trial, entitlements: { paid: entitlement.paid, demo: false }, role });
     }
     if (action === "feature_access" || action === "pdf_access") {
       const entitlement = await entitlementContext(user.id, String(body.device_hash ?? ""), role, body.platform, String(body.app_id ?? ""));
       const feature = action === "pdf_access" ? "pdf_library" : String(body.feature ?? "");
-      const allowed = entitlement.paid || (entitlement.trial.active && DEMO_FEATURES.has(feature));
-      return reply({ ok: true, feature, allowed, paid: entitlement.paid, trial: entitlement.trial, reason: allowed ? null : (!entitlement.trial.active ? "trial_required_or_expired" : "license_required") });
+      const allowed = entitlement.paid;
+      return reply({ ok: true, feature, allowed, paid: entitlement.paid, trial: entitlement.trial, reason: allowed ? null : "license_required" });
     }
     if (action === "license_list") {
       await requireOwner(user.id);
@@ -246,10 +212,11 @@ Deno.serve(async (req: Request) => {
       const { data: ownedLicense, error: ownedError } = await admin.from("sesm_license_keys")
         .select("id").eq("id", licenseId).eq("created_by", user.id).maybeSingle();
       if (ownedError || !ownedLicense) return fail("LICENSE_NOT_FOUND", 404);
-      const { data: activation, error } = await admin.from("sesm_activations")
-        .update({ is_active: false }).eq("id", activationId).eq("license_id", licenseId)
-        .select("id,device_hash").maybeSingle();
-      if (error || !activation) return fail("ACTIVATION_REVOKE_FAILED", 500);
+      const { data: activation, error } = await admin.rpc("sesm_revoke_activation", {
+        p_license_id: licenseId,
+        p_activation_id: activationId,
+      });
+      if (error || !activation?.ok) return fail("ACTIVATION_REVOKE_FAILED", 500);
       await audit(user.id, "activation_revoked", null, licenseId, { device_hint: String(activation.device_hash ?? "").slice(0, 8).toUpperCase() });
       return reply({ ok: true });
     }
@@ -287,8 +254,8 @@ Deno.serve(async (req: Request) => {
       const hash = await sha256Hex(normalizeKey(rawKey));
       const label = String(body.label ?? "Öğrenci lisansı").trim().slice(0, 120) || "Öğrenci lisansı";
       const plan = ["student", "classroom", "lifetime"].includes(String(body.plan_code)) ? String(body.plan_code) : "student";
-      const allowedBundles = ["start", "live_sound", "rf_wireless", "pa_system", "studio_post", "spl_acoustics", "digital_console", "full_master", "institution"];
-      const bundle = allowedBundles.includes(String(body.bundle_code)) ? String(body.bundle_code) : "start";
+      // Ses Merkezi tek ürün olarak lisanslanır; paket seçimi erişimi bölmez.
+      const bundle = "full_master";
       const maxActivations = Math.max(1, Math.min(100, Math.trunc(Number(body.max_activations) || 1)));
       const days = Math.max(0, Math.min(3650, Math.trunc(Number(body.expires_days) || 0)));
       const expiresAt = days > 0 ? new Date(Date.now() + days * 86400000).toISOString() : null;

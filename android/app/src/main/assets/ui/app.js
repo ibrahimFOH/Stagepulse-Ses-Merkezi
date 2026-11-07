@@ -31,6 +31,7 @@ let activeRoute = 'home';
 let apiReady = false;
 let nativeInitStarted = false;
 let appAuthorized = false;
+let licenseGatePending = true;
 let currentRole = 'guest';
 let currentAccountContext = null;
 let remoteProgress = {};
@@ -208,8 +209,7 @@ function downloadBlob(blob, filename) {
 }
 function setPage(route) {
   if (!routes[route]) route='home';
-  // Local tools and the student PDF library remain usable without a paid license.
-  // License checks guard cloud AI and server-backed teacher/student services only.
+  if (!appAuthorized && currentRole !== 'owner' && route !== 'account') route='account';
   if (activeRoute==='rta' && route!=='rta') stopRta();
   if (activeRoute==='wavelab' && route!=='wavelab') window.StagepulseWaveLabStop?.();
   activeRoute=route;
@@ -289,6 +289,7 @@ async function initializeNativeData(){
   if(nativeInitStarted || (!api() && !accountApi()))return;
   const nativeApi = api() || accountApi();
   nativeInitStarted = true;
+  setPage('account');
   try { await ensureProfilesLoaded(); }
   catch(err) { setStatus('Profil deposu okunamadı. Veriler sıfırlanmadı: '+err.message); }
   try {
@@ -304,8 +305,8 @@ async function initializeNativeData(){
     const info = await nativeApi.app_info();
     const cached = info && info.cached_license;
     if (cached && cached.active) appAuthorized = true;
-  } catch (_) { /* Network/license status never blocks offline tools. */ }
-  // Do not redirect a first-time visitor to the license page. Local demo features start on Home.
+  } catch (_) { /* Lisans önbelleği çevrimdışı doğrulamada kullanılır. */ }
+  if(licenseGatePending){licenseGatePending=false;setPage(appAuthorized?'home':'account');}
   loadAppInfo();
   refreshAccountUi();
 }
@@ -1093,37 +1094,30 @@ async function testAiConnection(){
  const client=accountApi();if(!client?.ai_chat){$('aiStatus').textContent='AI bağlantısı için desteklenen uygulama köprüsü gerekli.';return;}
  if(window.StagepulseAndroid&&$('aiProvider').value==='ollama'){$('aiStatus').textContent='Android cihazındaki 127.0.0.1 telefona aittir. Windows PC Ollama bağlantısı için aynı ağdaki PC adresi gerekir; bu sürümde yalnızca Windows yerel Ollama ve Android Groq desteklenir.';return;}
  const provider=$('aiProvider').value,endpoint=$('aiEndpoint').value.trim(),model=provider==='ollama'?'auto':$('aiModel').value.trim(),key=$('aiKey').value;
- if(!isLocalAiEndpoint(provider,endpoint)&&!appAuthorized){$('aiStatus').textContent='Bulut AI bağlantısı için lisanslı hesaba giriş yap. Demo modunda yerel Ollama kullanılabilir.';return;}
+ if(!appAuthorized){$('aiStatus').textContent='AI araçları için ödeme onaylı etkin Stagepulse lisansı gerekir.';return;}
  if(!$('aiConsent').checked){$('aiStatus').textContent='Önce seçili sağlayıcıya metin gönderme iznini işaretle.';return;}
  if(!endpoint||!model){$('aiStatus').textContent='Endpoint ve model adı gerekli.';return;}
  try{$('testAIConnection').disabled=true;$('aiStatus').textContent='Sağlayıcıya kısa bağlantı testi gönderiliyor…';const r=await client.ai_chat(provider,model,key,'Bu bir bağlantı testidir. Yalnızca STAGEPULSE_BAGLANTI_OK yaz.',endpoint);$('aiStatus').textContent=`Bağlantı başarılı · ${r.provider_name||provider} · ${r.model||model}\nYanıt: ${(r.content||'').slice(0,500)}`;$('aiKey').value='';}
  catch(err){$('aiStatus').textContent='Bağlantı testi başarısız: '+err.message+'\nİnternet, API anahtarı, model adı veya Ollama servis durumunu kontrol et.';}
  finally{$('aiKey').value='';$('testAIConnection').disabled=false;}
 }
-async function sendAiText(){const client=accountApi();if(!client?.ai_chat){$('aiStatus').textContent='AI isteği için desteklenen uygulama köprüsü gerekli.';return;}if(window.StagepulseAndroid&&$('aiProvider').value==='ollama'){$('aiStatus').textContent='Ollama yalnızca Windows Ses Merkezi üzerinde yerel çalışır; Android için bulut sağlayıcısı seç.';return;}const provider=$('aiProvider').value,endpoint=$('aiEndpoint').value.trim(),model=provider==='ollama'?'auto':$('aiModel').value.trim(),key=$('aiKey').value,prompt=$('promptOutput').value.trim()||$('promptContext').value.trim();if(!isLocalAiEndpoint(provider,endpoint)&&!appAuthorized){$('aiStatus').textContent='Bulut AI için lisanslı hesaba giriş yap. Yerel Ollama ve istem şablonları demo modunda kullanılabilir.';return;}if(!$('aiConsent').checked){$('aiStatus').textContent='Önce veri gönderim iznini işaretle.';return;}if(!endpoint||!model||!prompt){$('aiStatus').textContent='Endpoint, model ve istem gerekli.';return;}if(provider!=='ollama'&&!/^https:\/\//i.test(endpoint)){$('aiStatus').textContent='Çevrimiçi sağlayıcı HTTPS kullanmalı.';return;}try{$('sendAI').disabled=true;$('aiStatus').textContent='İstem yalnızca seçilen AI sağlayıcısına gönderiliyor…';const r=await client.ai_chat(provider,model,key,prompt,endpoint);$('aiStatus').textContent=`${r.model||model} yanıtı:\n\n${r.content||JSON.stringify(r,null,2)}`;$('aiKey').value='';}catch(err){$('aiStatus').textContent='AI isteği başarısız: '+err.message+'\nAPI anahtarı kaydedilmez; yerel şablonlar çevrimdışı çalışır.';}finally{$('aiKey').value='';$('sendAI').disabled=false;}}
+async function sendAiText(){const client=accountApi();if(!client?.ai_chat){$('aiStatus').textContent='AI isteği için desteklenen uygulama köprüsü gerekli.';return;}if(window.StagepulseAndroid&&$('aiProvider').value==='ollama'){$('aiStatus').textContent='Ollama yalnızca Windows Ses Merkezi üzerinde yerel çalışır; Android için bulut sağlayıcısı seç.';return;}const provider=$('aiProvider').value,endpoint=$('aiEndpoint').value.trim(),model=provider==='ollama'?'auto':$('aiModel').value.trim(),key=$('aiKey').value,prompt=$('promptOutput').value.trim()||$('promptContext').value.trim();if(!appAuthorized){$('aiStatus').textContent='AI araçları için ödeme onaylı etkin Stagepulse lisansı gerekir.';return;}if(!$('aiConsent').checked){$('aiStatus').textContent='Önce veri gönderim iznini işaretle.';return;}if(!endpoint||!model||!prompt){$('aiStatus').textContent='Endpoint, model ve istem gerekli.';return;}if(provider!=='ollama'&&!/^https:\/\//i.test(endpoint)){$('aiStatus').textContent='Çevrimiçi sağlayıcı HTTPS kullanmalı.';return;}try{$('sendAI').disabled=true;$('aiStatus').textContent='İstem yalnızca seçilen AI sağlayıcısına gönderiliyor…';const r=await client.ai_chat(provider,model,key,prompt,endpoint);$('aiStatus').textContent=`${r.model||model} yanıtı:\n\n${r.content||JSON.stringify(r,null,2)}`;$('aiKey').value='';}catch(err){$('aiStatus').textContent='AI isteği başarısız: '+err.message+'\nAPI anahtarı kaydedilmez; yerel şablonlar çevrimdışı çalışır.';}finally{$('aiKey').value='';$('sendAI').disabled=false;}}
 
 // --- Commercial account, license and teacher progress ---
-function formatTrialRemaining(seconds){
- const total=Math.max(0,Number(seconds)||0),days=Math.floor(total/86400),hours=Math.floor((total%86400)/3600),minutes=Math.floor((total%3600)/60);
- return days>0?`${days} gün ${hours} saat`:hours>0?`${hours} saat ${minutes} dakika`:`${minutes} dakika`;
-}
+
 function applyAccountContext(context){
  currentAccountContext=context||null;currentRole=context?.role||'guest';
- const license=context?.licensed||{},trial=context?.trial||{};appAuthorized=currentRole==='owner'||license.active===true;
+ const license=context?.licensed||{};appAuthorized=currentRole==='owner'||license.active===true;
+ if(licenseGatePending){licenseGatePending=false;setPage(appAuthorized?'home':'account');}
+ else if(!appAuthorized&&activeRoute!=='account')setPage('account');
  if($('accountRoleBadge'))$('accountRoleBadge').textContent=currentRole==='owner'?'Sahip / öğretmen':currentRole==='student'?'Lisanslı öğrenci':'Misafir / lisans gerekli';
  if($('progressRoleBadge'))$('progressRoleBadge').textContent=currentRole==='owner'?'Öğretmen / yönetici':currentRole==='student'?'Öğrenci · salt okunur':'Hesap gerekli';
  const admin=currentRole==='owner';$('teacherLicensePanel').classList.toggle('hidden',!admin);$('teacherProgressPanel').classList.toggle('hidden',!admin);
  $('licenseActivate').disabled=currentRole==='owner';$('licenseActivate').textContent=currentRole==='owner'?'Sahip hesabı lisans gerektirmez':'Bu cihazı etkinleştir';
- let trialLabel='';
- if(trial.active===true){
-  const expiry=trial.expires_at?new Date(trial.expires_at).toLocaleString('tr-TR'):'—';
-  trialLabel=`7 günlük demo etkin · kalan ${formatTrialRemaining(trial.remaining_seconds)} · bitiş ${expiry}`;
- }else if(currentRole==='owner')trialLabel='Sahip hesabı: demo süresine tabi değil.';
- else if(license.active)trialLabel='Ücretli lisans etkin; demo sayacı uygulanmıyor.';
- else trialLabel=({trial_expired:'7 günlük demo süresi doldu.',trial_revoked:'Demo erişimi iptal edildi.',trial_device_mismatch:'Demo başka bir cihaza bağlı.',device_trial_already_used:'Bu cihazda demo daha önce kullanılmış.',device_id_invalid:'Cihaz kimliği doğrulanamadı.',trial_service_unavailable:'Demo sunucusuna şu anda ulaşılamıyor.',trial_start_failed:'Demo başlatılamadı.'})[trial.reason]||'Demo henüz sunucuda başlatılmadı.';
+
  if(license.active){$('licenseStatusText').textContent=`Lisans etkin · ${license.plan_code||'student'} · paket ${license.bundle_code||'start'}${license.expires_at?' · son tarih '+new Date(license.expires_at).toLocaleDateString('tr-TR'):''}`;appAuthorized=true;}
- else $('licenseStatusText').textContent=currentRole==='owner'?'Stagepulse sahibi hesabı doğrulandı.':trialLabel;
- $('accountStatus').textContent=`Hesap: ${context?.user?.email||'—'}\nYetki: ${currentRole}\nLisans: ${license.active?'etkin':'etkin değil'}\nDemo: ${trialLabel}\nWeb: https://stagepulse.com.tr`;
+ else $('licenseStatusText').textContent=currentRole==='owner'?'Stagepulse sahibi hesabı doğrulandı.':'Ödeme onaylı etkin lisans gerekli. Lisans etkinleştirilene kadar uygulama kilitli.';
+ $('accountStatus').textContent=`Hesap: ${context?.user?.email||'—'}\nYetki: ${currentRole}\nLisans: ${license.active?'etkin':'etkin değil'}\nWeb: https://stagepulse.com.tr`;
  if(context?.user?.email&&!$('accountEmail').value)$('accountEmail').value=context.user.email;
  refreshProfiles();renderStudentModules();
  if(currentRole==='student')refreshStudentProgress().catch(err=>{$('accountStatus').textContent+='\nİlerleme: '+err.message;});
@@ -1131,9 +1125,21 @@ function applyAccountContext(context){
  if(appAuthorized&&activeRoute==='account')setStatus('Stagepulse hesabı doğrulandı.');
 }
 function refreshAccountUi(){
- if(!accountApi()){$('accountStatus').textContent='Android sürümünde hesap/lisans sunucu bağlantısı henüz etkin değil. Yerel araçlar kullanılabilir; bu ekranda giriş veya lisans etkinleştirme yapılmaz.';return;}
+ if(!accountApi()){$('accountStatus').textContent='Android lisans bağlantısı kullanılamıyor. Uygulama lisans doğrulanana kadar kilitli.';return;}
  if(currentAccountContext){applyAccountContext(currentAccountContext);return;}
- accountApi().app_info().then(info=>{const cached=info?.cached_license;if(cached?.active){appAuthorized=true;$('licenseStatusText').textContent='Son çevrimiçi lisans doğrulaması geçerli; çevrimdışı kullanım süresi içinde.';$('accountStatus').textContent='Çevrimdışı lisans: geçici olarak etkin\nBu cihazın öğretmen/admin yetkisi çevrimdışında açılmaz.';if(!currentAccountContext)currentRole='guest';}else{$('licenseStatusText').textContent='Yerel demo açık · lisans etkin değil.';$('accountStatus').textContent='Yerel araçlar, profil kayıtları ve eğitim PDF’leri lisans olmadan kullanılabilir. Ücretli bulut AI ve resmî öğretmen/öğrenci ilerleme özellikleri için hesap ve lisans gerekir.';}}).catch(()=>{});
+ accountApi().app_info().then(info=>{
+  const cached=info?.cached_license;
+  if(cached?.active){
+   appAuthorized=true;
+   $('licenseStatusText').textContent='Ödeme onaylı lisans önbelleği geçerli; çevrimdışı kullanım açık.';
+   $('accountStatus').textContent='Çevrimdışı lisans etkin. Öğretmen/yönetici işlemleri için yeniden internet bağlantısı gerekir.';
+   if(!currentAccountContext)currentRole='guest';
+  }else{
+   $('licenseStatusText').textContent='Ödeme onaylı lisans gerekli.';
+   $('accountStatus').textContent='Bu uygulamayı kullanmak için Stagepulse hesabına giriş yapıp ödeme onaylı lisansı etkinleştir.';
+  }
+  if(licenseGatePending){licenseGatePending=false;setPage(appAuthorized?'home':'account');}
+ }).catch(()=>{});
 }
 async function initAccount(){
  if(!accountApi()){
