@@ -31,6 +31,7 @@ let activeRoute = 'home';
 let apiReady = false;
 let nativeInitStarted = false;
 let appAuthorized = false;
+let appPaidAuthorized = false;
 let licenseGatePending = true;
 let currentRole = 'guest';
 let currentAccountContext = null;
@@ -304,7 +305,7 @@ async function initializeNativeData(){
   try {
     const info = await nativeApi.app_info();
     const cached = info && info.cached_license;
-    if (cached && cached.active) appAuthorized = true;
+    if (cached && cached.active) { appAuthorized = true; appPaidAuthorized = cached.paid !== false; }
   } catch (_) { /* Lisans önbelleği çevrimdışı doğrulamada kullanılır. */ }
   if(licenseGatePending){licenseGatePending=false;setPage(appAuthorized?'home':'account');}
   loadAppInfo();
@@ -1094,7 +1095,7 @@ async function testAiConnection(){
  const client=accountApi();if(!client?.ai_chat){$('aiStatus').textContent='AI bağlantısı için desteklenen uygulama köprüsü gerekli.';return;}
  if(window.StagepulseAndroid&&$('aiProvider').value==='ollama'){$('aiStatus').textContent='Android cihazındaki 127.0.0.1 telefona aittir. Windows PC Ollama bağlantısı için aynı ağdaki PC adresi gerekir; bu sürümde yalnızca Windows yerel Ollama ve Android Groq desteklenir.';return;}
  const provider=$('aiProvider').value,endpoint=$('aiEndpoint').value.trim(),model=provider==='ollama'?'auto':$('aiModel').value.trim(),key=$('aiKey').value;
- if(!appAuthorized){$('aiStatus').textContent='AI araçları için ödeme onaylı etkin Stagepulse lisansı gerekir.';return;}
+ if(!appPaidAuthorized){$('aiStatus').textContent='AI araçları için ödeme onaylı etkin Stagepulse lisansı gerekir. Deneme lisansı AI erişimi sağlamaz.';return;}
  if(!$('aiConsent').checked){$('aiStatus').textContent='Önce seçili sağlayıcıya metin gönderme iznini işaretle.';return;}
  if(!endpoint||!model){$('aiStatus').textContent='Endpoint ve model adı gerekli.';return;}
  try{$('testAIConnection').disabled=true;$('aiStatus').textContent='Sağlayıcıya kısa bağlantı testi gönderiliyor…';const r=await client.ai_chat(provider,model,key,'Bu bir bağlantı testidir. Yalnızca STAGEPULSE_BAGLANTI_OK yaz.',endpoint);$('aiStatus').textContent=`Bağlantı başarılı · ${r.provider_name||provider} · ${r.model||model}\nYanıt: ${(r.content||'').slice(0,500)}`;$('aiKey').value='';}
@@ -1105,9 +1106,16 @@ async function sendAiText(){const client=accountApi();if(!client?.ai_chat){$('ai
 
 // --- Commercial account, license and teacher progress ---
 
+function formatTrialRemaining(seconds){
+ const total=Math.max(0,Math.floor(Number(seconds)||0));
+ const days=Math.floor(total/86400),hours=Math.floor((total%86400)/3600);
+ return days>0?days+' gün '+hours+' saat':hours>0?hours+' saat '+Math.floor((total%3600)/60)+' dakika':Math.max(1,Math.floor(total/60))+' dakika';
+}
 function applyAccountContext(context){
  currentAccountContext=context||null;currentRole=context?.role||'guest';
- const license=context?.licensed||{};appAuthorized=currentRole==='owner'||license.active===true;
+ const license=context?.licensed||{},trial=context?.trial||{};
+ appPaidAuthorized=currentRole==='owner'||license.active===true;
+ appAuthorized=appPaidAuthorized||trial.active===true;
  if(licenseGatePending){licenseGatePending=false;setPage(appAuthorized?'home':'account');}
  else if(!appAuthorized&&activeRoute!=='account')setPage('account');
  if($('accountRoleBadge'))$('accountRoleBadge').textContent=currentRole==='owner'?'Sahip / öğretmen':currentRole==='student'?'Lisanslı öğrenci':'Misafir / lisans gerekli';
@@ -1153,7 +1161,7 @@ async function initAccount(){
  $('accountLogin').addEventListener('click',async()=>{try{$('accountLogin').disabled=true;$('accountStatus').textContent='Hesap doğrulanıyor…';const result=await accountApi().auth_login($('accountEmail').value,$('accountPassword').value);applyAccountContext(result.context);$('accountPassword').value='';setStatus('Stagepulse hesabına giriş yapıldı.');}catch(err){$('accountStatus').textContent='Giriş başarısız: '+err.message;}finally{$('accountLogin').disabled=false;}});
  $('accountSignup').addEventListener('click',async()=>{try{$('accountSignup').disabled=true;$('accountStatus').textContent='Öğrenci hesabı oluşturuluyor…';const result=await accountApi().auth_signup($('accountEmail').value,$('accountPassword').value,$('accountDisplayName').value);$('accountStatus').textContent=result.message;if(result.session_created){const context=await accountApi().auth_context();applyAccountContext(context);}else $('accountPassword').value='';}catch(err){$('accountStatus').textContent='Hesap oluşturulamadı: '+err.message;}finally{$('accountSignup').disabled=false;}});
  $('licenseActivate').addEventListener('click',async()=>{try{if(!accountApi())throw new Error('Masaüstü köprüsü yok.');$('licenseActivate').disabled=true;$('accountStatus').textContent='Lisans anahtarı sunucuda doğrulanıyor…';const r=await accountApi().license_activate($('licenseKeyInput').value);$('licenseKeyInput').value='';applyAccountContext(r.context);$('accountStatus').textContent='Lisans etkinleştirildi.\n'+JSON.stringify(r.activation.result||{},null,2);}catch(err){$('accountStatus').textContent='Lisans etkinleştirilemedi: '+err.message;}finally{$('licenseActivate').disabled=false;}});
- $('accountLogout').addEventListener('click',async()=>{try{if(accountApi())await accountApi().auth_logout();}catch(_){}currentAccountContext=null;currentRole='guest';appAuthorized=false;remoteProgress={};selectedTeacherStudentId='';latestUpdateManifest=null;$('teacherLicensePanel').classList.add('hidden');$('teacherProgressPanel').classList.add('hidden');$('accountPassword').value='';$('accountStatus').textContent='Oturum kapatıldı. Yerel lisans önbelleği de temizlendi.';setPage('account');renderStudentModules();});
+ $('accountLogout').addEventListener('click',async()=>{try{if(accountApi())await accountApi().auth_logout();}catch(_){}currentAccountContext=null;currentRole='guest';appAuthorized=false;appPaidAuthorized=false;remoteProgress={};selectedTeacherStudentId='';latestUpdateManifest=null;$('teacherLicensePanel').classList.add('hidden');$('teacherProgressPanel').classList.add('hidden');$('accountPassword').value='';$('accountStatus').textContent='Oturum kapatıldı. Yerel lisans önbelleği de temizlendi.';setPage('account');renderStudentModules();});
  $('licensePlan').addEventListener('change',()=>{if($('licensePlan').value==='lifetime')$('licenseDays').value='0';else if(Number($('licenseDays').value)===0)$('licenseDays').value='365';});
  $('licenseCreate').addEventListener('click',async()=>{try{if(currentRole!=='owner')throw new Error('Bu işlem yalnızca Stagepulse sahibine açıktır.');if($('licensePlan').value==='lifetime')$('licenseDays').value='0';$('licenseCreate').disabled=true;$('issuedLicenseKey').value='';const r=await accountApi().license_create($('licenseLabel').value,$('licensePlan').value,Number($('licenseSeats').value),Number($('licenseDays').value),$('licenseCustomerName').value,$('licenseCustomerEmail').value,$('licensePaymentMethod').value,$('licensePaymentStatus').value,Number($('licenseAmount').value||0),$('licenseCurrency').value.trim().toUpperCase()||'TRY',$('licensePaymentReference').value,$('licenseBundle').value);$('issuedLicenseKey').value=r.key;$('accountStatus').textContent=$('licensePaymentStatus').value==='paid'?'Lisans oluşturuldu ve ödeme kaydı ödendi olarak işaretlendi. Anahtarı güvenli şekilde müşteriye ilet.':'Lisans oluşturuldu; ödeme onaylanana kadar etkinleştirilemez. Ödeme onayını lisans listesinden ver. Anahtar yalnızca bu kez gösterilir.';await refreshLicenseList();}catch(err){$('accountStatus').textContent='Lisans oluşturulamadı: '+err.message;}finally{$('licenseCreate').disabled=false;}});
  $('copyIssuedLicense').addEventListener('click',async()=>{const text=$('issuedLicenseKey').value;if(!text)return;try{await navigator.clipboard.writeText(text);$('accountStatus').textContent='Lisans anahtarı panoya kopyalandı.';}catch(_){$('issuedLicenseKey').select();document.execCommand('copy');}});
@@ -1178,7 +1186,7 @@ async function refreshTeacherStudents(){if(currentRole!=='owner'||!accountApi())
 
 // --- Settings ---
 function initSettings(){$('checkOffline').addEventListener('click',()=>{$('settingsInfo').textContent=`Tarayıcı bağlantı işareti: ${navigator.onLine?'ağ bağlantısı var':'çevrimdışı'}\nYerel araçlar: hazır\nMikrofon: yalnızca RTA başlatılınca istenir\nÖğrenci deposu: ${apiReady?'bağlı':'önizleme modu'}`;});$('exportAllData').addEventListener('click',()=>downloadBlob(new Blob([JSON.stringify({profiles},null,2)],{type:'application/json'}),'Stagepulse_Tum_Ogrenci_Verileri.json'));}
-async function loadAppInfo(){if(!accountApi())return;try{const info=await accountApi().app_info();$('settingsInfo').textContent=Object.entries(info).map(([k,v])=>`${k}: ${typeof v==='object'?JSON.stringify(v):v}`).join('\n');if(!currentAccountContext&&info.cached_license?.active){appAuthorized=true;if(activeRoute==='account')refreshAccountUi();}}catch(err){$('settingsInfo').textContent='Uygulama bilgisi okunamadı: '+err.message;}}
+async function loadAppInfo(){if(!accountApi())return;try{const info=await accountApi().app_info();$('settingsInfo').textContent=Object.entries(info).map(([k,v])=>`${k}: ${typeof v==='object'?JSON.stringify(v):v}`).join('\n');if(!currentAccountContext&&info.cached_license?.active){appAuthorized=true;appPaidAuthorized=info.cached_license.paid!==false;if(activeRoute==='account')refreshAccountUi();}}catch(err){$('settingsInfo').textContent='Uygulama bilgisi okunamadı: '+err.message;}}
 
 // Keyboard shortcut: Ctrl+K focuses current module (future-proof, no network calls).
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();const route=prompt('Araç adı gir: '+Object.values(routes).join(', '));if(!route)return;const entry=Object.entries(routes).find(([,label])=>label.toLocaleLowerCase('tr').includes(route.toLocaleLowerCase('tr')));if(entry)setPage(entry[0]);}});
