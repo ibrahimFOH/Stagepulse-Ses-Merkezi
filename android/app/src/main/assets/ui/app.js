@@ -819,6 +819,194 @@ function calibrateAndroidSpl(){
 function clearAndroidSplCalibration(){
  rtaSplOffsetDb=null;rtaSplReferenceDb=null;updateAndroidSplStatus();
 }
+
+/* Android live stereo H1 Transfer Function. One USB interface, two synchronized input channels. */
+let androidTfStream=null,androidTfContext=null,androidTfSource=null,androidTfProcessor=null,androidTfSink=null;
+let androidTfTimer=0,androidTfRunning=false,androidTfGeneration=0,androidTfError='',androidTfLastCallback=0;
+let androidTfFftSize=16384,androidTfAveragesTarget=8,androidTfAverageCount=0,androidTfSampleRate=0;
+let androidTfRefBuffer=null,androidTfMicBuffer=null,androidTfWritePos=0,androidTfFilled=0,androidTfFramesSince=0;
+let androidTfSxx=null,androidTfSyy=null,androidTfSyxRe=null,androidTfSyxIm=null;
+let androidTfPeakRef=-120,androidTfPeakMic=-120,androidTfDeviceName='';
+function androidTfFft(real,imag){
+ const n=real.length;
+ for(let i=1,j=0;i<n;i++){
+  let bit=n>>1;
+  for(;j&bit;bit>>=1)j^=bit;
+  j^=bit;
+  if(i<j){let t=real[i];real[i]=real[j];real[j]=t;t=imag[i];imag[i]=imag[j];imag[j]=t;}
+ }
+ for(let len=2;len<=n;len<<=1){
+  const angle=-2*Math.PI/len,wlenR=Math.cos(angle),wlenI=Math.sin(angle),half=len>>1;
+  for(let i=0;i<n;i+=len){
+   let wr=1,wi=0;
+   for(let j=0;j<half;j++){
+    const uR=real[i+j],uI=imag[i+j],vR=real[i+j+half]*wr-imag[i+j+half]*wi,vI=real[i+j+half]*wi+imag[i+j+half]*wr;
+    real[i+j]=uR+vR;imag[i+j]=uI+vI;real[i+j+half]=uR-vR;imag[i+j+half]=uI-vI;
+    const next=wr*wlenR-wi*wlenI;wi=wr*wlenI+wi*wlenR;wr=next;
+   }
+  }
+ }
+}
+function androidTfProcessBlock(input){
+ if(!androidTfRunning||!androidTfRefBuffer)return;
+ if(input.numberOfChannels<2){androidTfError='Seçilen giriş yalnızca mono kanal sağlıyor. Stereo TF için aynı USB ses kartında iki bağımsız giriş gerekir.';return;}
+ const ref=input.getChannelData(0),mic=input.getChannelData(1),n=Math.min(ref.length,mic.length),size=androidTfFftSize;
+ let peakR=0,peakM=0;
+ for(let i=0;i<n;i++){
+  const x=Number.isFinite(ref[i])?ref[i]:0,y=Number.isFinite(mic[i])?mic[i]:0;
+  androidTfRefBuffer[androidTfWritePos]=x;androidTfMicBuffer[androidTfWritePos]=y;
+  androidTfWritePos=(androidTfWritePos+1)%size;
+  if(androidTfFilled<size)androidTfFilled++;
+  peakR=Math.max(peakR,Math.abs(x));peakM=Math.max(peakM,Math.abs(y));
+ }
+ androidTfPeakRef=peakR>0?20*Math.log10(peakR):-120;androidTfPeakMic=peakM>0?20*Math.log10(peakM):-120;
+ androidTfFramesSince+=n;androidTfLastCallback=performance.now();
+ const hop=Math.max(512,Math.floor(size/4));
+ if(androidTfFilled<size||androidTfFramesSince<hop)return;
+ androidTfFramesSince=0;
+ const xr=new Float64Array(size),xi=new Float64Array(size),yr=new Float64Array(size),yi=new Float64Array(size);
+ let windowEnergy=0;
+ for(let i=0;i<size;i++){
+  const idx=(androidTfWritePos+i)%size,w=.5-.5*Math.cos(2*Math.PI*i/(size-1));
+  xr[i]=androidTfRefBuffer[idx]*w;yr[i]=androidTfMicBuffer[idx]*w;windowEnergy+=w*w;
+ }
+ androidTfFft(xr,xi);androidTfFft(yr,yi);
+ const bins=size/2+1,target=androidTfAveragesTarget;
+ for(let k=0;k<bins;k++){
+  const pxx=(xr[k]*xr[k]+xi[k]*xi[k])/windowEnergy;
+  const pyy=(yr[k]*yr[k]+yi[k]*yi[k])/windowEnergy;
+  const re=(xr[k]*yr[k]+xi[k]*yi[k])/windowEnergy;
+  const im=(xr[k]*yi[k]-xi[k]*yr[k])/windowEnergy;
+  if(androidTfAverageCount<target){
+   androidTfSxx[k]+=pxx;androidTfSyy[k]+=pyy;androidTfSyxRe[k]+=re;androidTfSyxIm[k]+=im;
+  }else{
+   androidTfSxx[k]+=(pxx-androidTfSxx[k]/target);
+   androidTfSyy[k]+=(pyy-androidTfSyy[k]/target);
+   androidTfSyxRe[k]+=(re-androidTfSyxRe[k]/target);
+   androidTfSyxIm[k]+=(im-androidTfSyxIm[k]/target);
+  }
+ }
+ if(androidTfAverageCount<target)androidTfAverageCount++;
+}
+function androidTfSnapshot(){
+ const sr=androidTfSampleRate,size=androidTfFftSize,target=androidTfAveragesTarget,count=androidTfAverageCount;
+ const ratio=Math.pow(10,1/20),base=[20,25,31.5,40,50,63,80,100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150,4000,5000,6300,8000,10000,12500,16000,20000];
+ const centers=base.filter(f=>f*ratio<=sr/2*.999),freqStep=sr/size,mag=[],phase=[],coherence=[];
+ const divisor=Math.max(1,Math.min(count,target));
+ for(const center of centers){
+  const low=center/ratio,high=center*ratio,first=Math.max(1,Math.ceil(low/freqStep)),last=Math.min(size/2,Math.floor(high/freqStep));
+  let weight=0,hRe=0,hIm=0,coh=0;
+  for(let k=first;k<=last;k++){
+   const sxx=androidTfSxx[k]/divisor,syy=androidTfSyy[k]/divisor,re=androidTfSyxRe[k]/divisor,im=androidTfSyxIm[k]/divisor;
+   if(sxx<=1e-24)continue;
+   weight+=sxx;hRe+=(re/sxx)*sxx;hIm+=(im/sxx)*sxx;
+   const den=sxx*syy;coh+=den>1e-24?Math.max(0,Math.min(1,(re*re+im*im)/(den)))*sxx:0;
+  }
+  if(weight<=1e-24){mag.push(-60);phase.push(0);coherence.push(0);}
+  else{const hr=hRe/weight,hi=hIm/weight;mag.push(Math.max(-60,Math.min(30,20*Math.log10(Math.max(1e-6,Math.hypot(hr,hi))))));phase.push(Math.atan2(hi,hr)*180/Math.PI);coherence.push(Math.max(0,Math.min(1,coh/weight)));}
+ }
+ const stale=!androidTfLastCallback||performance.now()-androidTfLastCallback>2000;
+ return {centers,mag,phase,coherence,ready:count>=target&&!stale,stale,averages:count,averagesTarget:target,sampleRate:sr,fftSize:size,peakRef:androidTfPeakRef,peakMic:androidTfPeakMic};
+}
+function drawAndroidTfChart(id,centers,values,min,max,suffix){
+ const canvas=$(id);if(!canvas)return;
+ const rect=canvas.getBoundingClientRect();if(rect.width<32)return;
+ const dpr=Math.min(2,Math.max(1,window.devicePixelRatio||1)),w=Math.max(280,rect.width),h=Math.max(170,rect.height||210);
+ canvas.width=Math.floor(w*dpr);canvas.height=Math.floor(h*dpr);
+ const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+ const pad={l:44,r:12,t:12,b:30},x=f=>pad.l+Math.log(Math.max(20,f)/20)/Math.log(20000/20)*(w-pad.l-pad.r),y=v=>pad.t+(max-Math.max(min,Math.min(max,v)))/(max-min)*(h-pad.t-pad.b);
+ ctx.fillStyle='#0b1423';ctx.fillRect(0,0,w,h);ctx.strokeStyle='rgba(130,160,195,.22)';ctx.fillStyle='#a9bad0';ctx.font='10px sans-serif';ctx.textAlign='right';
+ const step=suffix===''?0.25:suffix==='°'?60:12;
+ for(let v=min;v<=max+1e-6;v+=step){const yy=y(v);ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.fillText(String(Math.round(v*100)/100),pad.l-6,yy+3);}
+ ctx.textAlign='center';for(const f of [20,50,100,500,1000,5000,10000,20000]){const xx=x(f);ctx.beginPath();ctx.moveTo(xx,pad.t);ctx.lineTo(xx,h-pad.b);ctx.stroke();ctx.fillText(f>=1000?(f/1000)+'k':String(f),xx,h-9);}
+ const valid=centers.map((f,i)=>({f,v:values[i]})).filter(p=>Number.isFinite(p.v));
+ if(!valid.length)return;
+ ctx.strokeStyle='#f1d18a';ctx.lineWidth=2;ctx.beginPath();
+ valid.forEach((p,i)=>{if(i===0)ctx.moveTo(x(p.f),y(p.v));else ctx.lineTo(x(p.f),y(p.v));});ctx.stroke();
+}
+async function refreshAndroidTfDevices(){
+ const select=$('androidTfDevice');if(!select)return;
+ const current=select.value;select.innerHTML='<option value="">Varsayılan giriş</option>';
+ try{
+  const devices=await navigator.mediaDevices?.enumerateDevices?.()||[];
+  const inputs=devices.filter(d=>d.kind==='audioinput');
+  inputs.forEach((d,i)=>{const option=document.createElement('option');option.value=d.deviceId;option.textContent=d.label||('Android ses girişi '+(i+1));select.appendChild(option);});
+  if(inputs.some(d=>d.deviceId===current))select.value=current;
+  $('androidTfStatus').textContent=inputs.length+' ses girişi bulundu. İki kanallı USB ses kartını seç; giriş kanalı sayısı akış açılırken ayrıca doğrulanacak.';
+ }catch(error){$('androidTfStatus').textContent='Ses girişleri listelenemedi: '+(error.message||String(error));}
+}
+async function stopAndroidTf(showMessage=true){
+ androidTfGeneration++;androidTfRunning=false;if(androidTfTimer)clearTimeout(androidTfTimer);androidTfTimer=0;
+ if(androidTfProcessor){androidTfProcessor.onaudioprocess=null;try{androidTfProcessor.disconnect();}catch(_){}androidTfProcessor=null;}
+ try{androidTfSource?.disconnect();}catch(_){}androidTfSource=null;
+ try{androidTfSink?.disconnect();}catch(_){}androidTfSink=null;
+ if(androidTfStream){androidTfStream.getTracks().forEach(t=>{try{t.stop();}catch(_){}});androidTfStream=null;}
+ if(androidTfContext){const c=androidTfContext;androidTfContext=null;try{await c.close();}catch(_){}}
+ if($('androidTfStart'))$('androidTfStart').disabled=false;
+ if($('androidTfStop'))$('androidTfStop').disabled=true;
+ if(showMessage&&$('androidTfStatus'))$('androidTfStatus').textContent='Canlı TF durduruldu.';
+}
+async function startAndroidTf(){
+ await stopAndroidTf(false);
+ const token=++androidTfGeneration,select=$('androidTfDevice'),deviceId=select?.value||'';
+ androidTfError='';androidTfAverageCount=0;androidTfLastCallback=0;androidTfFilled=0;androidTfWritePos=0;androidTfFramesSince=0;
+ androidTfFftSize=Number($('androidTfFft')?.value||16384);androidTfAveragesTarget=Number($('androidTfAverages')?.value||8);
+ $('androidTfStart').disabled=true;$('androidTfStop').disabled=false;
+ $('androidTfStatus').textContent='Mikrofon izni ve iki kanallı USB giriş bekleniyor…';
+ try{
+  await requestAndroidRuntimePermission('android.permission.RECORD_AUDIO');
+  if(token!==androidTfGeneration)return;
+  const audio={echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:{exact:2}};
+  if(deviceId)audio.deviceId={exact:deviceId};
+  androidTfStream=await navigator.mediaDevices.getUserMedia({audio});
+  const track=androidTfStream.getAudioTracks()[0],settings=track?.getSettings?.()||{};
+  if(Number(settings.channelCount)>0&&Number(settings.channelCount)<2)throw new Error('Seçilen aygıt Android tarafından mono olarak sunuldu. İki bağımsız giriş kanalı olan USB ses kartı gerekli.');
+  androidTfContext=new (window.AudioContext||window.webkitAudioContext)();
+  await androidTfContext.resume();androidTfSampleRate=androidTfContext.sampleRate;
+  androidTfSampleRate=androidTfContext.sampleRate;androidTfDeviceName=track?.label||'Android USB ses girişi';
+  const size=androidTfFftSize,bins=size/2+1;
+  androidTfRefBuffer=new Float32Array(size);androidTfMicBuffer=new Float32Array(size);
+  androidTfSxx=new Float64Array(bins);androidTfSyy=new Float64Array(bins);androidTfSyxRe=new Float64Array(bins);androidTfSyxIm=new Float64Array(bins);
+  androidTfSource=androidTfContext.createMediaStreamSource(androidTfStream);
+  androidTfProcessor=androidTfContext.createScriptProcessor(4096,2,2);
+  androidTfSink=androidTfContext.createGain();androidTfSink.gain.value=0;
+  androidTfProcessor.onaudioprocess=event=>androidTfProcessBlock(event.inputBuffer);
+  androidTfSource.connect(androidTfProcessor);androidTfProcessor.connect(androidTfSink);androidTfSink.connect(androidTfContext.destination);
+  androidTfRunning=true;
+  $('androidTfStatus').textContent='Canlı H1 başlatıldı · '+androidTfDeviceName+' · '+androidTfSampleRate.toLocaleString('tr-TR')+' Hz · CH0 referans / CH1 ölçüm.';
+  tickAndroidTf(token);
+ }catch(error){
+  if(token!==androidTfGeneration)return;
+  const message=error.message||String(error);await stopAndroidTf(false);
+  $('androidTfStatus').textContent='Canlı TF başlatılamadı: '+message;
+ }
+}
+function tickAndroidTf(token){
+ if(!androidTfRunning||token!==androidTfGeneration)return;
+ if(androidTfError){$('androidTfStatus').textContent=androidTfError;stopAndroidTf(false);return;}
+ const snapshot=androidTfSnapshot();
+ if(snapshot.stale){
+  drawAndroidTfChart('androidTfMagnitude',[],[],-36,18,' dB');
+  drawAndroidTfChart('androidTfPhase',[],[],-180,180,'°');
+  drawAndroidTfChart('androidTfCoherence',[],[],0,1,'');
+ }else if(snapshot.averages>0){
+  drawAndroidTfChart('androidTfMagnitude',snapshot.centers,snapshot.mag,-36,18,' dB');
+  drawAndroidTfChart('androidTfPhase',snapshot.centers,snapshot.phase,-180,180,'°');
+  drawAndroidTfChart('androidTfCoherence',snapshot.centers,snapshot.coherence,0,1,'');
+ }
+ $('androidTfStatus').textContent='Canlı H1 · '+androidTfDeviceName+' · '+snapshot.sampleRate.toLocaleString('tr-TR')+' Hz · FFT '+snapshot.fftSize+' · Ortalama '+snapshot.averages+'/'+snapshot.averagesTarget+'\nCH0 '+snapshot.peakRef.toFixed(1)+' dBFS peak · CH1 '+snapshot.peakMic.toFixed(1)+' dBFS peak'+(snapshot.stale?' · UYARI: ses akışı kesildi.':snapshot.ready?' · ölçüm hazır.':' · ortalama hazırlanıyor.');
+ androidTfTimer=setTimeout(()=>tickAndroidTf(token),200);
+}
+function initAndroidTfControls(){
+ if(!$('androidTfStart'))return;
+ $('androidTfRefresh').addEventListener('click',refreshAndroidTfDevices);
+ $('androidTfStart').addEventListener('click',startAndroidTf);
+ $('androidTfStop').addEventListener('click',()=>stopAndroidTf(true));
+ if(navigator.mediaDevices?.addEventListener)navigator.mediaDevices.addEventListener('devicechange',refreshAndroidTfDevices);
+ refreshAndroidTfDevices();
+ window.addEventListener('pagehide',()=>{if(androidTfRunning)stopAndroidTf(false);});
+}
+
 // --- WAV local native analysis ---
 async function analyzeWavBrowser(file){
  if(!file)throw new Error('WAV dosyası seçilmedi.');
