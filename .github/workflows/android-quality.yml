@@ -47,11 +47,11 @@ jobs:
           import re
           from pathlib import Path
           gradle = Path("android/app/build.gradle").read_text(encoding="utf-8")
-          name = re.search(r"\\bversionName\\s+'([^']+)'", gradle)
-          code = re.search(r"\\bversionCode\\s+(\\d+)", gradle)
+          name = re.search(r"\bversionName\s+'([^']+)'", gradle)
+          code = re.search(r"\bversionCode\s+(\d+)", gradle)
           if not name or not code:
               raise SystemExit("Android sürüm bilgisi bulunamadı.")
-          m = re.fullmatch(r"(\\d+)\\.(\\d+)\\.(\\d+)", name.group(1))
+          m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", name.group(1))
           if not m:
               raise SystemExit("Android sürümü X.Y.Z biçiminde değil.")
           expected = int(m.group(1))*10000 + int(m.group(2))*100 + int(m.group(3))
