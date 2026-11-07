@@ -212,19 +212,11 @@ Deno.serve(async (req: Request) => {
       const { data: ownedLicense, error: ownedError } = await admin.from("sesm_license_keys")
         .select("id").eq("id", licenseId).eq("created_by", user.id).maybeSingle();
       if (ownedError || !ownedLicense) return fail("LICENSE_NOT_FOUND", 404);
-      const { data: activation, error } = await admin.from("sesm_activations")
-        .update({ is_active: false }).eq("id", activationId).eq("license_id", licenseId)
-        .select("id,device_hash").maybeSingle();
-      if (error || !activation) return fail("ACTIVATION_REVOKE_FAILED", 500);
-      const { data: coreLicense, error: coreLookupError } = await admin.from("license_core")
-        .select("id").eq("legacy_system", "ses-merkezi").eq("legacy_license_id", licenseId).maybeSingle();
-      if (coreLookupError) return fail("ACTIVATION_REVOKE_FAILED", 500);
-      if (coreLicense) {
-        const { error: coreDeviceError } = await admin.from("license_core_devices")
-          .update({ is_active: false })
-          .eq("license_id", coreLicense.id).eq("device_hash", activation.device_hash);
-        if (coreDeviceError) return fail("ACTIVATION_REVOKE_FAILED", 500);
-      }
+      const { data: activation, error } = await admin.rpc("sesm_revoke_activation", {
+        p_license_id: licenseId,
+        p_activation_id: activationId,
+      });
+      if (error || !activation?.ok) return fail("ACTIVATION_REVOKE_FAILED", 500);
       await audit(user.id, "activation_revoked", null, licenseId, { device_hint: String(activation.device_hash ?? "").slice(0, 8).toUpperCase() });
       return reply({ ok: true });
     }
