@@ -177,6 +177,14 @@ class AppApi(AcousticAnalysisApi):
             raise ValueError("FFT boyutu sayısal olmalı.") from exc
         return self._get_rta_capture().start(selected, n)
 
+    def calibrate_rta_spl(self, reference_spl_db: Any = 94.0) -> dict[str, Any]:
+        """Calibrate the active native RTA input against a physical sound calibrator."""
+        try:
+            reference = float(reference_spl_db)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Kalibratör referansı sayısal olmalı.") from exc
+        return self._get_rta_capture().calibrate_spl(reference)
+
     def get_rta_snapshot(self, mode: str = "third", min_hz: Any = 20,
                          max_hz: Any = 20000) -> dict[str, Any]:
         if mode not in ("third", "octave"):
