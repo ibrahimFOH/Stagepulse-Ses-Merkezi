@@ -160,6 +160,7 @@ def test_app_auto_provider_uses_local_ollama_before_any_groq_fallback(monkeypatc
     from Merkez import AppApi
 
     app = AppApi.__new__(AppApi)
+    app._cached_license_status = lambda: {"active": True}
     calls = []
     def fake_chat(provider, model, api_key, prompt, endpoint, *args, **kwargs):
         calls.append(provider)
@@ -199,9 +200,9 @@ def test_app_auto_provider_does_not_send_to_groq_without_license(monkeypatch):
         calls.append(provider)
         raise RuntimeError("Ollama kapalı")
     monkeypatch.setattr(ai_providers, "chat", fake_chat)
-    with pytest.raises(RuntimeError, match="etkin Stagepulse lisansı"):
+    with pytest.raises(RuntimeError, match="ödemesi onaylı lisans gerekir"):
         app.ai_chat("auto", "auto", "groq-test-key", "merhaba", "http://127.0.0.1:11434/api/chat")
-    assert calls == ["ollama"]
+    assert calls == []
 
 
 
