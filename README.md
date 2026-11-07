@@ -10,7 +10,7 @@ Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasında
 | Android Ses Merkezi | 3.8.10 (30810) | android/app/build.gradle |
 | Yönetici girişi | Ana uygulama içinde | Ana uygulamanın kimlik doğrulama ve yetki kontrolü |
 
-Windows EXE ve Android APK aynı kararlı sürümde doğrulanır ve yayımlanır. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz. Android APK kalıcı Android imza anahtarıyla imzalanır.
+Yayımlanmış Windows EXE ve Android APK sürümü `Stagepulse-Releases/latest.json` üzerinden doğrulanır. Bu araştırma dalındaki 3.8.10 kaynak adayı henüz kararlı yayın değildir; yayımlanmış kararlı sürüm 3.8.9'dur. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz. Android APK kararlı yayın aşamasında kalıcı Android imza anahtarıyla imzalanır.
 
 ## Depo düzeni
 
