@@ -495,7 +495,7 @@ function initLiveTfControls(){
    const result=await api().start_tf(device,Number($('liveTfFft').value||16384),Number($('liveTfAverages').value||8));
    if(!result||!result.ok)throw new Error(result?.error||'Stereo ses akışı başlatılamadı.');
    liveTfRunning=true;liveTfGeneration++;const token=liveTfGeneration;
-   $('stopLiveTf').disabled=false;
+   $('stopLiveTf').disabled=false;start.disabled=true;
    $('liveTfStatus').textContent=result.message||'Stereo TF başlatıldı; ilk ortalamalar bekleniyor.';
    tickLiveTf(token);
   }catch(error){
