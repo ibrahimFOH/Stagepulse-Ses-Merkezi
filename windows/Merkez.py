@@ -498,6 +498,20 @@ class AppApi(AcousticAnalysisApi):
             raise RuntimeError("Kimlik servisi geçerli JSON döndürmedi.") from exc
 
     @staticmethod
+    def _student_phone(identity: str) -> str | None:
+        value = str(identity).strip()
+        if "@" in value:
+            return None
+        digits = "".join(ch for ch in value if ch.isdigit())
+        if digits.startswith("0") and len(digits) == 11:
+            digits = "90" + digits[1:]
+        elif digits.startswith("5") and len(digits) == 10:
+            digits = "90" + digits
+        if not digits.startswith("90") or len(digits) != 12 or not digits[2:].startswith("5"):
+            raise ValueError("Telefonu 05xx xxx xx xx veya +90 5xx xxx xx xx biçiminde gir.")
+        return "+" + digits
+
+    @staticmethod
     def _auth_identity_payload(identity: str) -> dict[str, str]:
         value = str(identity).strip()
         if "@" in value:
@@ -505,30 +519,32 @@ class AppApi(AcousticAnalysisApi):
             if len(email) > 320 or email.count("@") != 1 or "." not in email.rsplit("@", 1)[-1]:
                 raise ValueError("Geçerli e-posta adresi veya telefon numarası gir.")
             return {"email": email}
-        digits = "".join(ch for ch in value if ch.isdigit())
-        if digits.startswith("0") and len(digits) == 11:
-            digits = "90" + digits[1:]
-        elif digits.startswith("5") and len(digits) == 10:
-            digits = "90" + digits
-        if not digits.startswith("90") or len(digits) != 12 or not digits[2:].startswith("5"):
-            raise ValueError("Ortak Stagepulse hesabının e-posta adresi veya telefon numarası gerekli; telefonu 05xx xxx xx xx veya +90 5xx xxx xx xx biçiminde gir.")
-        return {"phone": "+" + digits}
+        phone = AppApi._student_phone(value)
+        return {"email": phone.lstrip("+") + "@students.stagepulse.invalid"}
 
     def auth_signup(self, identity: str, password: str, display_name: str = "") -> dict[str, Any]:
-        auth_identity = self._auth_identity_payload(identity)
+        phone = self._student_phone(identity)
         password = str(password)
         display_name = " ".join(str(display_name).split())[:120]
         if len(password) < 8 or len(password) > 256:
             raise ValueError("Şifre en az 8, en fazla 256 karakter olmalı.")
-        result = self._auth_request("/auth/v1/signup", {**auth_identity, "password": password, "data": {"display_name": display_name}})
+        if phone:
+            if len(display_name) < 2:
+                raise ValueError("Öğrenci adı en az 2 karakter olmalı.")
+            self._public_edge_call("student_signup", {"phone": phone, "password": password, "display_name": display_name})
+            result = self._auth_request("/auth/v1/token?grant_type=password", {
+                "email": phone.lstrip("+") + "@students.stagepulse.invalid", "password": password,
+            })
+        else:
+            auth_identity = self._auth_identity_payload(identity)
+            result = self._auth_request("/auth/v1/signup", {**auth_identity, "password": password, "data": {"display_name": display_name}})
         if result.get("access_token") and result.get("refresh_token"):
             self._session = result
             self._account_context = self._edge_call("context", {"device_hash": _installation_device_hash()})
             self._persist_auth_session()
             self._cache_server_license(self._account_context)
         session_created = bool(result.get("access_token"))
-        method = "telefon" if "phone" in auth_identity else "e-posta"
-        message = "Öğrenci hesabı oluşturuldu." if session_created else f"Hesap isteği alındı. {method.capitalize()} doğrulaması açıksa doğrulamayı tamamla."
+        message = "Öğrenci hesabı oluşturuldu ve giriş yapıldı." if session_created else "Hesap oluşturuldu. Giriş yapabilirsin."
         return {"ok": True, "session_created": session_created, "message": message}
 
     def auth_login(self, identity: str, password: str) -> dict[str, Any]:
