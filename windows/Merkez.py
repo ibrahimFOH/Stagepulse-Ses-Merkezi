@@ -501,8 +501,8 @@ class AppApi(AcousticAnalysisApi):
         email = str(email).strip().lower()
         password = str(password)
         display_name = " ".join(str(display_name).split())[:120]
-        if len(email) > 320 or "@" not in email or len(password) < 10 or len(password) > 256:
-            raise ValueError("Geçerli e-posta ve en az 10 karakterli şifre gerekli.")
+        if len(email) > 320 or "@" not in email or len(password) < 8 or len(password) > 256:
+            raise ValueError("Geçerli e-posta ve en az 8 karakterli şifre gerekli.")
         result = self._auth_request("/auth/v1/signup", {"email": email, "password": password, "data": {"display_name": display_name}})
         if result.get("access_token") and result.get("refresh_token"):
             self._session = result
