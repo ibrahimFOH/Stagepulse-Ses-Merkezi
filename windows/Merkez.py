@@ -834,21 +834,38 @@ class AppApi(AcousticAnalysisApi):
         import secrets
         installer_path = Path(tempfile.gettempdir()) / f"StagepulseSesMerkeziUpdate_{secrets.token_hex(8)}.exe"
         request = Request(checked["url"], headers={"User-Agent": f"StagepulseSesMerkezi/{APP_VERSION}"})
-        h = hashlib.sha256()
-        total = 0
+        partial_path = installer_path.with_suffix(installer_path.suffix + ".part")
         try:
-            with urlopen(request, timeout=300) as response, installer_path.open("wb") as out:
-                while True:
-                    chunk = response.read(1024 * 1024)
-                    if not chunk:
-                        break
-                    total += len(chunk)
-                    if total > 2 * 1024 * 1024 * 1024:
-                        raise RuntimeError("Güncelleme paketi 2 GB sınırını aşıyor.")
-                    h.update(chunk)
-                    out.write(chunk)
-            if total < 1024 * 1024 or h.hexdigest().lower() != checked["sha256"]:
-                raise RuntimeError("İndirilen kurulum dosyasının boyutu veya SHA-256 özeti doğrulanmadı.")
+            for attempt in range(1, 4):
+                partial_path.unlink(missing_ok=True)
+                h = hashlib.sha256()
+                total = 0
+                try:
+                    with urlopen(request, timeout=300) as response:
+                        final_host = (urlparse(response.geturl()).hostname or "").lower()
+                        if final_host not in {"github.com", "release-assets.githubusercontent.com"}:
+                            raise RuntimeError("Güncelleme indirme yönlendirmesi güvenilir bir GitHub sunucusuna gitmiyor.")
+                        with partial_path.open("wb") as out:
+                            while True:
+                                chunk = response.read(1024 * 1024)
+                                if not chunk:
+                                    break
+                                total += len(chunk)
+                                if total > 2 * 1024 * 1024 * 1024:
+                                    raise RuntimeError("Güncelleme paketi 2 GB sınırını aşıyor.")
+                                h.update(chunk)
+                                out.write(chunk)
+                            out.flush()
+                            os.fsync(out.fileno())
+                    if total < 1024 * 1024 or h.hexdigest().lower() != checked["sha256"]:
+                        raise RuntimeError("İndirilen kurulum dosyasının boyutu veya SHA-256 özeti doğrulanmadı.")
+                    partial_path.replace(installer_path)
+                    break
+                except Exception:
+                    partial_path.unlink(missing_ok=True)
+                    if attempt == 3:
+                        raise
+                    time.sleep(attempt * 2)
             if os.name != "nt":
                 raise RuntimeError("Güncelleme kurucusu yalnızca Windows'ta çalıştırılabilir.")
             helper = Path(tempfile.gettempdir()) / f"stagepulse_update_{secrets.token_hex(8)}.ps1"
