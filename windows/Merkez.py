@@ -497,25 +497,45 @@ class AppApi(AcousticAnalysisApi):
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
             raise RuntimeError("Kimlik servisi geçerli JSON döndürmedi.") from exc
 
-    def auth_signup(self, email: str, password: str, display_name: str = "") -> dict[str, Any]:
-        email = str(email).strip().lower()
+    @staticmethod
+    def _auth_identity_payload(identity: str) -> dict[str, str]:
+        value = str(identity).strip()
+        if "@" in value:
+            email = value.lower()
+            if len(email) > 320 or email.count("@") != 1 or "." not in email.rsplit("@", 1)[-1]:
+                raise ValueError("Geçerli e-posta adresi veya telefon numarası gir.")
+            return {"email": email}
+        digits = "".join(ch for ch in value if ch.isdigit())
+        if digits.startswith("0") and len(digits) == 11:
+            digits = "90" + digits[1:]
+        elif digits.startswith("5") and len(digits) == 10:
+            digits = "90" + digits
+        if not digits.startswith("90") or len(digits) != 12 or not digits[2:].startswith("5"):
+            raise ValueError("Ortak Stagepulse hesabının e-posta adresi veya telefon numarası gerekli; telefonu 05xx xxx xx xx veya +90 5xx xxx xx xx biçiminde gir.")
+        return {"phone": "+" + digits}
+
+    def auth_signup(self, identity: str, password: str, display_name: str = "") -> dict[str, Any]:
+        auth_identity = self._auth_identity_payload(identity)
         password = str(password)
         display_name = " ".join(str(display_name).split())[:120]
-        if len(email) > 320 or "@" not in email or len(password) < 10 or len(password) > 256:
-            raise ValueError("Geçerli e-posta ve en az 10 karakterli şifre gerekli.")
-        result = self._auth_request("/auth/v1/signup", {"email": email, "password": password, "data": {"display_name": display_name}})
+        if len(password) < 8 or len(password) > 256:
+            raise ValueError("Şifre en az 8, en fazla 256 karakter olmalı.")
+        result = self._auth_request("/auth/v1/signup", {**auth_identity, "password": password, "data": {"display_name": display_name}})
         if result.get("access_token") and result.get("refresh_token"):
             self._session = result
             self._account_context = self._edge_call("context", {"device_hash": _installation_device_hash()})
             self._persist_auth_session()
             self._cache_server_license(self._account_context)
-        return {"ok": True, "session_created": bool(result.get("access_token")), "message": "Hesap oluşturuldu. E-posta doğrulaması isteniyorsa postandaki bağlantıyı onaylayıp giriş yap."}
+        session_created = bool(result.get("access_token"))
+        method = "telefon" if "phone" in auth_identity else "e-posta"
+        message = "Öğrenci hesabı oluşturuldu." if session_created else f"Hesap isteği alındı. {method.capitalize()} doğrulaması açıksa doğrulamayı tamamla."
+        return {"ok": True, "session_created": session_created, "message": message}
 
-    def auth_login(self, email: str, password: str) -> dict[str, Any]:
-        identity = str(email).strip().lower()
-        if not identity or "@" not in identity or not password:
-            raise ValueError("Ortak Stagepulse hesabının e-posta adresi ve şifresi gerekli.")
-        result = self._auth_request("/auth/v1/token?grant_type=password", {"email": identity, "password": str(password)})
+    def auth_login(self, identity: str, password: str) -> dict[str, Any]:
+        auth_identity = self._auth_identity_payload(identity)
+        if not password:
+            raise ValueError("Şifre gerekli.")
+        result = self._auth_request("/auth/v1/token?grant_type=password", {**auth_identity, "password": str(password)})
         if not result.get("access_token") or not result.get("user"):
             raise RuntimeError("Giriş başarısız. E-postayı doğruladığını ve doğru şifre kullandığını kontrol et.")
         if not result.get("refresh_token"):

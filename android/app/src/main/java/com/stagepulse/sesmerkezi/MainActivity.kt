@@ -334,6 +334,24 @@ class MainActivity : Activity() {
         storeSecret("session", session.toString())
     }
 
+    private fun authIdentityPayload(raw: String): JSONObject {
+        val value = raw.trim()
+        if (value.contains("@")) {
+            val email = value.lowercase()
+            if (email.length > 320 || !email.matches(Regex("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"))) {
+                throw IllegalArgumentException("Geçerli e-posta veya telefon numarası gir.")
+            }
+            return JSONObject().put("email", email)
+        }
+        var digits = value.filter { it.isDigit() }
+        if (digits.startsWith("0") && digits.length == 11) digits = "90" + digits.drop(1)
+        else if (digits.startsWith("5") && digits.length == 10) digits = "90" + digits
+        if (!digits.startsWith("90") || digits.length != 12 || !digits.drop(2).startsWith("5")) {
+            throw IllegalArgumentException("Telefonu 05xx xxx xx xx veya +90 5xx xxx xx xx biçiminde gir.")
+        }
+        return JSONObject().put("phone", "+$digits")
+    }
+
     private fun requestSupabase(
         method: String,
         path: String,
@@ -868,27 +886,30 @@ class MainActivity : Activity() {
                     .put("offline_cache", validCache)
             }
             "auth_login" -> {
-                val email = payload.optString("email").trim()
+                val identity = authIdentityPayload(payload.optString("email"))
                 val password = payload.optString("password")
-                if (email.isBlank() || password.isBlank()) throw IllegalArgumentException("E-posta ve şifre gerekli.")
+                if (password.isBlank()) throw IllegalArgumentException("Şifre gerekli.")
+                val credentials = JSONObject().put("password", password)
+                if (identity.has("email")) credentials.put("email", identity.getString("email"))
+                else credentials.put("phone", identity.getString("phone"))
                 val session = requestSupabase(
-                    "POST", "/auth/v1/token?grant_type=password",
-                    JSONObject().put("email", email).put("password", password)
+                    "POST", "/auth/v1/token?grant_type=password", credentials
                 )
                 saveAuthSession(session)
                 return JSONObject().put("context", fetchMobileContext())
             }
             "auth_signup" -> {
-                val email = payload.optString("email").trim()
+                val identity = authIdentityPayload(payload.optString("email"))
                 val password = payload.optString("password")
                 val displayName = payload.optString("display_name").trim().take(120)
-                if (email.isBlank() || password.length < 8) throw IllegalArgumentException("Geçerli e-posta ve en az 8 karakterli şifre gerekli.")
+                if (password.length < 8 || password.length > 256) throw IllegalArgumentException("Şifre en az 8, en fazla 256 karakter olmalı.")
+                val credentials = JSONObject()
+                    .put("password", password)
+                    .put("data", JSONObject().put("display_name", displayName))
+                if (identity.has("email")) credentials.put("email", identity.getString("email"))
+                else credentials.put("phone", identity.getString("phone"))
                 val signUp = requestSupabase(
-                    "POST", "/auth/v1/signup",
-                    JSONObject()
-                        .put("email", email)
-                        .put("password", password)
-                        .put("data", JSONObject().put("display_name", displayName))
+                    "POST", "/auth/v1/signup", credentials
                 )
                 val hasSession = signUp.optJSONObject("session")?.optString("access_token").orEmpty().isNotBlank()
                     || signUp.optString("access_token").isNotBlank()
@@ -897,7 +918,7 @@ class MainActivity : Activity() {
                 return JSONObject()
                     .put("ok", true)
                     .put("session_created", hasSession)
-                    .put("message", if (hasSession) "Öğrenci hesabı oluşturuldu." else "Hesap oluşturuldu. E-posta doğrulamasını tamamla, ardından giriş yap.")
+                    .put("message", if (hasSession) "Öğrenci hesabı oluşturuldu." else "Hesap isteği alındı. Supabase doğrulaması açıksa tamamlayıp giriş yap.")
             }
             "auth_context" -> return JSONObject().put("context", fetchMobileContext())
             "auth_restore" -> return restoreMobileAuthSession()
