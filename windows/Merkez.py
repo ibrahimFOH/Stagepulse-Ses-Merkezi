@@ -281,6 +281,7 @@ class AppApi(AcousticAnalysisApi):
             _secure_write(LICENSE_CACHE_PATH, {
                 "user_id": user_id,
                 "offline_lease": lease,
+                "offline_lease_public_key": public_key,
                 "last_seen_at_ms": now_ms,
             })
             is_trial = claims.get("entitlement") == "trial"
