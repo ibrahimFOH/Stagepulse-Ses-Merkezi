@@ -40,6 +40,10 @@ def test_commercial_license_backend_is_server_only_and_teacher_progress_guarded(
     assert 'if (action === "progress_mark") {\n      await requireOwner(user.id);' in edge
     assert 'sesm_audit_events' in edge
     assert 'SUPABASE_SERVICE_ROLE_KEY' in edge  # server environment only; never put the secret in UI/EXE
+    assert 'admin.auth.admin.createUser' in edge
+    assert 'email_confirm: true' in edge
+    assert 'student_signup' in edge and 'p_max: 5' in edge
+    assert 'students.stagepulse.invalid' in edge
     assert 'SUPABASE_SERVICE_ROLE_KEY' not in (ROOT / 'ui/app.js').read_text('utf-8')
 
 
@@ -120,8 +124,10 @@ def test_all_windows_owner_logins_use_shared_supabase_auth():
     assert 'LICENSE_ADMIN_EMAILS' not in source
     assert '_admin_auth_request' not in source
     assert 'def _auth_identity_payload(identity: str)' in source
-    assert 'return {"phone": "+" + digits}' in source
+    assert 'students.stagepulse.invalid' in source
     assert 'return {"email": email}' in source
+    assert 'def _public_edge_call(' in source
+    assert 'self._public_edge_call("student_signup"' in source
     assert 'self._auth_request("/auth/v1/token?grant_type=password"' in source
 
 
