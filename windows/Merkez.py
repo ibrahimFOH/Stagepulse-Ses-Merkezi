@@ -837,7 +837,7 @@ class AppApi(AcousticAnalysisApi):
         h = hashlib.sha256()
         total = 0
         try:
-            with urlopen(request, timeout=90) as response, installer_path.open("wb") as out:
+            with urlopen(request, timeout=300) as response, installer_path.open("wb") as out:
                 while True:
                     chunk = response.read(1024 * 1024)
                     if not chunk:
