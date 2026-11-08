@@ -272,6 +272,48 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: responseHeaders });
   if (req.method !== "POST") return fail("METHOD_NOT_ALLOWED", 405);
   try {
+    const rawBody = await req.text();
+    if (new TextEncoder().encode(rawBody).byteLength > 256 * 1024) return fail("PAYLOAD_TOO_LARGE", 413);
+    let body: any;
+    try { body = rawBody ? JSON.parse(rawBody) : {}; }
+    catch { return fail("INVALID_JSON", 400); }
+    if (!body || typeof body !== "object" || Array.isArray(body)) return fail("INVALID_REQUEST", 400);
+    const action = typeof body?.action === "string" ? body.action : "";
+    if (action === "student_signup") {
+      const rawPhone = String(body.phone ?? "").trim();
+      const digits = rawPhone.replace(/\\D/g, "");
+      if (!/^\\+?90?5[0-9]{9}$/.test(rawPhone.replace(/[\\s()-]/g, "")) &&
+          !(digits.length === 12 && digits.startsWith("90") && digits.slice(2).startsWith("5"))) {
+        return fail("STUDENT_PHONE_INVALID", 400);
+      }
+      const normalizedPhone = "+" + (digits.startsWith("90") ? digits : digits.startsWith("0") ? "90" + digits.slice(1) : "90" + digits);
+      const password = String(body.password ?? "");
+      const displayName = String(body.display_name ?? "").trim().replace(/\\s+/g, " ").slice(0, 120);
+      if (password.length < 8 || password.length > 256 || displayName.length < 2) return fail("STUDENT_SIGNUP_DATA_INVALID", 400);
+      const forwarded = req.headers.get("cf-connecting-ip")
+        ?? req.headers.get("x-forwarded-for")?.split(",")[0].trim()
+        ?? "unknown";
+      const ipHash = await sha256Hex(forwarded || "unknown");
+      const { data: withinRateLimit, error: rateLimitError } = await admin.rpc("check_login_rate_limit", {
+        p_key: "student-signup:" + ipHash,
+        p_max: 5,
+      });
+      if (rateLimitError) return fail("RATE_LIMIT_SERVICE_UNAVAILABLE", 503);
+      if (withinRateLimit !== true) return fail("RATE_LIMITED", 429);
+      const aliasEmail = normalizedPhone.slice(1) + "@students.stagepulse.invalid";
+      const { data, error } = await admin.auth.admin.createUser({
+        email: aliasEmail,
+        password,
+        email_confirm: true,
+        user_metadata: { display_name: displayName, phone: normalizedPhone, account_type: "student" },
+      });
+      if (error || !data?.user) {
+        const duplicate = String(error?.message ?? "").toLowerCase().includes("already") ||
+          String(error?.code ?? "").toLowerCase().includes("duplicate");
+        return fail(duplicate ? "PHONE_ALREADY_REGISTERED" : "STUDENT_SIGNUP_UNAVAILABLE", duplicate ? 409 : 503);
+      }
+      return reply({ ok: true, user_id: data.user.id });
+    }
     const { user, token } = await requireUser(req);
     // Kullanıcı ve IP birlikte sınırlandırılır; ortak NAT kullanan hesaplar birbirini kilitlemez.
     const forwarded = req.headers.get("cf-connecting-ip")
@@ -283,13 +325,6 @@ Deno.serve(async (req: Request) => {
     });
     if (rateLimitError) return fail("RATE_LIMIT_SERVICE_UNAVAILABLE", 503);
     if (withinRateLimit !== true) return fail("RATE_LIMITED", 429);
-    const rawBody = await req.text();
-    if (new TextEncoder().encode(rawBody).byteLength > 256 * 1024) return fail("PAYLOAD_TOO_LARGE", 413);
-    let body: any;
-    try { body = rawBody ? JSON.parse(rawBody) : {}; }
-    catch { return fail("INVALID_JSON", 400); }
-    if (!body || typeof body !== "object" || Array.isArray(body)) return fail("INVALID_REQUEST", 400);
-    const action = typeof body?.action === "string" ? body.action : "";
     const role = await getRole(user.id);
     if (action === "store_get") {
       const { data, error } = await admin.from("sesm_store_settings").select("product_code,product_name,price,currency,bank_name,account_holder,iban,payment_instructions,contact_phone").eq("id", true).single();
@@ -352,7 +387,7 @@ Deno.serve(async (req: Request) => {
       const offlineLease = await createOfflineLease(user.id, deviceHash, body.platform, requestedAppId, entitlement);
       const { data: ownStudent } = await admin.from("sesm_students").select("display_name, email, teacher_user_id")
         .eq("user_id", user.id).eq("is_active", true).maybeSingle();
-      return reply({ ok: true, user: { id: user.id, email: user.email ?? null, phone: user.phone ?? null, name: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? "" }, role, licensed: entitlement.licensed, trial: entitlement.trial, offline_lease: offlineLease, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active === true }, student: ownStudent ?? null, app: "Stagepulse Ses Mühendisliği Merkezi" });
+      return reply({ ok: true, user: { id: user.id, email: user.email?.endsWith("@students.stagepulse.invalid") ? null : (user.email ?? null), phone: user.user_metadata?.phone ?? user.phone ?? null, name: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? "" }, role, licensed: entitlement.licensed, trial: entitlement.trial, offline_lease: offlineLease, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active === true }, student: ownStudent ?? null, app: "Stagepulse Ses Mühendisliği Merkezi" });
     }
     if (action === "license_status") {
       const deviceHash = String(body.device_hash ?? "");
