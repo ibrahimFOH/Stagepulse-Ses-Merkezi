@@ -280,7 +280,7 @@ Deno.serve(async (req: Request) => {
     if (!body || typeof body !== "object" || Array.isArray(body)) return fail("INVALID_REQUEST", 400);
     const action = typeof body?.action === "string" ? body.action : "";
     if (action === "student_signup") {
-      const digits = String(body.phone ?? "").replace(/\\D/g, "");
+      const digits = String(body.phone ?? "").replace(/\D/g, "");
       let normalizedDigits = "";
       if (digits.length === 10 && digits.startsWith("5")) normalizedDigits = "90" + digits;
       else if (digits.length === 11 && digits.startsWith("05")) normalizedDigits = "90" + digits.slice(1);
@@ -288,11 +288,9 @@ Deno.serve(async (req: Request) => {
       else return fail("STUDENT_PHONE_INVALID", 400);
       const normalizedPhone = "+" + normalizedDigits;
       const password = String(body.password ?? "");
-      const displayName = String(body.display_name ?? "").trim().replace(/\\s+/g, " ").slice(0, 120);
+      const displayName = String(body.display_name ?? "").trim().replace(/\s+/g, " ").slice(0, 120);
       if (password.length < 8 || password.length > 256 || displayName.length < 2) return fail("STUDENT_SIGNUP_DATA_INVALID", 400);
-      const forwarded = req.headers.get("cf-connecting-ip")
-        ?? req.headers.get("x-forwarded-for")?.split(",")[0].trim()
-        ?? "unknown";
+      const forwarded = req.headers.get("cf-connecting-ip")?.trim() || "unknown";
       const ipHash = await sha256Hex(forwarded || "unknown");
       const { data: withinRateLimit, error: rateLimitError } = await admin.rpc("check_login_rate_limit", {
         p_key: "student-signup:" + ipHash,
