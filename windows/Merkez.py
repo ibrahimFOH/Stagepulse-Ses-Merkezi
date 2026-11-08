@@ -511,7 +511,7 @@ class AppApi(AcousticAnalysisApi):
         elif digits.startswith("5") and len(digits) == 10:
             digits = "90" + digits
         if not digits.startswith("90") or len(digits) != 12 or not digits[2:].startswith("5"):
-            raise ValueError("Telefonu 05xx xxx xx xx veya +90 5xx xxx xx xx biçiminde gir.")
+            raise ValueError("Ortak Stagepulse hesabının e-posta adresi veya telefon numarası gerekli; telefonu 05xx xxx xx xx veya +90 5xx xxx xx xx biçiminde gir.")
         return {"phone": "+" + digits}
 
     def auth_signup(self, identity: str, password: str, display_name: str = "") -> dict[str, Any]:
