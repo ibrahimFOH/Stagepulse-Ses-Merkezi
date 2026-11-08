@@ -1,4 +1,4 @@
-# Stagepulse Ses Mühendisliği Merkezi 3.9.0
+# Stagepulse Ses Mühendisliği Merkezi 3.9.1
 
 **Tek Windows kurulum dosyası · tek pencere uygulama · lisanssız yerel demo · çevrimiçi lisans, satış ve öğretmen kontrolü**
 
@@ -19,7 +19,7 @@ Yeni araçların hesaplama kodu Stagepulse içinde bağımsızdır. Kaynak ZIP a
 
 3.9.0, Windows EXE ve kalıcı Stagepulse keystore ile imzalı Android APK olarak `Stagepulse-Releases` deposunda kararlı sürüm şeklinde yayımlanmıştır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Güvenilir yayıncı doğrulaması için gelecekteki sürümden önce geçerli bir Windows Code Signing sertifikası ve release secret'ları yapılandırılmalıdır. Bu kurucu uygulamayı `%LOCALAPPDATA%\Programs\Stagepulse\SesMerkezi` altına yerleştirir, masaüstüne ve Başlat menüsüne kısayol ekler ve Windows uygulama kaldırma kaydı oluşturur. Son kullanıcıya Python, CMD, BAT veya ayrı araç EXE'leri verilmez. Güncelleme aynı kurucunun sessiz yükseltme modunu kullanır; öğrenci profilleri kurulum güncellemesinde silinmez.
 
-Bu depo kaynak koddur. Windows kurulum EXE'si, Windows x64 ortamındaki `EXE_OLUSTUR.bat` veya `EXE_OLUSTUR.ps1` ile üretilir. 3.9.0 kaynak sürümüdür; Windows x64 EXE, kalıcı anahtarla imzalı Android APK, SHA-256 ve GitHub Release doğrulamaları yayın hattında yapılır. Derleme bilgisayarında Python 3.11/3.12/3.13/3.14 x64 gerekir; son kullanıcıda gerekmez. Node.js derleme ortamında isteğe bağlıdır; kuruluysa JavaScript sözdizimi ve yerel araç çalışma zamanı testleri çalıştırılır. Kurulu değilse bu iki Node testi atlanır, Python kaynak testleri yine yürütülür. Betik önce testleri çalıştırır, Microsoft WebView2 yükleyicisinin dijital imzasını ve NSIS paketinin SHA-256 değerini doğrular; derleme sonunda geçici araçları siler ve `dist` klasöründe yalnızca tek kurulum EXE'si bırakır.
+Bu depo kaynak koddur. Windows kurulum EXE'si, Windows x64 ortamındaki `EXE_OLUSTUR.bat` veya `EXE_OLUSTUR.ps1` ile üretilir. 3.9.1 kaynak sürümüdür; Windows x64 EXE, kalıcı anahtarla imzalı Android APK, SHA-256 ve GitHub Release doğrulamaları yayın hattında yapılır. Derleme bilgisayarında Python 3.11/3.12/3.13/3.14 x64 gerekir; son kullanıcıda gerekmez. Node.js derleme ortamında isteğe bağlıdır; kuruluysa JavaScript sözdizimi ve yerel araç çalışma zamanı testleri çalıştırılır. Kurulu değilse bu iki Node testi atlanır, Python kaynak testleri yine yürütülür. Betik önce testleri çalıştırır, Microsoft WebView2 yükleyicisinin dijital imzasını ve NSIS paketinin SHA-256 değerini doğrular; derleme sonunda geçici araçları siler ve `dist` klasöründe yalnızca tek kurulum EXE'si bırakır.
 
 ## Eğitim yolları ve yeterlilik
 
