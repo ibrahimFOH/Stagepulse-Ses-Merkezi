@@ -281,19 +281,45 @@ def test_full_package_bank_transfer_requires_owner_approval_and_server_license_c
     assert 'purchase_reference' not in edge
 
 
-def test_full_package_sales_cannot_bypass_bank_transfer_owner_approval():
+def test_manual_full_package_license_generation_is_owner_only_and_atomic():
     desktop_edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
     core_edge = (ROOT / 'supabase/functions/license-core/index.ts').read_text('utf-8')
+    migration = (ROOT / 'supabase/migrations/20261108210000_sesm_manual_full_package_license_generation.sql').read_text('utf-8')
 
     direct_create = desktop_edge[desktop_edge.index('if (action === "license_create")'):]
     direct_create = direct_create[:direct_create.index('if (action === "license_payment_update")')]
-    assert 'BANK_TRANSFER_APPROVAL_REQUIRED' in direct_create
+    assert 'await requireOwner(user.id)' in direct_create
+    assert 'admin.rpc("sesm_create_manual_full_package_license"' in direct_create
+    assert 'PAYMENT_REFERENCE_REQUIRED' in direct_create
+    assert 'BANK_TRANSFER_APPROVAL_REQUIRED' not in direct_create
     assert 'sesm_review_full_package_purchase' in desktop_edge
     assert 'purchase_review' in desktop_edge
+    assert 'security invoker' in migration.lower()
+    assert 'revoke all on function public.sesm_create_manual_full_package_license' in migration
+    assert 'to service_role' in migration
+    assert "ses-merkezi-android" in migration
     admin_create = core_edge[core_edge.index('async function adminCreate'):core_edge.index('Deno.serve')]
-    assert 'appId === "ses-merkezi"' in admin_create
-    assert 'appId === "ses-merkezi-android"' in admin_create
     assert 'BANK_TRANSFER_APPROVAL_REQUIRED' in admin_create
+
+
+def test_windows_and_android_admin_panels_expose_manual_full_package_license_generation():
+    html_files = [
+        ROOT.parent / 'android/app/src/main/assets/ui/index.html',
+        ROOT / 'ui/index.html',
+    ]
+    js_files = [
+        ROOT.parent / 'android/app/src/main/assets/ui/app.js',
+        ROOT / 'ui/app.js',
+    ]
+    for html_path in html_files:
+        html = html_path.read_text('utf-8')
+        assert 'id="createFullPackageLicense"' in html
+        assert 'id="manualLicenseCustomerName"' in html
+        assert 'id="fullPackageIssuedKey"' in html
+    for js_path in js_files:
+        app = js_path.read_text('utf-8')
+        assert 'commerceApi().license_create("FULL PAKET"' in app
+        assert 'currentRole!=="owner"' in app
 
 
 def test_offline_lease_public_key_pem_uses_real_line_breaks():
