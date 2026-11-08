@@ -207,11 +207,14 @@ def test_ses_merkezi_requires_paid_license_or_authenticated_trial():
     assert 'from core.secure_store import verify_offline_lease' in desktop
     assert 'expected_app_id="ses-merkezi"' in desktop
     assert 'expected_platform="windows"' in desktop
-    assert 'OFFLINE_LEASE_PUBLIC_KEY_PEM' in (ROOT / 'core/secure_store.py').read_text('utf-8')
+    assert 'offline_lease_public_key' in desktop
+    assert 'public_key_pem=public_key' in desktop
     assert 'verifyMobileOfflineLease(' in android_native
     assert 'cachedMobileOfflineLicense()' in android_native
+    assert 'readSecret("offline_lease_public_key")' in android_native
     assert 'Signature.getInstance("SHA256withRSA")' in android_native
-    assert 'offline_lease' in edge
+    assert 'exportKey("jwk"' in edge
+    assert 'offline_lease_public_key: offlineLeasePublicKey' in edge
     assert 'val trial = context.optJSONObject("trial")?.optBoolean("active", false) == true' in android_native
     assert '"demo_mode": False' in desktop
     assert '"license_required_for_local_tools": True' in desktop
