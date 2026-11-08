@@ -704,8 +704,8 @@ class MainActivity : Activity() {
             try {
                 partial.delete()
                 connection = (URL(update.apkUrl).openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 15000
-                    readTimeout = 60000
+                    connectTimeout = 30000
+                    readTimeout = 180000
                     instanceFollowRedirects = true
                     setRequestProperty("Accept", "application/vnd.android.package-archive")
                     setRequestProperty("User-Agent", "StagepulseSesMerkezi-Android/" + BuildConfig.VERSION_NAME)
