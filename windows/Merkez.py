@@ -262,7 +262,8 @@ class AppApi(AcousticAnalysisApi):
             return {"active": False, "reason": "not_verified"}
         user_id = str(cached.get("user_id") or "")
         lease = cached.get("offline_lease")
-        if not user_id or not isinstance(lease, dict):
+        public_key = cached.get("offline_lease_public_key")
+        if not user_id or not isinstance(lease, dict) or not isinstance(public_key, str):
             return {"active": False, "reason": "offline_lease_missing"}
         try:
             from core.secure_store import verify_offline_lease
@@ -273,6 +274,7 @@ class AppApi(AcousticAnalysisApi):
                 expected_device_hash=_installation_device_hash(),
                 expected_app_id="ses-merkezi",
                 expected_platform="windows",
+                public_key_pem=public_key,
                 now_ms=now_ms,
                 last_seen_ms=int(cached.get("last_seen_at_ms") or 0),
             )
@@ -778,7 +780,8 @@ class AppApi(AcousticAnalysisApi):
         user = context.get("user") if isinstance(context.get("user"), dict) else {}
         user_id = str(user.get("id") or "")
         lease = context.get("offline_lease")
-        if not user_id or not isinstance(lease, dict):
+        public_key = context.get("offline_lease_public_key")
+        if not user_id or not isinstance(lease, dict) or not isinstance(public_key, str):
             _secure_write(LICENSE_CACHE_PATH, {"active": False, "reason": "no_signed_lease"})
             return
         try:
@@ -790,6 +793,7 @@ class AppApi(AcousticAnalysisApi):
                 expected_device_hash=_installation_device_hash(),
                 expected_app_id="ses-merkezi",
                 expected_platform="windows",
+                public_key_pem=public_key,
                 now_ms=now_ms,
             )
         except (ValueError, TypeError, RuntimeError, OverflowError):
@@ -798,6 +802,7 @@ class AppApi(AcousticAnalysisApi):
         _secure_write(LICENSE_CACHE_PATH, {
             "user_id": user_id,
             "offline_lease": lease,
+            "offline_lease_public_key": public_key,
             "last_seen_at_ms": now_ms,
         })
 
