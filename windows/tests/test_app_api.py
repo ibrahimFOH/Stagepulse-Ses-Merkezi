@@ -539,3 +539,101 @@ def test_windows_update_ui_exposes_manual_check_and_verified_install_actions():
     assert "api().check_updates()" in script
     assert "api().install_update(JSON.stringify(latestUpdateManifest))" in script
     assert "SHA-256 doğrulanıyor" in script
+
+
+def _signed_offline_lease(claims):
+    import base64
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding, rsa
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    public_pem = key.public_key().public_bytes(
+        serialization.Encoding.PEM,
+        serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+    payload = json.dumps(claims, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    signature = key.sign(payload, padding.PKCS1v15(), hashes.SHA256())
+    enc = lambda value: base64.urlsafe_b64encode(value).decode("ascii").rstrip("=")
+    return {"envelope": {"v": 1, "alg": "RS256", "payload": enc(payload), "signature": enc(signature)}, "public_key": public_pem}
+
+
+def _offline_claims(now_ms, entitlement="paid", duration_ms=14 * 24 * 60 * 60 * 1000):
+    trial = entitlement == "trial"
+    return {
+        "v": 1,
+        "uid": "test-user",
+        "app_id": "ses-merkezi",
+        "platform": "windows",
+        "device_hash": "a" * 64,
+        "entitlement": entitlement,
+        "paid": not trial,
+        "plan_code": "trial" if trial else "student",
+        "bundle_code": "trial" if trial else "full_master",
+        "license_expires_at_ms": now_ms + 30 * 24 * 60 * 60 * 1000 if not trial else None,
+        "trial_expires_at_ms": now_ms + duration_ms if trial else None,
+        "issued_at_ms": now_ms,
+        "expires_at_ms": now_ms + duration_ms,
+    }
+
+
+def test_offline_lease_accepts_valid_paid_14_day_entitlement():
+    from core.secure_store import verify_offline_lease
+
+    now = 1_800_000_000_000
+    signed = _signed_offline_lease(_offline_claims(now))
+    result = verify_offline_lease(
+        signed["envelope"],
+        expected_user_id="test-user",
+        expected_device_hash="a" * 64,
+        expected_app_id="ses-merkezi",
+        expected_platform="windows",
+        now_ms=now + 60_000,
+        public_key_pem=signed["public_key"],
+    )
+    assert result["paid"] is True
+    assert result["entitlement"] == "paid"
+
+
+def test_offline_lease_rejects_wrong_device_and_tampered_signature():
+    from core.secure_store import verify_offline_lease
+
+    now = 1_800_000_000_000
+    signed = _signed_offline_lease(_offline_claims(now))
+    args = dict(
+        expected_user_id="test-user",
+        expected_device_hash="b" * 64,
+        expected_app_id="ses-merkezi",
+        expected_platform="windows",
+        now_ms=now + 60_000,
+        public_key_pem=signed["public_key"],
+    )
+    with pytest.raises(ValueError, match="farklı kullanıcıya veya cihaza"):
+        verify_offline_lease(signed["envelope"], **args)
+
+    broken = dict(signed["envelope"])
+    broken["signature"] = "A" * 342
+    args["expected_device_hash"] = "a" * 64
+    with pytest.raises(ValueError, match="imzası doğrulanamadı"):
+        verify_offline_lease(broken, **args)
+
+
+def test_offline_lease_rejects_clock_rollback_expiry_and_overlong_trial():
+    from core.secure_store import verify_offline_lease
+
+    now = 1_800_000_000_000
+    signed = _signed_offline_lease(_offline_claims(now))
+    common = dict(
+        expected_user_id="test-user",
+        expected_device_hash="a" * 64,
+        expected_app_id="ses-merkezi",
+        expected_platform="windows",
+        public_key_pem=signed["public_key"],
+    )
+    with pytest.raises(ValueError, match="Sistem saati geri alınmış"):
+        verify_offline_lease(signed["envelope"], now_ms=now, last_seen_ms=now + 60 * 60 * 1000, **common)
+    with pytest.raises(ValueError, match="süresi dolmuş"):
+        verify_offline_lease(signed["envelope"], now_ms=now + 15 * 24 * 60 * 60 * 1000, **common)
+
+    trial = _signed_offline_lease(_offline_claims(now, "trial", 8 * 24 * 60 * 60 * 1000))
+    with pytest.raises(ValueError, match="Deneme offline lisans sınırı"):
+        verify_offline_lease(trial["envelope"], now_ms=now + 60_000, **{**common, "public_key_pem": trial["public_key"]})
