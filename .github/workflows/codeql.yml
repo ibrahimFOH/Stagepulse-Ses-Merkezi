@@ -1,10 +1,26 @@
 name: Android CodeQL güvenlik analizi
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/codeql.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "android/**"
+      - ".github/workflows/codeql.yml"
+  schedule:
+    - cron: "17 3 * * 1"
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: codeql-android-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
@@ -35,10 +51,10 @@ jobs:
           yes | "$SDKMANAGER" --sdk_root="$SDK_ROOT" --licenses >/dev/null || true
           "$SDKMANAGER" --sdk_root="$SDK_ROOT" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Gradle 8.9 kur
+      - name: Gradle 8.13 kur
         uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.9"
+          gradle-version: "8.13"
 
       - name: CodeQL başlat
         uses: github/codeql-action/init@v3
@@ -50,14 +66,13 @@ jobs:
       - name: Android kodunu CodeQL izleme altında derle
         run: gradle -p android --no-daemon :app:assembleDebug --stacktrace
 
-      - name: CodeQL analizini tamamla
+      - name: CodeQL analizini tamamla ve GitHub güvenlik uyarılarını yayımla
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:java-kotlin"
           output: codeql-results
-          upload: never
 
-      - name: CodeQL raporunu sakla
+      - name: CodeQL SARIF raporunu sakla
         if: always()
         uses: actions/upload-artifact@v4
         with:
