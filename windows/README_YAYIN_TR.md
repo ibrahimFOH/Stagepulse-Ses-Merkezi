@@ -6,7 +6,7 @@
 2. `dist/StagepulseSesMerkezi-Kurulum-3.9.0.exe` dosyasını `/downloads/ses-merkezi/StagepulseSesMerkezi-Kurulum-3.9.0.exe` hedefine yükle.
 3. Derlemenin oluşturduğu `website_release/latest.json` dosyasını `/downloads/ses-merkezi/latest.json` adresine yükle. İçindeki `sha256` aynı kurulum EXE'sinin SHA-256 özeti olmalı.
 4. Tarayıcıda manifestin JSON döndürdüğünü ve kurucunun indirildiğini doğrula. Güncelleme kontrolünü uygulamanın Hesap/Güncelleme ekranından test et.
-5. Ücretli genel dağıtımdan önce Stagepulse adına Windows Authenticode kod-imzalama sertifikası kullan. Bu depoda özel kod-imzalama anahtarı tutulmaz. HTTPS ve SHA-256, kod imzasının yerine geçmez.
+5. 3.9.0 kararlı yayını yayımlanmıştır; mevcut Windows EXE Authenticode kod imzası taşımamaktadır ve SmartScreen uyarısı gösterebilir. Gelecek Windows sürümlerinde güvenilir yayıncı doğrulaması için Stagepulse adına geçerli Code Signing sertifikası ile `WINDOWS_SIGNING_CERT_PFX_BASE64` ve `WINDOWS_SIGNING_CERT_PASSWORD` secret'ları yapılandırılmalıdır. HTTPS ve SHA-256, kod imzasının yerine geçmez.
 
 ## Web lisans yönetimi (yönetici)
 
