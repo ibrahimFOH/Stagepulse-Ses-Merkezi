@@ -147,6 +147,7 @@ async function entitlementContext(userId: string, deviceHash: string, role: stri
 const OFFLINE_PAID_LEASE_MS = 14 * 24 * 60 * 60 * 1000;
 const OFFLINE_TRIAL_LEASE_MS = 7 * 24 * 60 * 60 * 1000;
 let offlineLeaseSigningKey: CryptoKey | null = null;
+let offlineLeasePublicKeyPem: string | null = null;
 
 function base64Url(bytes: Uint8Array): string {
   let binary = "";
@@ -169,10 +170,32 @@ async function getOfflineLeaseSigningKey(): Promise<CryptoKey | null> {
     .split("").filter((char) => char.charCodeAt(0) > 32).join("");
   const binary = atob(encoded);
   const der = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-  offlineLeaseSigningKey = await crypto.subtle.importKey(
-    "pkcs8", der, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"],
+  const algorithm = { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" } as const;
+
+  // Derive only the public JWK members, then re-import the signing key as non-exportable.
+  const derivationKey = await crypto.subtle.importKey("pkcs8", der, algorithm, true, ["sign"]);
+  const privateJwk = await crypto.subtle.exportKey("jwk", derivationKey);
+  if (!privateJwk.n || !privateJwk.e) throw new Error("Offline lease RSA public parameters unavailable.");
+  const publicKey = await crypto.subtle.importKey(
+    "jwk",
+    { kty: "RSA", n: privateJwk.n, e: privateJwk.e, alg: "RS256", ext: true, key_ops: ["verify"] },
+    algorithm,
+    true,
+    ["verify"],
   );
+  const publicDer = new Uint8Array(await crypto.subtle.exportKey("spki", publicKey));
+  let publicBinary = "";
+  for (const byte of publicDer) publicBinary += String.fromCharCode(byte);
+  const publicBase64 = btoa(publicBinary).match(/.{1,64}/g)?.join("\\n") ?? "";
+  offlineLeasePublicKeyPem = "-----BEGIN PUBLIC KEY-----\\n" + publicBase64 + "\\n-----END PUBLIC KEY-----";
+
+  offlineLeaseSigningKey = await crypto.subtle.importKey("pkcs8", der, algorithm, false, ["sign"]);
   return offlineLeaseSigningKey;
+}
+
+async function getOfflineLeasePublicKeyPem(): Promise<string | null> {
+  const signingKey = await getOfflineLeaseSigningKey();
+  return signingKey ? offlineLeasePublicKeyPem : null;
 }
 
 async function createOfflineLease(
@@ -381,16 +404,18 @@ Deno.serve(async (req: Request) => {
       const requestedAppId = String(body.app_id ?? "");
       const entitlement = await entitlementContext(user.id, deviceHash, role, body.platform, requestedAppId);
       const offlineLease = await createOfflineLease(user.id, deviceHash, body.platform, requestedAppId, entitlement);
+      const offlineLeasePublicKey = offlineLease ? await getOfflineLeasePublicKeyPem() : null;
       const { data: ownStudent } = await admin.from("sesm_students").select("display_name, email, teacher_user_id")
         .eq("user_id", user.id).eq("is_active", true).maybeSingle();
-      return reply({ ok: true, user: { id: user.id, email: user.email?.endsWith("@students.stagepulse.invalid") ? null : (user.email ?? null), phone: user.user_metadata?.phone ?? user.phone ?? null, name: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? "" }, role, licensed: entitlement.licensed, trial: entitlement.trial, offline_lease: offlineLease, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active === true }, student: ownStudent ?? null, app: "Stagepulse Ses Mühendisliği Merkezi" });
+      return reply({ ok: true, user: { id: user.id, email: user.email?.endsWith("@students.stagepulse.invalid") ? null : (user.email ?? null), phone: user.user_metadata?.phone ?? user.phone ?? null, name: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? "" }, role, licensed: entitlement.licensed, trial: entitlement.trial, offline_lease: offlineLease, offline_lease_public_key: offlineLeasePublicKey, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active === true }, student: ownStudent ?? null, app: "Stagepulse Ses Mühendisliği Merkezi" });
     }
     if (action === "license_status") {
       const deviceHash = String(body.device_hash ?? "");
       const requestedAppId = String(body.app_id ?? "");
       const entitlement = await entitlementContext(user.id, deviceHash, role, body.platform, requestedAppId);
       const offlineLease = await createOfflineLease(user.id, deviceHash, body.platform, requestedAppId, entitlement);
-      return reply({ ok: true, licensed: entitlement.licensed, trial: entitlement.trial, offline_lease: offlineLease, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active === true }, role });
+      const offlineLeasePublicKey = offlineLease ? await getOfflineLeasePublicKeyPem() : null;
+      return reply({ ok: true, licensed: entitlement.licensed, trial: entitlement.trial, offline_lease: offlineLease, offline_lease_public_key: offlineLeasePublicKey, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active === true }, role });
     }
     if (action === "feature_access" || action === "pdf_access") {
       const entitlement = await entitlementContext(user.id, String(body.device_hash ?? ""), role, body.platform, String(body.app_id ?? ""));
