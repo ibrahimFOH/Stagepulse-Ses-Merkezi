@@ -1,4 +1,4 @@
-// Stagepulse UI release 3.9.2
+// Stagepulse UI release 3.9.3
 'use strict';
 const $ = (id) => document.getElementById(id);
 const routes = {
@@ -1083,6 +1083,32 @@ function initFullPackageCommerce(){
  $("submitFullPackagePurchase")?.addEventListener("click",async()=>{try{if(!currentAccountContext?.user?.id)throw new Error("Satın alma bildirimi için önce hesabına giriş yap.");$("submitFullPackagePurchase").disabled=true;$("fullPackagePurchaseStatus").textContent="Ödeme bildirimi gönderiliyor…";const r=await commerceApi().purchase_submit({customer_name:$("purchaseCustomerName").value,customer_phone:$("purchaseCustomerPhone").value,transfer_reference:$("purchaseTransferReference").value,customer_note:$("purchaseCustomerNote").value});$("fullPackagePurchaseStatus").textContent=`${r.purchase.product_name} ödeme bildirimi alındı. Tutar: ${Number(r.purchase.amount).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})} TL. Banka hareketi yönetici tarafından doğrulanınca lisans oluşturulacak.`;}catch(err){$("fullPackagePurchaseStatus").textContent="Bildirim gönderilemedi: "+err.message;}finally{$("submitFullPackagePurchase").disabled=false;}});
  $("saveFullPackageSettings")?.addEventListener("click",async()=>{try{if(currentRole!=="owner")throw new Error("Yalnızca yönetici değiştirebilir.");$("saveFullPackageSettings").disabled=true;const s=await commerceApi().store_update({price:Number($("fullPackageAdminPrice").value),bank_name:$("fullPackageBankName").value,account_holder:$("fullPackageAccountHolder").value,iban:$("fullPackageIban").value,payment_instructions:$("fullPackagePaymentInstructions").value,contact_phone:$("fullPackageContactPhone").value});$("fullPackageAdminStatus").textContent="FULL PAKET mağaza ayarları kaydedildi. Yeni fiyat: "+Number(s.settings.price).toLocaleString("tr-TR")+" TL." ;await refreshFullPackageStore();}catch(err){$("fullPackageAdminStatus").textContent="Ayarlar kaydedilemedi: "+err.message;}finally{$("saveFullPackageSettings").disabled=false;}});
  $("refreshFullPackagePurchases")?.addEventListener("click",refreshFullPackagePurchases);
+ $("createFullPackageLicense")?.addEventListener("click",async()=>{
+  const button=$("createFullPackageLicense"),status=$("manualLicenseStatus");
+  try{
+   if(currentRole!=="owner")throw new Error("Yalnızca Stagepulse sahibi lisans üretebilir.");
+   const name=$("manualLicenseCustomerName").value.trim(),email=$("manualLicenseCustomerEmail").value.trim().toLowerCase();
+   const method=$("manualLicensePaymentMethod").value,payment=$("manualLicensePaymentStatus").value;
+   const amount=Number($("manualLicenseAmount").value),reference=$("manualLicenseReference").value.trim();
+   const devices=Number($("manualLicenseDevices").value);
+   if(name.length<2)throw new Error("Müşteri adı en az 2 karakter olmalı.");
+   if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error("Geçerli bir e-posta adresi gir.");
+   if(!Number.isFinite(amount)||amount<0||amount>2500)throw new Error("Tutar 0 ile 2.500 TL arasında olmalı.");
+   if(payment==="paid"&&method==="bank_transfer"&&reference.length<3)throw new Error("Ödenmiş havale için dekont veya işlem referansı gerekli.");
+   if(payment==="paid"&&!confirm("Tahsilatın gerçekten alındığını doğruluyor musun? Lisans etkinleştirilebilir olacak."))return;
+   button.disabled=true;status.textContent="Lisans anahtarı güvenli biçimde üretiliyor…";
+   const result=await commerceApi().license_create("FULL PAKET","student",devices,0,name,email,method,payment,amount,"TRY",reference,"full_master");
+   const key=result.key||result.license_key||"";
+   if(!key||!result.license?.id)throw new Error("Sunucu lisans anahtarını doğrulanmış kayıtla döndürmedi.");
+   $("fullPackageIssuedKey").value=key;$("copyFullPackageIssuedKey").disabled=false;
+   status.textContent=payment==="paid"?"FULL PAKET lisansı üretildi. Ödeme kaydı alındı; anahtarı müşteriye iletebilirsin.":"FULL PAKET lisansı üretildi. Ödeme bekliyor; ödeme durumu onaylanmadan etkinleşmez.";
+   $("fullPackageAdminStatus").textContent="Manuel FULL PAKET lisansı oluşturuldu. Anahtar aşağıda gösteriliyor.";
+   $("manualLicenseCustomerName").value="";$("manualLicenseCustomerEmail").value="";$("manualLicenseReference").value="";
+   await refreshLicenseList();
+  }catch(err){status.textContent="Lisans üretilemedi: "+err.message;}
+  finally{button.disabled=false;}
+ });
+
  $("copyFullPackageIssuedKey")?.addEventListener("click",async()=>{const key=$("fullPackageIssuedKey").value;if(!key)return;try{await navigator.clipboard.writeText(key);$("fullPackageAdminStatus").textContent="Lisans anahtarı panoya kopyalandı.";}catch(_){$("fullPackageIssuedKey").select();document.execCommand("copy");}});
 }
 

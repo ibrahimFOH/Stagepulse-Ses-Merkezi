@@ -507,7 +507,55 @@ Deno.serve(async (req: Request) => {
     }
     if (action === "license_create") {
       await requireOwner(user.id);
-      return fail("BANK_TRANSFER_APPROVAL_REQUIRED", 403);
+      const customerName = String(body.customer_name ?? "").trim().slice(0, 120);
+      const customerEmail = String(body.customer_email ?? "").trim().toLowerCase().slice(0, 320);
+      const paymentMethod = String(body.payment_method ?? "");
+      const paymentStatus = String(body.payment_status ?? "unpaid");
+      const paymentReference = String(body.payment_reference ?? "").trim().slice(0, 120);
+      const notes = String(body.notes ?? "").trim().slice(0, 500);
+      const amount = Number(body.amount);
+      const maxDevices = Number(body.max_activations ?? 3);
+      if (customerName.length < 2 || (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail))
+        || !["cash", "bank_transfer"].includes(paymentMethod)
+        || !["paid", "unpaid"].includes(paymentStatus)
+        || !Number.isFinite(amount) || amount < 0 || amount > 2500
+        || ![1, 2, 3, 5].includes(maxDevices)) return fail("LICENSE_CREATE_DATA_INVALID", 400);
+      if (paymentStatus === "paid" && paymentMethod === "bank_transfer" && paymentReference.length < 3) {
+        return fail("PAYMENT_REFERENCE_REQUIRED", 400);
+      }
+      const rawKey = issueLicenseKey();
+      const keyHash = await sha256Hex(normalizeKey(rawKey));
+      const { data, error } = await admin.rpc("sesm_create_manual_full_package_license", {
+        p_owner_user_id: user.id,
+        p_key_hash: keyHash,
+        p_customer_name: customerName,
+        p_customer_email: customerEmail,
+        p_payment_method: paymentMethod,
+        p_payment_status: paymentStatus,
+        p_amount: amount,
+        p_payment_reference: paymentReference,
+        p_admin_note: notes,
+        p_max_devices: maxDevices,
+      });
+      if (error || !data?.license_id) {
+        console.error("Manual FULL PAKET license creation failed", error?.message ?? "missing license id");
+        return fail(error?.code === "42501" ? "FORBIDDEN_OWNER_ONLY" : "LICENSE_CREATE_FAILED", error?.code === "42501" ? 403 : 500);
+      }
+      return reply({
+        ok: true,
+        key: rawKey,
+        license: {
+          id: data.license_id,
+          label: "FULL PAKET",
+          plan_code: "student",
+          bundle_code: "full_master",
+          max_activations: maxDevices,
+          expires_at: null,
+          payment_status: paymentStatus,
+          amount,
+          currency: "TRY",
+        },
+      }, 201);
     }
     if (action === "license_payment_update") {
       await requireOwner(user.id);
