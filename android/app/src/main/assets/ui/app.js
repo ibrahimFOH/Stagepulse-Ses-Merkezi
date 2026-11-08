@@ -1371,8 +1371,8 @@ function applyAccountContext(context){
  if(trial.active){const seconds=Math.max(0,Number(trial.remaining_seconds||0)),days=Math.floor(seconds/86400),hours=Math.ceil((seconds%86400)/3600);$('licenseStatusText').textContent=`7 günlük demo açık · ${days>0?days+' gün ':''}${Math.max(1,hours)} saat kaldı`;appAuthorized=true;}
  else if(license.active){$('licenseStatusText').textContent=`Lisans etkin · FULL PAKET${license.expires_at?' · son tarih '+new Date(license.expires_at).toLocaleDateString('tr-TR'):''}`;appAuthorized=true;}
  else $('licenseStatusText').textContent=currentRole==='owner'?'Stagepulse sahibi hesabı doğrulandı.':'Ödeme onaylı etkin lisans veya süresi dolmamış demo gerekli.';
- $('accountStatus').textContent=`Hesap: ${context?.user?.email||'—'}\nYetki: ${currentRole}\nLisans: ${license.active?'etkin':'etkin değil'}\nWeb: https://stagepulse.com.tr`;
- if(context?.user?.email&&!$('accountEmail').value)$('accountEmail').value=context.user.email;if(context?.user?.name&&!$('purchaseCustomerName').value)$('purchaseCustomerName').value=context.user.name;
+ $('accountStatus').textContent=`Hesap: ${context?.user?.email||context?.user?.phone||'—'}\nYetki: ${currentRole}\nLisans: ${license.active?'etkin':'etkin değil'}\nWeb: https://stagepulse.com.tr`;
+ if((context?.user?.email||context?.user?.phone)&&!$('accountEmail').value)$('accountEmail').value=context.user.email||context.user.phone;if(context?.user?.name&&!$('purchaseCustomerName').value)$('purchaseCustomerName').value=context.user.name;
  refreshProfiles();renderStudentModules();
  if(currentRole==='student')refreshStudentProgress().catch(err=>{$('accountStatus').textContent+='\nİlerleme: '+err.message;});
  if(admin){refreshTeacherStudents().catch(err=>{$('teacherProgressStatus').textContent='Öğrenci listesi alınamadı: '+err.message;});refreshLicenseList();}if(context?.user?.id)refreshFullPackageStore();
