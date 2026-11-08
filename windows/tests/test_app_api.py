@@ -221,7 +221,7 @@ def test_owner_login_uses_central_supabase_auth(monkeypatch, tmp_path):
 
 
 def test_username_only_login_is_rejected():
-    with pytest.raises(ValueError, match="Ortak Stagepulse hesabının e-posta adresi"):
+    with pytest.raises(ValueError, match="Telefonu 05xx"):
         Merkez.AppApi().auth_login("stagepulseadmin", "password12345")
 
 
