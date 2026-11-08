@@ -40,6 +40,14 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
+import javax.net.ssl.SSLException
+import java.security.spec.X509EncodedKeySpec
+import java.security.Signature
+import java.security.KeyFactory
+import java.net.UnknownHostException
+import java.net.SocketTimeoutException
+import java.net.ConnectException
+import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URI
 import java.net.URL
@@ -69,6 +77,14 @@ class MainActivity : Activity() {
     @Volatile private var updateDownloadInProgress = false
     private var pendingInstallerPermissionRequest = false
     private var pendingUpdateManifest: MobileUpdateManifest? = null
+    private val offlineLeasePublicKeyPem = """-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhA5HcOfxrcGqZnEvpNBV
+MP7UcKBqvmN5pPk6Tdb42+bkflgBvdcBNG3eRknWMmjr+2xRSOv7bFFI69p2HoTa
+TzPdP5NF2zydBk5llEPiL1uempQpXvS3s7/vQDBb13zdnQWgjWzM9GZPxuMtt5zp
+1ZzgU8uG46+CoPP0osiwtXe/kzkIEURy9GREvjx4MeE9JxTwr/lH79RmclcAuUJA
+MvGwYgKLL/tLPOXwcnTngAn9VJizfgcdHwr2PUgHcgHP6r7ofkfJMlwhqeHBq4V0eBXRnbwrwT9zvFwDLfKAD3AcK3QVvP53pnmU7LUd0jtqBtSLdFXvEPc
+hQIDAQAB
+-----END PUBLIC KEY-----"""
     private fun deliverRuntimePermissionResult(callbackId: String, granted: Boolean, message: String = "") {
         if (!callbackId.matches(Regex("[A-Za-z0-9_-]{1,64}"))) return
         val script = "window.__stagepulseResolveMediaPermission && window.__stagepulseResolveMediaPermission(" +
@@ -458,7 +474,104 @@ class MainActivity : Activity() {
         val context = callSesEdge("context")
         storeSecret("account_context", context.toString())
         storeSecret("validated_at", System.currentTimeMillis().toString())
+        val lease = context.optJSONObject("offline_lease")
+        val userId = context.optJSONObject("user")?.optString("id").orEmpty()
+        if (lease != null && userId.isNotBlank()) {
+            storeSecret("offline_lease", lease.toString())
+            storeSecret("offline_user_id", userId)
+            storeSecret("offline_last_seen_at_ms", System.currentTimeMillis().toString())
+        } else {
+            secureSessionPrefs.edit()
+                .remove("offline_lease")
+                .remove("offline_user_id")
+                .remove("offline_last_seen_at_ms")
+                .apply()
+        }
         return context
+    }
+
+    private fun verifyMobileOfflineLease(
+        envelope: JSONObject,
+        expectedUserId: String,
+        nowMs: Long,
+        lastSeenMs: Long
+    ): JSONObject? = runCatching {
+        if (envelope.optInt("v") != 1 || envelope.optString("alg") != "RS256") return null
+        if (expectedUserId.isBlank() || nowMs + 5L * 60L * 1000L < lastSeenMs) return null
+        val payload = Base64.decode(
+            envelope.getString("payload"),
+            Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING
+        )
+        val signatureBytes = Base64.decode(
+            envelope.getString("signature"),
+            Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING
+        )
+        if (payload.size > 4096 || signatureBytes.size != 256) return null
+        val pemBody = offlineLeasePublicKeyPem
+            .replace("-----BEGIN PUBLIC KEY-----", "")
+            .replace("-----END PUBLIC KEY-----", "")
+            .replace("\\s".toRegex(), "")
+        val publicBytes = Base64.decode(pemBody, Base64.DEFAULT)
+        val publicKey = KeyFactory.getInstance("RSA").generatePublic(X509EncodedKeySpec(publicBytes))
+        val verifier = Signature.getInstance("SHA256withRSA")
+        verifier.initVerify(publicKey)
+        verifier.update(payload)
+        if (!verifier.verify(signatureBytes)) return null
+        val claims = JSONObject(String(payload, Charsets.UTF_8))
+        if (claims.optInt("v") != 1
+            || claims.optString("uid") != expectedUserId
+            || claims.optString("device_hash") != mobileDeviceHash()
+            || claims.optString("app_id") != "ses-merkezi-android"
+            || claims.optString("platform") != "android") return null
+        val issuedAt = claims.optLong("issued_at_ms", -1L)
+        val expiresAt = claims.optLong("expires_at_ms", -1L)
+        if (issuedAt <= 0L || expiresAt <= issuedAt || issuedAt > nowMs + 5L * 60L * 1000L || nowMs >= expiresAt) return null
+        val duration = expiresAt - issuedAt
+        val paid = claims.optBoolean("paid", false)
+        if (paid) {
+            if (claims.optString("entitlement") != "paid" || duration > 14L * 24L * 60L * 60L * 1000L) return null
+            if (!claims.isNull("license_expires_at_ms")) {
+                val licenseExpiry = claims.optLong("license_expires_at_ms", -1L)
+                if (licenseExpiry <= nowMs || expiresAt > licenseExpiry) return null
+            }
+        } else {
+            val trialExpiry = claims.optLong("trial_expires_at_ms", -1L)
+            if (claims.optString("entitlement") != "trial"
+                || duration > 7L * 24L * 60L * 60L * 1000L
+                || trialExpiry <= nowMs || expiresAt > trialExpiry) return null
+        }
+        claims
+    }.getOrNull()
+
+    private fun cachedMobileOfflineLicense(): JSONObject? {
+        val storedSession = readSecret("session")?.let { JSONObject(it) } ?: return null
+        val sessionUserId = storedSession.optJSONObject("user")?.optString("id").orEmpty()
+        val cachedUserId = readSecret("offline_user_id").orEmpty()
+        if (sessionUserId.isBlank() || sessionUserId != cachedUserId) return null
+        val envelope = readSecret("offline_lease")?.let { JSONObject(it) } ?: return null
+        val now = System.currentTimeMillis()
+        val lastSeen = readSecret("offline_last_seen_at_ms")?.toLongOrNull() ?: 0L
+        val claims = verifyMobileOfflineLease(envelope, sessionUserId, now, lastSeen) ?: return null
+        storeSecret("offline_last_seen_at_ms", now.toString())
+        val trial = claims.optString("entitlement") == "trial"
+        val result = JSONObject()
+            .put("active", true)
+            .put("paid", claims.optBoolean("paid", false))
+            .put("trial_active", trial)
+            .put("plan_code", claims.optString("plan_code"))
+            .put("bundle_code", claims.optString("bundle_code"))
+            .put("lease_expires_at_ms", claims.optLong("expires_at_ms"))
+        val licenseExpiry = claims.optLong("license_expires_at_ms", -1L)
+        if (licenseExpiry > 0L) result.put("expires_at", java.time.Instant.ofEpochMilli(licenseExpiry).toString())
+        return result
+    }
+
+    private fun offlineRestoreResult(cause: Exception): JSONObject {
+        val cached = cachedMobileOfflineLicense()
+        if (cached != null) {
+            return JSONObject().put("authenticated", false).put("offline", true).put("license", cached)
+        }
+        throw cause
     }
 
     private fun clearMobileAuthSession() {
@@ -466,6 +579,9 @@ class MainActivity : Activity() {
             .remove("session")
             .remove("account_context")
             .remove("validated_at")
+            .remove("offline_lease")
+            .remove("offline_user_id")
+            .remove("offline_last_seen_at_ms")
             .apply()
     }
 
@@ -474,8 +590,6 @@ class MainActivity : Activity() {
             return JSONObject().put("authenticated", false)
         }
         return try {
-            // Validate the access token, rotate an expired refresh token, then reload
-            // the current server-side role and license context.
             requireMobileAccessToken()
             val context = fetchMobileContext()
             JSONObject().put("authenticated", true).put("context", context)
@@ -483,9 +597,15 @@ class MainActivity : Activity() {
             if (e.statusCode in 400..403) {
                 clearMobileAuthSession()
                 JSONObject().put("authenticated", false)
+            } else if (e.statusCode >= 500) {
+                offlineRestoreResult(e)
             } else {
                 throw e
             }
+        } catch (e: IOException) {
+            if (e is SSLException) throw e
+            if (e !is UnknownHostException && e !is ConnectException && e !is SocketTimeoutException) throw e
+            offlineRestoreResult(e)
         }
     }
 
@@ -875,33 +995,13 @@ class MainActivity : Activity() {
             "install_update" -> return queueMobileAppUpdate(payload.optString("manifest"))
             "ai_chat" -> return requestMobileAi(payload)
             "app_info" -> {
-                val cached = readSecret("account_context")?.let { JSONObject(it) }
-                val validatedAt = readSecret("validated_at")?.toLongOrNull() ?: 0L
-                val licensed = cached?.optJSONObject("licensed")
-                val trial = cached?.optJSONObject("trial")
-                val licensedActive = licensed?.optBoolean("active", false) == true
-                val trialActive = trial?.optBoolean("active", false) == true && !licensedActive
-                val cachedUserId = cached?.optJSONObject("user")?.optString("id").orEmpty()
-                val storedSession = readSecret("session")?.let { JSONObject(it) }
-                val sessionUserId = storedSession?.optJSONObject("user")?.optString("id").orEmpty()
-                val sameUser = sessionUserId.isBlank() || cachedUserId == sessionUserId
-                val expiresAt = if (licensedActive) licensed?.optString("expires_at").orEmpty() else trial?.optString("expires_at").orEmpty()
-                val notExpired = expiresAt.isBlank() || runCatching {
-                    java.time.Instant.parse(expiresAt).toEpochMilli() > System.currentTimeMillis()
-                }.getOrDefault(false)
-                val now = System.currentTimeMillis()
-                val hasEntitlement = licensedActive || trialActive
-                val validCache = hasEntitlement && sameUser
-                    && validatedAt > 0L && validatedAt <= now + 5L * 60L * 1000L
-                    && now - validatedAt <= 7L * 24L * 60L * 60L * 1000L && notExpired
-                val cachedEntitlement = JSONObject()
-                    .put("active", validCache)
-                    .put("trial", validCache && trialActive)
-                    .put("expires_at", expiresAt)
+                val cachedLicense = cachedMobileOfflineLicense()
+                val validCache = cachedLicense != null
                 return JSONObject()
                     .put("platform", "android")
                     .put("version", BuildConfig.VERSION_NAME)
-                    .put("cached_license", cachedEntitlement)
+                    .put("offline_license_grace_days", 14)
+                    .put("cached_license", cachedLicense ?: JSONObject().put("active", false))
                     .put("offline_cache", validCache)
             }
             "auth_login" -> {
