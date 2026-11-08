@@ -694,98 +694,117 @@ class MainActivity : Activity() {
         updateDownloadInProgress = true
         Toast.makeText(this, "Stagepulse güncellemesi indiriliyor ve doğrulanıyor…", Toast.LENGTH_LONG).show()
         Thread {
-            var connection: HttpURLConnection? = null
             var downloadedApk: File? = null
             var failure: String? = null
             val updatesDir = File(cacheDir, "updates").apply { mkdirs() }
             val safeVersion = update.versionName.replace(Regex("[^0-9.]"), "_")
             val partial = File(updatesDir, "Stagepulse-" + safeVersion + ".apk.part")
             val target = File(updatesDir, "Stagepulse-" + safeVersion + ".apk")
-            try {
-                partial.delete()
-                connection = (URL(update.apkUrl).openConnection() as HttpURLConnection).apply {
-                    connectTimeout = 15000
-                    readTimeout = 60000
-                    instanceFollowRedirects = true
-                    setRequestProperty("Accept", "application/vnd.android.package-archive")
-                    setRequestProperty("User-Agent", "StagepulseSesMerkezi-Android/" + BuildConfig.VERSION_NAME)
-                }
-                val responseCode = connection.responseCode
-                val finalHost = connection.url.host.lowercase()
-                if (responseCode !in 200..299 ||
-                    finalHost !in setOf("github.com", "release-assets.githubusercontent.com")) {
-                    throw IllegalStateException("Güncelleme indirme adresi veya sunucu yanıtı geçersiz.")
-                }
-                if (connection.contentLengthLong > 512L * 1024L * 1024L) {
-                    throw IllegalStateException("Android güncelleme paketi izin verilen boyutu aşıyor.")
-                }
 
-                val digest = MessageDigest.getInstance("SHA-256")
-                var total = 0L
-                connection.inputStream.use { input ->
-                    FileOutputStream(partial).use { output ->
-                        val buffer = ByteArray(64 * 1024)
-                        while (true) {
-                            val count = input.read(buffer)
-                            if (count < 0) break
-                            total += count
-                            if (total > 512L * 1024L * 1024L) {
-                                throw IllegalStateException("Android güncelleme paketi 512 MiB sınırını aşıyor.")
-                            }
-                            digest.update(buffer, 0, count)
-                            output.write(buffer, 0, count)
+            try {
+                var lastError: Exception? = null
+                for (attempt in 1..3) {
+                    var connection: HttpURLConnection? = null
+                    partial.delete()
+                    try {
+                        connection = (URL(update.apkUrl).openConnection() as HttpURLConnection).apply {
+                            connectTimeout = 30000
+                            readTimeout = 180000
+                            instanceFollowRedirects = true
+                            setRequestProperty("Accept", "application/vnd.android.package-archive")
+                            setRequestProperty("User-Agent", "StagepulseSesMerkezi-Android/" + BuildConfig.VERSION_NAME)
                         }
-                        output.fd.sync()
+                        val responseCode = connection.responseCode
+                        val finalHost = connection.url.host.lowercase()
+                        if (responseCode !in 200..299 ||
+                            finalHost !in setOf("github.com", "release-assets.githubusercontent.com")) {
+                            throw IllegalStateException("Güncelleme indirme adresi veya sunucu yanıtı geçersiz.")
+                        }
+                        if (connection.contentLengthLong > 512L * 1024L * 1024L) {
+                            throw IllegalStateException("Android güncelleme paketi izin verilen boyutu aşıyor.")
+                        }
+
+                        val digest = MessageDigest.getInstance("SHA-256")
+                        var total = 0L
+                        connection.inputStream.use { input ->
+                            FileOutputStream(partial).use { output ->
+                                val buffer = ByteArray(64 * 1024)
+                                while (true) {
+                                    val count = input.read(buffer)
+                                    if (count < 0) break
+                                    total += count
+                                    if (total > 512L * 1024L * 1024L) {
+                                        throw IllegalStateException("Android güncelleme paketi 512 MiB sınırını aşıyor.")
+                                    }
+                                    digest.update(buffer, 0, count)
+                                    output.write(buffer, 0, count)
+                                }
+                                output.fd.sync()
+                            }
+                        }
+                        val actualHash = digest.digest().joinToString("") {
+                            (it.toInt() and 0xff).toString(16).padStart(2, '0')
+                        }
+                        if (total < 1024L * 1024L || actualHash != update.apkSha256) {
+                            throw IllegalStateException("APK SHA-256 doğrulaması başarısız. Paket kurulmayacak.")
+                        }
+
+                        val signatureFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            PackageManager.GET_SIGNING_CERTIFICATES
+                        } else {
+                            @Suppress("DEPRECATION")
+                            PackageManager.GET_SIGNATURES
+                        }
+                        val candidateInfo = packageManager.getPackageArchiveInfo(partial.absolutePath, signatureFlags)
+                            ?: throw SecurityException("İndirilen APK okunamadı.")
+                        if (candidateInfo.packageName != packageName) {
+                            throw SecurityException("Güncelleme paketi farklı bir uygulamaya ait.")
+                        }
+                        @Suppress("DEPRECATION")
+                        val installedInfo = packageManager.getPackageInfo(packageName, signatureFlags)
+                        val candidateSigners = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            val signing = candidateInfo.signingInfo ?: throw SecurityException("APK imza bilgisi yok.")
+                            if (signing.hasMultipleSigners()) throw SecurityException("Çok imzalı güncelleme paketi reddedildi.")
+                            signing.apkContentsSigners
+                        } else candidateInfo.signatures ?: emptyArray()
+                        val installedSigners = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                            val signing = installedInfo.signingInfo ?: throw SecurityException("Kurulu uygulamanın imzası okunamadı.")
+                            if (signing.hasMultipleSigners()) throw SecurityException("Kurulu uygulama çoklu imzalı.")
+                            signing.apkContentsSigners
+                        } else installedInfo.signatures ?: emptyArray()
+                        fun signerFingerprints(signers: Array<android.content.pm.Signature>) =
+                            signers.map { signer ->
+                                MessageDigest.getInstance("SHA-256").digest(signer.toByteArray())
+                                    .joinToString("") { byte -> (byte.toInt() and 0xff).toString(16).padStart(2, '0') }
+                            }.toSet()
+                        if (candidateSigners.isEmpty() || signerFingerprints(candidateSigners) != signerFingerprints(installedSigners)) {
+                            throw SecurityException("Güncelleme imzası kurulu Stagepulse uygulamasıyla eşleşmiyor.")
+                        }
+
+                        target.delete()
+                        if (!partial.renameTo(target)) {
+                            throw IllegalStateException("Doğrulanan Android APK dosyası hazırlanamadı.")
+                        }
+                        downloadedApk = target
+                        lastError = null
+                        break
+                    } catch (error: SecurityException) {
+                        throw error
+                    } catch (error: Exception) {
+                        lastError = error
+                        partial.delete()
+                        if (attempt < 3) Thread.sleep(attempt * 1000L)
+                    } finally {
+                        connection?.disconnect()
                     }
                 }
-                val actualHash = digest.digest().joinToString("") {
-                    (it.toInt() and 0xff).toString(16).padStart(2, '0')
+                if (downloadedApk == null) {
+                    throw lastError ?: IllegalStateException("Android güncellemesi üç denemede indirilemedi.")
                 }
-                if (total < 1024L * 1024L || actualHash != update.apkSha256) {
-                    throw IllegalStateException("APK SHA-256 doğrulaması başarısız. Paket kurulmayacak.")
-                }
-
-                val signatureFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    PackageManager.GET_SIGNING_CERTIFICATES
-                } else {
-                    @Suppress("DEPRECATION")
-                    PackageManager.GET_SIGNATURES
-                }
-                val candidateInfo = packageManager.getPackageArchiveInfo(partial.absolutePath, signatureFlags)
-                    ?: throw SecurityException("İndirilen APK okunamadı.")
-                if (candidateInfo.packageName != packageName) {
-                    throw SecurityException("Güncelleme paketi farklı bir uygulamaya ait.")
-                }
-                @Suppress("DEPRECATION")
-                val installedInfo = packageManager.getPackageInfo(packageName, signatureFlags)
-                val candidateSigners = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    val signing = candidateInfo.signingInfo ?: throw SecurityException("APK imza bilgisi yok.")
-                    if (signing.hasMultipleSigners()) throw SecurityException("Çok imzalı güncelleme paketi reddedildi.")
-                    signing.apkContentsSigners
-                } else candidateInfo.signatures ?: emptyArray()
-                val installedSigners = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    val signing = installedInfo.signingInfo ?: throw SecurityException("Kurulu uygulamanın imzası okunamadı.")
-                    if (signing.hasMultipleSigners()) throw SecurityException("Kurulu uygulama çoklu imzalı.")
-                    signing.apkContentsSigners
-                } else installedInfo.signatures ?: emptyArray()
-                fun signerFingerprints(signers: Array<android.content.pm.Signature>) =
-                    signers.map { signer ->
-                        MessageDigest.getInstance("SHA-256").digest(signer.toByteArray())
-                            .joinToString("") { byte -> (byte.toInt() and 0xff).toString(16).padStart(2, '0') }
-                    }.toSet()
-                if (candidateSigners.isEmpty() || signerFingerprints(candidateSigners) != signerFingerprints(installedSigners)) {
-                    throw SecurityException("Güncelleme imzası kurulu Stagepulse uygulamasıyla eşleşmiyor.")
-                }
-                target.delete()
-                if (!partial.renameTo(target)) {
-                    throw IllegalStateException("Doğrulanan Android APK dosyası hazırlanamadı.")
-                }
-                downloadedApk = target
             } catch (error: Exception) {
                 failure = error.message ?: "Android güncellemesi indirilemedi."
                 android.util.Log.e("StagepulseUpdate", "Android güncellemesi indirilemedi veya doğrulanamadı", error)
             } finally {
-                connection?.disconnect()
                 partial.delete()
             }
 
