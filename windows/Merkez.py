@@ -34,6 +34,7 @@ UPDATE_MANIFEST_URL = f"https://itasctyjzyewcykozuex.supabase.co/functions/v1/se
 OFFLINE_TRIAL_LICENSE_GRACE_DAYS = 7
 OFFLINE_PAID_LICENSE_GRACE_DAYS = 14
 OFFLINE_LICENSE_GRACE_DAYS = OFFLINE_TRIAL_LICENSE_GRACE_DAYS
+# Ücretli offline lisans en fazla 14 gün, deneme lisansı en fazla 7 gün geçerlidir.
 if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
     RESOURCE_ROOT = Path(sys._MEIPASS).resolve()
     APP_HOME = Path(sys.executable).resolve().parent

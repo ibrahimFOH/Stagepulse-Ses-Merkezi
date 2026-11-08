@@ -89,21 +89,28 @@ jobs:
           PY
           )"
 
-          TAG="ses-merkezi-v$RELEASE_VERSION"
+          BASE_TAG="ses-merkezi-v$RELEASE_VERSION"
+          TAG="$BASE_TAG"
           EXISTING_SHA="$(git ls-remote --refs origin "refs/tags/$TAG" | awk 'NR==1 {print $1}')"
-
+          
+          # Aynı sürüm için eski kaynak etiketi varsa onu ezme; bu commit için benzersiz etiket kullan.
           if [[ -n "$EXISTING_SHA" && "$EXISTING_SHA" != "$GITHUB_SHA" ]]; then
-            echo "::error:: $TAG etiketi başka bir commit'e bağlı. Aynı sürüm yeniden yayımlanamaz; Android ve Windows sürüm numaralarını artırın."
+            TAG="${BASE_TAG}-${GITHUB_SHA:0:8}"
+            EXISTING_SHA="$(git ls-remote --refs origin "refs/tags/$TAG" | awk 'NR==1 {print $1}')"
+          fi
+          
+          if [[ -n "$EXISTING_SHA" && "$EXISTING_SHA" != "$GITHUB_SHA" ]]; then
+            echo "::error:: $TAG etiketi farklı bir commit kullanıyor."
             exit 1
           fi
-
+          
           if [[ -z "$EXISTING_SHA" ]]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git tag "$TAG" "$GITHUB_SHA"
             git push origin "refs/tags/$TAG"
           else
-            echo "Kaynak etiketi zaten bu commit'i gösteriyor: $TAG"
+            echo "Kaynak etiketi aynı SHA değerini gösteriyor: $TAG"
           fi
 
           PAYLOAD="$(python3 - "$RELEASE_VERSION" "refs/tags/$TAG" <<'PY'
