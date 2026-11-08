@@ -41,7 +41,7 @@
       <button class="nav-item" data-route="account"><span>♙</span>Hesap / lisans</button>
       <button class="nav-item" data-route="settings"><span>⚙</span>Ayarlar ve gizlilik</button>
     </nav>
-    <div class="sidebar-foot"><div class="foot-line"><span class="status-dot"></span><span id="connectionText">Yerel mod hazır</span></div><small>v3.8.9 · Stagepulse · Yerel ses mühendisliği araçları</small></div>
+    <div class="sidebar-foot"><div class="foot-line"><span class="status-dot"></span><span id="connectionText">Yerel mod hazır</span></div><small>v3.9.0 · Stagepulse · Yerel ses mühendisliği araçları</small></div>
   </aside>
 
   <main class="main-area">
@@ -217,8 +217,11 @@
         <div class="field"><label for="rtaSmooth">Tepki / yumuşatma</label><select id="rtaSmooth"><option value="fast">Hızlı (0,12 s)</option><option value="medium" selected>Orta (0,5 s)</option><option value="slow">Yavaş (1,5 s)</option></select></div>
         <div class="field"><label for="rtaOffset">Göreli grafik kaydırma (dB)</label><input id="rtaOffset" type="number" value="0" min="-60" max="60" step="0.5"></div>
         <div class="field field-actions rta-main-actions"><label>&nbsp;</label><button class="btn btn-gold" id="rtaStart">Mikrofonu başlat</button><button class="btn btn-secondary" id="rtaStop" disabled>Durdur</button><button class="btn btn-secondary" id="rtaResetPeak">Peak sıfırla</button></div>
+        <div class="field"><label for="rtaCalibratorLevel">Ses kalibratörü</label><select id="rtaCalibratorLevel"><option value="94">94 dB SPL · 1 kHz</option><option value="114">114 dB SPL · 1 kHz</option></select></div>
+        <div class="field field-actions"><label>&nbsp;</label><button class="btn btn-secondary" id="rtaCalibrate">SPL kalibrasyonu yap</button></div>
       </div>
-      <div class="panel rta-diagnostics"><div class="chart-header"><h3>Giriş seviyesi</h3><small class="muted">Canlı peak / RMS · dBFS</small></div><div class="rta-meter-row"><span>PEAK</span><div class="rta-meter-track"><i id="rtaPeakMeterFill"></i></div><strong id="rtaPeakMeterValue">−∞ dBFS</strong></div><div class="rta-meter-row"><span>RMS</span><div class="rta-meter-track rms"><i id="rtaRmsMeterFill"></i></div><strong id="rtaRmsMeterValue">−∞ dBFS</strong></div><div id="rtaInputMeter" class="rta-input-meter">Giriş seviyesi: henüz ölçülmedi.</div><div id="rtaCaptureInfo" class="rta-capture-info">Aygıt, örnekleme hızı, FFT ve ölçüm sınırları burada gösterilir. Ses kaydedilmez.</div></div>
+      <div class="notice"><strong>SPL kalibrasyonu için fiziksel referans gerekir</strong><span>Mikrofon kapsülüne uygun 1 kHz akustik ses kalibratörünü tak. Kalibratörün üzerinde yazan 94 veya 114 dB SPL değerini seçip kalibrasyonu başlat. Hoparlörden çalınan test tonu bu kalibrasyonun yerine geçmez. Kalibrasyon yalnızca mevcut oturum ve giriş aygıtı için saklanır.</span></div>
+      <div class="panel rta-diagnostics"><div class="chart-header"><h3>Giriş seviyesi</h3><small class="muted">Canlı peak / RMS · dBFS</small></div><div class="rta-meter-row"><span>PEAK</span><div class="rta-meter-track"><i id="rtaPeakMeterFill"></i></div><strong id="rtaPeakMeterValue">−∞ dBFS</strong></div><div class="rta-meter-row"><span>RMS</span><div class="rta-meter-track rms"><i id="rtaRmsMeterFill"></i></div><strong id="rtaRmsMeterValue">−∞ dBFS</strong></div><div id="rtaInputMeter" class="rta-input-meter">Giriş seviyesi: henüz ölçülmedi.</div><div id="rtaCaptureInfo" class="rta-capture-info">Aygıt, örnekleme hızı, FFT ve ölçüm sınırları burada gösterilir. Fiziksel 1 kHz ses kalibratörüyle oturumluk dB SPL kalibrasyonu yapılabilir.</div></div>
       <div class="panel"><div class="chart-header"><div><h3>Spektrum</h3><small id="rtaStatus" class="muted">Başlatılmadı.</small></div><div class="legend"><span><i class="legend-live"></i> Canlı spektrum</span><span><i class="legend-peak"></i> Tepe tutma</span></div></div><canvas id="rtaCanvas" height="360" aria-label="Göreli ses spektrum grafiği"></canvas><div class="chart-footer"><span id="rtaAxisMin">20 Hz</span><span>Logaritmik frekans ekseni · bant gücü</span><span id="rtaAxisMax">20 kHz</span></div></div>
       <div class="panel rta-optimizer"><div class="panel-head"><div><span class="eyebrow">YARDIMCI ANALİZ</span><h3>Canlı spektrumdan EQ adayları</h3></div><label class="toggle-label"><input type="checkbox" id="rtaOptimizeEnabled" checked> Canlı önerileri güncelle</label></div>
         <label class="toggle-label rta-test-signal-confirm"><input type="checkbox" id="rtaOptimizerTestSignalConfirm"> Pembe gürültü veya sabit bantlı test sinyali kullanıyorum (müzik/konuşma sırasında EQ önerisi üretme)</label>
@@ -230,7 +233,16 @@
       <div class="notice"><strong>Ölçüm sınırı</strong><span>Bu araç, uygulamaya yerel PortAudio girişinden alınan örnekler üzerinde FFT ve oktav/1/3 oktav güç bantları hesaplar. IEC 61260 sınıf 1/2 analizörü, kalibre edilmiş dB SPL ölçer, ölçülmüş mikrofon frekans cevabı, faz veya transfer-function analizinin yerine geçmez. Üst bantlar gerçek örnekleme frekansı/Nyquist sınırına göre otomatik dışlanır; offset yalnızca çizimi kaydırır, kalibrasyon değildir.</span></div>
       <div class="panel acoustic-transfer-panel">
         <div class="panel-head"><div><span class="eyebrow">İKİ KANALLI ÖLÇÜM / TRANSFER FUNCTION</span><h3>Akustik Sistem Analizi</h3></div><span class="badge badge-gold">Yerel DSP</span></div>
-        <p class="muted">Eşzamanlı kaydedilmiş stereo WAV seç. Sol kanal referans, sağ kanal ölçüm kabul edilir. Dosya bilgisayarda işlenir ve sunucuya gönderilmez.</p>
+        <p class="muted">Aynı ses kartının iki giriş kanalını kullan. CH0 referans sinyali, CH1 ölçüm mikrofonudur. Canlı analiz yalnızca Windows masaüstü sürümünde yerel çalışır.</p>
+        <div class="field-row acoustic-settings-row">
+          <div class="field"><label for="liveTfDevice">Stereo giriş aygıtı</label><select id="liveTfDevice"><option value="">Aygıtları yenile</option></select></div>
+          <div class="field"><label for="liveTfFft">FFT boyutu</label><select id="liveTfFft"><option value="8192">8192</option><option value="16384" selected>16384</option><option value="32768">32768</option></select></div>
+          <div class="field"><label for="liveTfAverages">Ortalama</label><select id="liveTfAverages"><option value="4">4</option><option value="8" selected>8</option><option value="16">16</option><option value="32">32</option></select></div>
+          <div class="field field-actions"><label>&nbsp;</label><button class="btn btn-secondary" id="refreshLiveTfDevices" type="button">Aygıtları yenile</button></div>
+          <div class="field field-actions"><label>&nbsp;</label><button class="btn btn-gold" id="startLiveTf" type="button">Canlı TF başlat</button><button class="btn btn-secondary" id="stopLiveTf" type="button" disabled>Durdur</button></div>
+        </div>
+        <div id="liveTfStatus" class="report-box" aria-live="polite">Canlı TF için aynı ses kartında en az iki giriş kanalı gerekir. CH0 referans, CH1 ölçüm mikrofonu.</div>
+        <div class="notice"><strong>Bağlantı</strong><span>Referans sinyalini ses kartının 1. girişine, ölçüm mikrofonunu 2. girişine bağla. İki kanal aynı cihaz ve saat kaynağında olmalı. Pembe gürültü kullan; geri beslemeyi önlemek için kulaklık ve düşük seviye tercih et.</span></div>
         <div class="field-row acoustic-settings-row">
           <div class="field"><label for="acousticSegmentSize">Analiz segmenti</label><select id="acousticSegmentSize"><option value="2048">2048</option><option value="4096">4096</option><option value="8192" selected>8192</option><option value="16384">16384</option></select></div>
           <div class="field"><label for="acousticOverlap">Örtüşme</label><select id="acousticOverlap"><option value="0.25">25%</option><option value="0.5" selected>50%</option><option value="0.75">75%</option></select></div>
@@ -243,7 +255,7 @@
           <div class="acoustic-chart-card"><h4>Coherence</h4><canvas id="acousticCoherenceChart" height="210"></canvas></div>
         </div>
         <div class="field-row acoustic-result-row"><div id="acousticDelayResult" class="report-box">Delay Finder: henüz ölçülmedi.</div><div id="acousticIrResult" class="report-box">Impulse Response / ETC: henüz hesaplanmadı.</div></div>
-        <div class="notice notice-warn"><strong>Ölçüm sınırı</strong><span>Bu ilk sürüm stereo WAV üzerinden çalışır; canlı iki kanallı ses kartı yakalama henüz yoktur. Referans ve ölçüm aynı saat kaynağıyla eşzamanlı kaydedilmelidir. dB SPL kalibrasyonu yapılmaz. Sonuçlar saha ölçümü, mikrofon kalibrasyonu veya Smaart uyumluluğu sertifikası değildir.</span></div>
+        <div class="notice notice-warn"><strong>Ölçüm sınırı</strong><span>Canlı ve dosya tabanlı H1 ölçümleri göreli magnitude, faz ve coherence üretir. Bu ekran dB SPL kalibrasyonu, mikrofon frekans düzeltmesi veya Smaart uyumluluğu sertifikası sağlamaz. Saha kararları ölçüm zinciri ve akustik koşullar doğrulanarak verilmelidir.</span></div>
       </div>
     </section>
 

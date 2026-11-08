@@ -208,11 +208,13 @@ def test_ses_merkezi_uses_one_license_scope_without_bundle_picker():
     html = (ROOT / 'ui/index.html').read_text('utf-8')
     ui = (ROOT / 'ui/app.js').read_text('utf-8')
     edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
+    migration = (ROOT / 'supabase/migrations/20261107143000_sesm_full_package_bank_transfer.sql').read_text('utf-8')
 
     assert 'licenseBundle' not in html
     assert 'licenseBundle' not in ui
     assert 'paket ${' not in ui
-    assert 'const bundle = "full_master";' in edge
+    assert 'sesm_review_full_package_purchase' in edge
+    assert "'full_master'" in migration
     assert 'allowedBundles' not in edge
 
 def test_device_revoke_is_atomic_and_inactive_bindings_can_transfer():
@@ -225,3 +227,52 @@ def test_device_revoke_is_atomic_and_inactive_bindings_can_transfer():
     assert 'grant execute on function public.sesm_revoke_activation(uuid,uuid) to service_role' in migration
     assert 'is_active=true and user_id is not null and user_id<>p_user_id' in migration
     assert 'admin.rpc("sesm_revoke_activation"' in edge
+
+
+def test_live_measurement_controls_are_exposed_with_explicit_limits():
+    html = (ROOT / 'ui' / 'index.html').read_text('utf-8')
+    app = (ROOT / 'ui' / 'app.js').read_text('utf-8')
+    core = (ROOT / 'core' / 'rta_capture.py').read_text('utf-8')
+    tf = (ROOT / 'core' / 'tf_capture.py').read_text('utf-8')
+    bridge = (ROOT / 'Merkez.py').read_text('utf-8')
+
+    assert 'id="startLiveTf"' in html and 'id="liveTfDevice"' in html
+    assert 'list_tf_devices' in bridge and 'start_tf' in bridge and 'get_tf_snapshot' in bridge
+    assert 'function initLiveTfControls()' in app
+    assert 'calibrate_spl' in core and 'id="rtaCalibrate"' in html
+    assert 'stream_stale' in core and 'stream_stale' in tf
+    assert "if(snapshot.stream_stale){rtaSmoothed=null;rtaTraceHistory=[];drawRta([]);}" in app
+    assert "if(snapshot.stream_stale){" in app and "const blank=Array(snapshot.centers.length).fill(Number.NaN);" in app
+    assert 'SPL kalibrasyonu' in app
+    assert 'IEC sınıfı' in app or 'IEC' in html
+
+
+def test_full_package_bank_transfer_requires_owner_approval_and_server_license_creation():
+    migration = (ROOT / 'supabase/migrations/20261107143000_sesm_full_package_bank_transfer.sql').read_text('utf-8')
+    edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
+
+    assert "product_code text not null default 'full_package' check (product_code = 'full_package')" in migration
+    assert "payment_method in ('cash','bank_transfer','legacy')" in migration
+    assert 'revoke all on public.sesm_purchase_requests from anon, authenticated' in migration
+    assert 'sesm_purchase_requests_one_open_or_approved_per_user_idx' in migration
+    assert 'if (action === "purchase_submit")' in edge
+    assert 'if (action === "purchase_review")' in edge
+    assert 'await requireOwner(user.id)' in edge
+    assert 'admin.rpc("sesm_review_full_package_purchase"' in edge
+    assert "'bank_transfer','paid'" in migration
+    assert 'purchase_reference' not in edge
+
+
+def test_full_package_sales_cannot_bypass_bank_transfer_owner_approval():
+    desktop_edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
+    core_edge = (ROOT / 'supabase/functions/license-core/index.ts').read_text('utf-8')
+
+    direct_create = desktop_edge[desktop_edge.index('if (action === "license_create")'):]
+    direct_create = direct_create[:direct_create.index('if (action === "license_payment_update")')]
+    assert 'BANK_TRANSFER_APPROVAL_REQUIRED' in direct_create
+    assert 'sesm_review_full_package_purchase' in desktop_edge
+    assert 'purchase_review' in desktop_edge
+    admin_create = core_edge[core_edge.index('async function adminCreate'):core_edge.index('Deno.serve')]
+    assert 'appId === "ses-merkezi"' in admin_create
+    assert 'appId === "ses-merkezi-android"' in admin_create
+    assert 'BANK_TRANSFER_APPROVAL_REQUIRED' in admin_create

@@ -25,7 +25,7 @@ from urllib.error import HTTPError, URLError
 from core.acoustic_api import AcousticAnalysisApi
 
 APP_NAME = "Stagepulse Ses Mühendisliği Merkezi"
-APP_VERSION = "3.8.9"
+APP_VERSION = "3.9.0"
 SUPABASE_URL = "https://itasctyjzyewcykozuex.supabase.co"
 SUPABASE_PUBLISHABLE_KEY = "sb_publishable_tP3CMhVAjv6FNtrkYfVEOA_dbF9m8Jb"
 WEBSITE_URL = "https://stagepulse.com.tr"
@@ -177,6 +177,14 @@ class AppApi(AcousticAnalysisApi):
             raise ValueError("FFT boyutu sayısal olmalı.") from exc
         return self._get_rta_capture().start(selected, n)
 
+    def calibrate_rta_spl(self, reference_spl_db: Any = 94.0) -> dict[str, Any]:
+        """Calibrate the active native RTA input against a physical sound calibrator."""
+        try:
+            reference = float(reference_spl_db)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Kalibratör referansı sayısal olmalı.") from exc
+        return self._get_rta_capture().calibrate_spl(reference)
+
     def get_rta_snapshot(self, mode: str = "third", min_hz: Any = 20,
                          max_hz: Any = 20000) -> dict[str, Any]:
         if mode not in ("third", "octave"):
@@ -199,6 +207,12 @@ class AppApi(AcousticAnalysisApi):
             from core.tf_capture import TFCapture
             self._tf_capture = TFCapture()
         return self._tf_capture
+
+    def list_tf_devices(self) -> list[dict[str, Any]]:
+        """List only native input devices with at least two simultaneous channels."""
+        from core.rta_capture import list_input_devices
+        return [device for device in list_input_devices()
+                if int(device.get("max_input_channels", 0) or 0) >= 2]
 
     def start_tf(self, device_index: Any = None, fft_size: int = 16384,
                  averages: int = 8) -> dict[str, Any]:
@@ -786,12 +800,22 @@ class AppApi(AcousticAnalysisApi):
         version = str(manifest.get("version", ""))
         url = str(manifest.get("url", ""))
         digest = str(manifest.get("sha256", "")).lower()
-        if not version or not url or not __import__("re").fullmatch(r"[0-9a-f]{64}", digest):
-            raise RuntimeError("Güncelleme bildirimi version, url ve SHA-256 alanlarını içermeli.")
+        import re
+        if (manifest.get("ok") is not True or
+                manifest.get("channel") != UPDATE_CHANNEL or
+                manifest.get("prerelease") is not False):
+            raise RuntimeError("Yalnızca yayımlanmış kararlı güncellemeler kabul edilir.")
+        if (not re.fullmatch(r"\d+\.\d+\.\d+", version) or
+                not re.fullmatch(r"[0-9a-f]{64}", digest)):
+            raise RuntimeError("Güncelleme bildiriminin sürüm veya SHA-256 alanı geçersiz.")
+        filename = f"Stagepulse-Ses-Merkezi-Windows-{version}.exe"
+        expected_path = f"/ibrahimFOH/Stagepulse-Releases/releases/download/v{version}/{filename}"
         parsed = urlparse(url)
         if (parsed.scheme != "https" or parsed.hostname != "github.com" or
-                parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.port):
-            raise RuntimeError("Güncelleme indirme adresi güvenilir Stagepulse yayın deposuna ait değil.")
+                parsed.path != expected_path or parsed.username or parsed.password or
+                parsed.query or parsed.fragment or parsed.port or
+                manifest.get("filename") != filename):
+            raise RuntimeError("Güncelleme adresi beklenen Stagepulse kararlı yayın dosyası değil.")
         available = _version_tuple(version) > _version_tuple(APP_VERSION)
         return {"ok": True, "published": True, "available": available, "current_version": APP_VERSION, "version": version,
                 "url": url, "sha256": digest, "channel": str(manifest.get("channel", UPDATE_CHANNEL)), "notes": str(manifest.get("notes", ""))[:2000],

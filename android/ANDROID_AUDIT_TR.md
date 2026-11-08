@@ -1,63 +1,57 @@
-# Android kaynak ve paket denetim raporu
+# Stagepulse Android kaynak ve kabul denetimi
 
-**Kaynak sürümü:** 3.7.4  
-**Sürüm kodu:** 30704  
-**Son kaynak incelemesi:** 4 Kasım 2026
+**Kaynak sürümü:** 3.9.0  
+**Sürüm kodu:** 30900  
+**Denetim kapsamı:** Android kaynak ağacı ve paketleme sözleşmeleri
 
-## Doğrulanan kaynak yapısı
+## Mevcut mimari
 
-- WebView, `WebViewAssetLoader` ile `https://appassets.androidplatform.net/assets/ui/index.html` adresinden yerel paket içeriğini açar.
-- WebView dosya erişimi kapalıdır; düz HTTP karışık içerik kabul edilmez.
-- Arayüz HTML/CSS/JavaScript ve gerekli görseller Android assets içine paketlenir.
-- Telefon görünümü mobil menü ve tek sütun akışına; tablet görünümü sürekli gezinme rayı ve kullanılabilir yatay alana göre düzenlenir. 601–800 piksel aralığında telefon/tablet medya sorgularının çakışması giderilmiştir.
-- 13 öğrenci PDF'i ve 12 uygulama içi ders kılavuzu paket kaynaklarında mevcuttur.
-- Android Kotlin köprüsünde öğrenci PDF listesi, paketlenen PDF listesiyle eşleşecek şekilde doğrulanır.
-- WebAudio RTA göreli dBFS görünümü sağlar; kalibre edilmiş SPL, faz veya transfer-function ölçümü değildir.
-- Android dosya seçicisi ve WAV peak/RMS analiz akışı bulunur.
-- Yaklaşık loudness düzeyleme ve stereo 16-bit PCM WAV dışa aktarma bulunur; sertifikalı LUFS/true-peak uygunluk ölçümü veya limiter iddiası yoktur.
+- Kotlin ana uygulaması, yerel WebViewAssetLoader üzerinden paketlenmiş Türkçe HTML/CSS/JavaScript arayüzünü açar.
+- WebView dosya erişimi kapalıdır; yerel varlıklar HTTPS uygulama şeması üzerinden sunulur.
+- Öğrenci kitaplığı 13 PDF, uygulama içi kılavuz kataloğu 12 belge içerir.
+- WebAudio RTA telefon/tablet mikrofonu veya seçilen USB ses girişini kullanır; fiziksel 1 kHz akustik kalibratörle oturumluk RMS SPL düzeltmesi yapılır. Bu işlem mikrofon frekans cevabını düzeltmez ve IEC 61260 sınıf 1/2 uygunluğu sağlamaz.
+- Canlı stereo H1 Transfer Function, aynı USB ses kartının iki eşzamanlı giriş kanalını kullanır: CH0 referans, CH1 ölçüm. Android'in gerçek giriş kanal sayısı doğrulanır; mono cihazda TF başlatılmaz. Magnitude, phase ve coherence grafikleri üretilir.
+- FFT 8192/16384/32768, 4/8/16/32 ortalama, giriş seçimi, stale-stream uyarısı ve başlat/durdur akışı mobil arayüzde bulunur.
+- TF, Android WebView/WebAudio ve üretici sürücüsünün iki kanalı ayrı sunmasına bağlıdır. Gerçek telefon/tablet ve USB ses kartı kabul testi CI'ın yerine geçmez.
+- WAV dosya seçimi ve desteklenen dosyalarda peak/RMS analizi bulunur.
+- Yaklaşık loudness düzeyleme ve stereo PCM WAV dışa aktarma, sertifikalı LUFS/true-peak uygunluk ölçümü veya profesyonel limiter değildir.
 - Supabase Auth, oturum yenileme, cihaz kimliği, lisans ve öğretmen/öğrenci uçları Kotlin köprüsünden çağrılır.
-- Oturum belirteçleri Android Keystore AES-GCM anahtarıyla şifrelenir. Servis rolü anahtarı Android paketine eklenmez.
-- Güncelleme indirme öncesinde sürüm/URL denetimi, indirme boyutu sınırı ve SHA-256 kontrolü yapılır.
+- Oturum belirteçleri Android Keystore AES-GCM anahtarıyla şifrelenir; servis rolü anahtarı APK içine eklenmez.
+- Güncelleme akışı sürüm, URL, dosya boyutu ve SHA-256 kontrolleri yapar.
 
-## Sağlayıcı ve platform ayrımı
+## Yetkilendirme ve gizlilik
 
-- Android AI sağlayıcısı yalnızca GroqCloud'dur. İstek için açık kullanıcı onayı ve etkin lisans veya doğrulanmış sahip rolü gerekir.
-- Android tarafında Ollama reddedilir. Ollama yalnızca Windows uygulamasında yerel servis olarak çalışır.
-- Gemini, OpenAI, Grok ve özel OpenAI uyumlu endpoint'ler Android uygulamasında etkin sağlayıcı değildir.
-- Windows uygulaması yerel Ollama ve isteğe bağlı Groq yedeği kullanır.
+- Android istemcisi GroqCloud sağlayıcısını kullanır; bulut isteği için açık kullanıcı onayı ve geçerli yetki gerekir.
+- Ollama yalnızca Windows bilgisayarındaki yerel servis içindir; Android cihazındaki 127.0.0.1 Windows makinesini göstermez.
+- API anahtarları kalıcı uygulama depolarına yazılmaz.
+- Lisans ve rol kararları istemci arayüzünün görünürlüğüne bırakılmaz; sunucu tarafında doğrulanır.
 
-## Ekran uyumluluğu
+## Kaynak doğrulamaları
 
-- Telefon: tek sütun sayfa, açılır yan menü, büyük dokunma hedefleri, dikey kaydırma.
-- Tablet: sürekli yan gezinme, dar tabletlerde kompakt gezinme ve uygun olduğunda tek sütun içerik.
-- CSS medya sorguları statik olarak kontrol edildi; açma/kapama süslü parantezleri dengeli.
-- Gerçek cihazlarda görünüm, ekran döndürme, klavye açılması, sistem çubukları ve farklı yoğunluklar ayrıca test edilmelidir.
+Depo kök dizininden çalıştırılacak kontroller:
 
-## Kaynak denetimi
+```bash
+python android/scripts/verify_assets.py
+find android/app/src/main/assets/ui -type f -name '*.js' -print0 | while IFS= read -r -d '' file; do node --check "$file" || exit 1; done
+gradle -p android --no-daemon clean testDebugUnitTest assembleDebug
+```
 
-`android/scripts/verify_assets.py` aşağıdakileri doğrular:
+Kaynak doğrulaması PDF kataloğu, dosya referansları, izin listesi, sürüm kodu ve JavaScript sözdizimini denetler. Bu kontroller imzalı Release APK, mikrofon donanımı veya fiziksel cihaz kabul testinin yerine geçmez.
 
-- Zorunlu Android arayüz ve Kotlin dosyaları.
-- HTML ve CSS yerel dosya referansları.
-- Eğitim kataloğundaki 12 belge dosyası.
-- Öğrenci paketindeki 13 PDF ve dosya boyutları.
-- Kotlin PDF izin listesi ile paket PDF listesinin aynı olması.
-- Android `versionName` ve `versionCode` tutarlılığı.
-- Android HTTPS yerel varlık kaynağı ve mobil/tablet kesme noktaları.
+## Fiziksel cihaz kabulü
 
-Node.js `--check` tüm Android JavaScript dosyalarını, Gradle iş akışı da Android kaynak derlemesini denetler. `verify_assets.py` ders kataloğu yollarının paket dışına taşmasını da reddeder.
+Aşağıdaki adımlar gerçek Android telefon/tablet üzerinde ayrıca doğrulanmalıdır:
 
-## Henüz yeşil olarak doğrulanmamış işler
+1. Temiz kurulum, mevcut sürümden yükseltme ve uygulama kaldırma.
+2. Mikrofon izni verme, reddetme ve sonradan ayarlardan açma.
+3. RTA başlatma/durdurma, başka uygulamanın mikrofonu kullanması ve ses girişinin kesilmesi.
+4. 94/114 dB SPL kalibratörle oturumluk kalibrasyon, sıfırlama ve mikrofon/gain değişiminde yeniden kalibrasyon.
+5. İki kanallı USB ses kartında CH0/CH1 stereo TF, magnitude/phase/coherence, mono girişin reddedilmesi ve USB çıkarma senaryosu.
+6. WAV dosyası seçme, bozuk/uyumsuz dosya reddi ve analiz.
+7. 13 PDF'nin harici görüntüleyicide açılması.
+8. Supabase giriş/çıkış, oturum geri yükleme, lisans aktivasyonu ve cihaz sınırı.
+9. Groq açık onayı, yanlış anahtar/model ve bağlantı kesilmesi senaryoları.
+10. Güncelleme SHA-256 hatası ve imza uyuşmazlığında kurulumun reddedilmesi.
+11. Telefon/tablet ekran boyutları, döndürme, klavye açılması ve sistem çubuğu güvenli alanları.
 
-GitHub Actions geçmişindeki son Android işi runner atanmadan tamamlanmıştır: `runner_id=0`, `runner_name=""`, `steps=[]`. Bu nedenle kaynak testi veya Gradle derlemesi çalışmış sayılmaz. Android kalite, imzalı test ve CodeQL iş akışları runner sorunu nedeniyle manuel başlatmaya alınmıştır. Tekrarlanan APK derleme iş akışı kaldırılmıştır.
-
-Bu denetim kaynak ağacındaki dosya ve referans kontrollerini kapsar; başarılı APK derlemesi, APK imza doğrulaması, cihaz kurulumu veya gerçek mikrofon/AI/lisans testinin yerine geçmez.
-
-## Yayın öncesi zorunlu adımlar
-
-1. GitHub Actions runner tahsis sorunu giderilmeli.
-2. `android-quality.yml` gerçek runner üzerinde yeşil tamamlanmalı. Yinelenen `build-android-apk.yml` iş akışı kaldırıldı.
-3. Kalıcı Stagepulse Android keystore ile Release APK üretilmeli; geçici CI anahtarı dağıtımda kullanılmamalı.
-4. APK sertifikası ve SHA-256 doğrulanmalı.
-5. Android telefonda ve tablette kabul listesi uygulanmalı.
-6. Ortak yayın öncesinde Windows, kurucu ve Android sürümleri eşleştirilmeli. Şu an Windows 3.7.1, Android 3.7.4 olduğu için ortak yayın kontrolü geçmez.
+**Durum:** Kaynakta tanımlanan statik denetimler ve CI çalışmaları fiziksel cihaz kabulünü otomatik olarak kanıtlamaz. Bu rapor gerçek cihaz testlerinin tamamlandığını iddia etmez.

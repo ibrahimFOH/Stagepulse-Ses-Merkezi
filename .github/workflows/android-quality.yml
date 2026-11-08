@@ -85,5 +85,7 @@ jobs:
         with:
           gradle-version: "8.13"
 
-      - name: Android birim testlerini çalıştır
+      # Kalite iş akışı APK üretmez veya dağıtmaz.
+      # Tek dağıtılabilir APK, release deposunda kalıcı Android anahtarıyla imzalanır.
+      - name: Android birim testleri
         run: gradle -p android --no-daemon clean testDebugUnitTest --stacktrace

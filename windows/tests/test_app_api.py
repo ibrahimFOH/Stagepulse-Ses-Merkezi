@@ -412,3 +412,89 @@ def test_android_release_ci_uses_persistent_keystore_and_stable_channel():
     assert "signingConfig signingConfigs.ciRelease" in gradle
     assert "def updateChannel = 'stable'" in gradle
     assert "'test'" not in gradle
+
+
+
+def test_windows_updater_accepts_only_canonical_stable_release(monkeypatch):
+    import io
+
+    version = "3.9.1"
+    filename = f"Stagepulse-Ses-Merkezi-Windows-{version}.exe"
+    manifest = {
+        "ok": True,
+        "published": True,
+        "channel": "stable",
+        "prerelease": False,
+        "version": version,
+        "filename": filename,
+        "url": f"https://github.com/ibrahimFOH/Stagepulse-Releases/releases/download/v{version}/{filename}",
+        "sha256": "a" * 64,
+        "notes": "Güncelleme testi",
+    }
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def read(self, limit=-1):
+            return json.dumps(manifest).encode("utf-8")
+
+    monkeypatch.setattr(Merkez, "APP_VERSION", "3.9.0")
+    monkeypatch.setattr(Merkez, "urlopen", lambda *args, **kwargs: FakeResponse())
+
+    result = Merkez.AppApi().check_updates()
+
+    assert result["ok"] is True
+    assert result["published"] is True
+    assert result["available"] is True
+    assert result["version"] == version
+    assert result["sha256"] == "a" * 64
+    assert result["url"] == manifest["url"]
+
+
+@pytest.mark.parametrize("change", [
+    {"channel": "beta"},
+    {"prerelease": True},
+    {"url": "https://github.com/attacker/repo/releases/download/v3.9.1/evil.exe"},
+    {"filename": "evil.exe"},
+    {"sha256": "not-a-sha256"},
+    {"version": "3.9.1-preview"},
+])
+def test_windows_updater_rejects_untrusted_or_non_stable_manifest(monkeypatch, change):
+    version = "3.9.1"
+    filename = f"Stagepulse-Ses-Merkezi-Windows-{version}.exe"
+    manifest = {
+        "ok": True,
+        "published": True,
+        "channel": "stable",
+        "prerelease": False,
+        "version": version,
+        "filename": filename,
+        "url": f"https://github.com/ibrahimFOH/Stagepulse-Releases/releases/download/v{version}/{filename}",
+        "sha256": "a" * 64,
+    }
+    manifest.update(change)
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def read(self, limit=-1):
+            return json.dumps(manifest).encode("utf-8")
+
+    monkeypatch.setattr(Merkez, "urlopen", lambda *args, **kwargs: FakeResponse())
+    with pytest.raises(RuntimeError):
+        Merkez.AppApi().check_updates()
+
+
+def test_windows_update_ui_exposes_manual_check_and_verified_install_actions():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "ui" / "index.html").read_text(encoding="utf-8")
+    script = (root / "ui" / "app.js").read_text(encoding="utf-8")
+    assert 'id="checkUpdates"' in html
+    assert 'id="installUpdate"' in html
+    assert "api().check_updates()" in script
+    assert "api().install_update(JSON.stringify(latestUpdateManifest))" in script
+    assert "SHA-256 doğrulanıyor" in script

@@ -91,6 +91,33 @@ if android_app_js.is_file():
         errors.append("Android RTA, WebAudio spektrum verisini yerel RTA akışından ayıramıyor.")
     if "rtaTraceHistory.slice(-4)" not in app_source or "function updateRtaMeters(" not in app_source:
         errors.append("RTA çoklu spektrum izi veya canlı giriş metreleri eksik.")
+    if "function calibrateAndroidSpl()" not in app_source or "function clearAndroidSplCalibration()" not in app_source:
+        errors.append("Android oturumluk SPL kalibrasyon akışı eksik.")
+    for element_id in ("rtaCalibratorLevel", "rtaCalibrate", "rtaClearCalibration", "rtaCalibrationStatus"):
+        if f'id="{element_id}"' not in page_source:
+            errors.append("Android SPL kalibrasyon kontrolü eksik: " + element_id)
+    required_tf_functions = (
+        "function androidTfFft(",
+        "function androidTfSnapshot(",
+        "function drawAndroidTfChart(",
+        "function refreshAndroidTfDevices(",
+        "function startAndroidTf(",
+        "function stopAndroidTf(",
+        "function initAndroidTfControls(",
+        "channelCount:{exact:2}",
+        "input.numberOfChannels<2",
+        "androidTfChannelVerified",
+    )
+    for token in required_tf_functions:
+        if token not in app_source:
+            errors.append("Android canlı stereo TF uygulaması eksik: " + token)
+    for element_id in (
+        "androidTfPanel", "androidTfDevice", "androidTfFft", "androidTfAverages",
+        "androidTfRefresh", "androidTfStart", "androidTfStop",
+        "androidTfMagnitude", "androidTfPhase", "androidTfCoherence", "androidTfStatus",
+    ):
+        if f'id="{element_id}"' not in page_source:
+            errors.append("Android canlı TF arayüz bileşeni eksik: " + element_id)
     for element_id in ("rtaPeakMeterFill", "rtaRmsMeterFill", "rtaPeakMeterValue", "rtaRmsMeterValue"):
         if f'id="{element_id}"' not in page_source:
             errors.append("RTA seviye göstergesi eksik: " + element_id)

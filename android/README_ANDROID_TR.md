@@ -1,10 +1,10 @@
-# Stagepulse Ses Mühendisliği Merkezi 3.7.8 · Android
+# Stagepulse Ses Mühendisliği Merkezi 3.9.0 · Android
 
 **Uygulama kimliği:** `com.stagepulse.sesmerkezi`  
-**Sürüm kodu:** `30708`  
+**Sürüm kodu:** `30900`  
 **Minimum Android:** API 26  
 **Hedef Android:** API 35  
-**Derleme:** JDK 17 · Gradle 8.9 · Android SDK 35
+**Derleme:** JDK 17 · Gradle 8.13 · Android Gradle Plugin 8.13.2 · Android SDK 35
 
 ## Proje yapısı
 
@@ -18,7 +18,10 @@
 
 - WebView içinde yerel paketlenmiş arayüz; çevrimdışı eğitim belgeleri ve araçlar.
 - Telefon ve tablet boyutlarına göre uyarlanan gezinme ve çalışma alanı.
-- WebAudio tabanlı mikrofon/RTA görünümü. Kalibre edilmiş dB SPL, faz veya transfer-function ölçümü değildir.
+- WebAudio tabanlı RTA; giriş aygıtı seçimi, FFT ve 1/3 oktav/oktav analizi.
+- 94/114 dB SPL, 1 kHz fiziksel akustik kalibratörle oturumluk RMS SPL düzeltmesi. Mikrofon frekans cevabı düzeltmesi veya IEC 61260 sınıf 1/2 uygunluğu iddia edilmez.
+- Canlı stereo H1 Transfer Function: aynı USB ses kartının CH0 referans ve CH1 ölçüm kanallarından magnitude, phase ve coherence. Mono girişler reddedilir; iki bağımsız kanal gerekir.
+- Telefon/tablet arayüzünde FFT 8192/16384/32768, ortalama 4/8/16/32, giriş aygıtı seçimi ve akış kesilmesi uyarıları.
 - Android dosya seçicisi üzerinden ses dosyası alma ve desteklenen WAV biçimleri için peak/RMS analizi.
 - Saha ve sistem mühendisliği araçları: ölçekli sahne/AV planı, Midas M32/Behringer X32 .scn patch raporu, kablosuz kanal planı, 70/100 V hat hesabı, oda SPL haritası ve hoparlör/DSP ön hesabı.
 - Dalga/Faz/Gecikme Laboratuvarı: frekans, dalga boyu, periyot, iki kaynak girişimi, faz ve dB SPL formülleri; isteğe bağlı canlı mikrofon gecikme deneyi 0–5.000 ms. Mikrofon izlemesi varsayılan olarak sessizdir ve kamera açılmaz.
@@ -56,7 +59,7 @@ APK yolu:
 
 `android/app/build/outputs/apk/debug/app-debug.apk`
 
-Debug APK geliştirme/test paketidir. 3.7.6 için Stagepulse-Releases CI hattında kalıcı Stagepulse keystore ile Release APK derlendi; Gradle birim testleri, imza sertifikası, zipalign, sürüm kodu ve SHA-256 kontrolleri geçti. Bu otomatik sonuç fiziksel cihaz kabul testinin yerine geçmez.
+Debug APK geliştirme/test paketidir. 3.9.0 yayın manifestinde kalıcı Stagepulse keystore ile imzalanmış APK ve SHA-256 bilgileri bulunur. Bu kaynak doküman, yeni değişikliklerin release APK olarak derlendiğini veya fiziksel cihaz kabul testlerinin tamamlandığını tek başına kanıtlamaz.
 
 ## Gerçek cihaz kabul listesi
 

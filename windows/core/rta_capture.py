@@ -176,6 +176,8 @@ class RTACapture:
         self._power_db: np.ndarray | None = None
         self._peak_dbfs = -120.0
         self._rms_dbfs = -120.0
+        self._spl_calibration_offset_db: float | None = None
+        self._spl_calibration_reference_db: float | None = None
         self._callback_status = ""
         self._last_error = ""
         self._samples_received = 0
@@ -247,6 +249,8 @@ class RTACapture:
                 self._power_db = None
                 self._peak_dbfs = -120.0
                 self._rms_dbfs = -120.0
+                self._spl_calibration_offset_db = None
+                self._spl_calibration_reference_db = None
                 self._callback_status = ""
                 self._last_error = ""
                 self._samples_received = 0
@@ -331,6 +335,40 @@ class RTACapture:
                 with self._lock:
                     self._last_error = str(exc)
 
+    def calibrate_spl(self, reference_spl_db: float = 94.0) -> dict[str, Any]:
+        """Calibrate the current input RMS against a physical 1 kHz sound calibrator.
+
+        The offset is session/device specific and is intentionally cleared on restart.
+        This does not provide microphone frequency correction or IEC meter compliance.
+        """
+        try:
+            reference = float(reference_spl_db)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Kalibratör referansı sayısal olmalı.") from exc
+        if not math.isfinite(reference) or not 80.0 <= reference <= 130.0:
+            raise ValueError("Kalibratör seviyesi 80–130 dB SPL aralığında olmalı.")
+        with self._lock:
+            if not self._running:
+                raise RuntimeError("Kalibrasyondan önce RTA mikrofonunu başlat.")
+            age = time.monotonic() - (self._last_callback_monotonic or self._started_monotonic)
+            if self._samples_received < 1024 or age > 2.0:
+                raise RuntimeError("Kararlı mikrofon verisi yok. Kalibratör sinyali açıkken tekrar dene.")
+            measured = float(self._rms_dbfs)
+            if not math.isfinite(measured) or measured < -70.0:
+                raise RuntimeError("Giriş seviyesi kalibrasyon için çok düşük.")
+            if measured > -3.0:
+                raise RuntimeError("Giriş kırpılmaya çok yakın. Mikrofon kazancını azalt.")
+            offset = reference - measured
+            self._spl_calibration_offset_db = offset
+            self._spl_calibration_reference_db = reference
+            return {
+                "ok": True,
+                "reference_spl_db": reference,
+                "measured_rms_dbfs": measured,
+                "offset_db": offset,
+                "message": f"1 kHz kalibratör ile {reference:.1f} dB SPL referansı kaydedildi. Kalibrasyon bu oturum ve giriş aygıtı içindir.",
+            }
+
     def snapshot(self, mode: str = "third", min_hz: float = 20,
                  max_hz: float = 20000) -> dict[str, Any]:
         with self._lock:
@@ -347,6 +385,8 @@ class RTACapture:
             samples_received = self._samples_received
             started_monotonic = self._started_monotonic
             last_callback_monotonic = self._last_callback_monotonic
+            spl_offset = self._spl_calibration_offset_db
+            spl_reference = self._spl_calibration_reference_db
         if not running:
             return {"ok": False, "running": False, "error": "Mikrofon çalışmıyor."}
         if error:
@@ -354,6 +394,9 @@ class RTACapture:
         now = time.monotonic()
         reference_time = last_callback_monotonic or started_monotonic
         seconds_since_last_callback = max(0.0, now - reference_time) if reference_time else 0.0
+        # A stream that stops after producing valid frames must not keep presenting
+        # its last spectrum as live data. Use the same two-second threshold as the UI.
+        stream_stale = seconds_since_last_callback > 2.0
         centers = supported_centers(sample_rate, mode, min_hz, max_hz)
         if frequencies is None or power_db is None:
             values = [-120.0] * len(centers)
@@ -361,16 +404,31 @@ class RTACapture:
         else:
             values = [aggregate_band_db(frequencies, power_db, sample_rate, center, mode) for center in centers]
             ready = True
+        if stream_stale:
+            ready = False
         return {
             "ok": True, "running": True, "ready": ready,
             "device": device, "sample_rate": sample_rate, "fft_size": fft_size,
             "frequency_limit_hz": sample_rate / 2,
             "centers": centers, "band_dbfs": values,
             "peak_dbfs": peak, "rms_dbfs": rms,
+            "calibrated_spl": spl_offset is not None,
+            "spl_db": (rms + spl_offset) if spl_offset is not None else None,
+            "peak_spl_db": (peak + spl_offset) if spl_offset is not None else None,
+            "band_spl_db": ([value + spl_offset for value in values] if spl_offset is not None else None),
+            "spl_calibration_offset_db": spl_offset,
+            "spl_calibration_reference_db": spl_reference,
+            "spl_weighting": "Z/unweighted" if spl_offset is not None else None,
             "stream_status": status,
             "samples_received": samples_received,
             "seconds_since_last_callback": seconds_since_last_callback,
-            "message": "FFT verisi hazırlanıyor…" if not ready else "FFT göreli güç spektrumu güncel.",
+            "stream_stale": stream_stale,
+            "stream_healthy": not stream_stale,
+            "message": (
+                "Ses akışı durdu; giriş aygıtını ve sürücüyü kontrol et."
+                if stream_stale else
+                "FFT verisi hazırlanıyor…" if not ready else "FFT göreli güç spektrumu güncel."
+            ),
         }
 
     def stop(self) -> dict[str, Any]:

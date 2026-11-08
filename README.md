@@ -6,11 +6,11 @@ Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasında
 
 | Bileşen | Kaynak sürümü | Sürümün yönetildiği yer |
 |---|---:|---|
-| Windows Ses Merkezi | 3.8.9 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
-| Android Ses Merkezi | 3.8.9 (30809) | android/app/build.gradle |
+| Windows Ses Merkezi | 3.9.0 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
+| Android Ses Merkezi | 3.9.0 (30900) | android/app/build.gradle |
 | Yönetici girişi | Ana uygulama içinde | Ana uygulamanın kimlik doğrulama ve yetki kontrolü |
 
-Windows EXE ve Android APK aynı kararlı sürümde doğrulanır ve yayımlanır. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz. Android APK kalıcı Android imza anahtarıyla imzalanır.
+Yayımlanmış Windows EXE ve Android APK sürümü `Stagepulse-Releases/latest.json` üzerinden doğrulanır. Bu araştırma dalındaki 3.9.0 kaynak adayı henüz kararlı yayın değildir; yayımlanmış kararlı sürüm 3.8.9'dur. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz. Android APK kararlı yayın aşamasında kalıcı Android imza anahtarıyla imzalanır.
 
 ## Depo düzeni
 
@@ -20,6 +20,12 @@ Windows EXE ve Android APK aynı kararlı sürümde doğrulanır ve yayımlanır
 - shared/: Platformlar arası ortak çalışma notları.
 
 Stagepulse ana web sitesi içeriği bu çalışma kapsamında değiştirilmedi.
+
+## Ölçüm araçlarının güncel kapsamı
+
+Windows masaüstü sürümünde canlı RTA, oturumluk 1 kHz ses kalibratörü referansıyla dB SPL Z gösterimi ve aynı ses kartının iki giriş kanalından canlı H1 Transfer Function bulunur. Stereo TF'de CH0 referans, CH1 ölçüm mikrofonudur. Kalibrasyon mikrofon frekans düzeltmesi veya IEC sınıfı ölçüm uygunluğu sağlamaz. Gerçek ses kartı, mikrofon ve saha kabul testleri otomatik kaynak testlerinden ayrı doğrulanmalıdır.
+
+Ticari satış modeli yalnızca FULL PAKET'tir. Eğitim dalları ayrı satış ürünü değil, Full Paket içindeki öğrenme/yeterlilik yapısıdır.
 
 ## Android geliştirme ve doğrulama
 

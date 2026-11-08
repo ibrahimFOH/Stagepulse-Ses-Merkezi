@@ -451,33 +451,7 @@ Deno.serve(async (req: Request) => {
     }
     if (action === "license_create") {
       await requireOwner(user.id);
-      const rawKey = issueLicenseKey();
-      const hash = await sha256Hex(normalizeKey(rawKey));
-      const label = "FULL PAKET";
-      const plan = "student";
-      const bundle = "full_master";
-      const maxActivations = Math.max(1, Math.min(100, Math.trunc(Number(body.max_activations) || 1)));
-      const days = Math.max(0, Math.min(3650, Math.trunc(Number(body.expires_days) || 0)));
-      const expiresAt = days > 0 ? new Date(Date.now() + days * 86400000).toISOString() : null;
-      const customerName = String(body.customer_name ?? "").trim().slice(0, 120);
-      const customerEmail = String(body.customer_email ?? "").trim().toLowerCase().slice(0, 320);
-      const paymentMethod = ["cash", "bank_transfer"].includes(String(body.payment_method)) ? String(body.payment_method) : "bank_transfer";
-      const paymentStatus = ["paid", "unpaid"].includes(String(body.payment_status)) ? String(body.payment_status) : "unpaid";
-      const amount = Number(body.amount ?? 0);
-      const currency = String(body.currency ?? "TRY").trim().toUpperCase();
-      const paymentReference = String(body.payment_reference ?? "").trim().slice(0, 120);
-      if (customerEmail && (!customerEmail.includes("@") || customerEmail.length > 320)) return fail("LICENSE_CUSTOMER_EMAIL_INVALID", 400);
-      if (!Number.isFinite(amount) || amount < 0 || amount > 2500 || currency !== "TRY") return fail("LICENSE_PAYMENT_DATA_INVALID", 400);
-      const { data: lic, error } = await admin.from("sesm_license_keys").insert({
-        key_hash: hash, label, plan_code: plan, bundle_code: bundle, max_activations: maxActivations, expires_at: expiresAt,
-        created_by: user.id, notes: String(body.notes ?? "").slice(0, 500), customer_name: customerName,
-        customer_email: customerEmail, payment_method: paymentMethod, payment_status: paymentStatus,
-        amount, currency, payment_reference: paymentReference,
-      }).select("id,label,plan_code,bundle_code,max_activations,expires_at,created_at,customer_name,customer_email,payment_method,payment_status,amount,currency,payment_reference").single();
-      if (error || !lic) return fail("LICENSE_CREATE_FAILED", 500);
-      await audit(user.id, "license_created", null, lic.id, { label, customer_name: customerName, plan_code: plan, bundle_code: bundle, max_activations: maxActivations, expires_at: expiresAt, payment_status: paymentStatus, payment_method: paymentMethod, amount, currency, payment_reference: paymentReference });
-      // Raw key is returned once. Only SHA-256 hash is stored in the database.
-      return reply({ ok: true, license: lic, key: rawKey });
+      return fail("BANK_TRANSFER_APPROVAL_REQUIRED", 403);
     }
     if (action === "license_payment_update") {
       await requireOwner(user.id);

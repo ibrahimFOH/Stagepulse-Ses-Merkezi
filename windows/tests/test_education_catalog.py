@@ -18,9 +18,11 @@ def test_curriculum_ui_has_practice_test_and_single_license_scope():
     core = (ROOT / "Merkez.py").read_text("utf-8")
     edge = (ROOT / "supabase/functions/ses-merkezi-desktop/index.ts").read_text("utf-8")
     migration = (ROOT / "supabase/migrations/20261029190000_ses_merkezi_education_bundles.sql").read_text("utf-8")
+    sales_migration = (ROOT / "supabase/migrations/20261107143000_sesm_full_package_bank_transfer.sql").read_text("utf-8")
     assert 'data-page="curriculum"' in html and 'id="curriculumQuizButton"' in html
     assert 'function renderCurriculumQuiz()' in js and 'id="licenseBundle"' not in html
-    assert 'const bundle = "full_master";' in edge
-    assert 'bundle_code' in core and 'bundle_code: bundle' in edge
+    assert 'sesm_review_full_package_purchase' in edge
+    assert 'bundle_code' in core
+    assert "'full_master'" in sales_migration
     assert 'bundle_code: valid ? (lic!.bundle_code ?? \"start\") : null' in edge
     assert 'bundle_code text not null' in migration
