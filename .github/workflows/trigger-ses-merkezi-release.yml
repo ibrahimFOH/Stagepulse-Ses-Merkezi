@@ -8,6 +8,14 @@ on:
     paths:
       - "android/**"
       - "windows/**"
+      - "!android/**/*.md"
+      - "!windows/**/*.md"
+      - "!android/**/README*"
+      - "!windows/**/README*"
+      - "!android/app/src/test/**"
+      - "!android/app/src/androidTest/**"
+      - "!windows/docs/**"
+      - "!windows/tests/**"
   workflow_dispatch:
 
 permissions:
