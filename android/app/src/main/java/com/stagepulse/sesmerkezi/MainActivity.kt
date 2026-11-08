@@ -79,10 +79,11 @@ class MainActivity : Activity() {
     private var pendingUpdateManifest: MobileUpdateManifest? = null
     private val offlineLeasePublicKeyPem = """-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhA5HcOfxrcGqZnEvpNBV
-MP7UcKBqvmN5pPk6Tdb42+bkflgBvdcBNG3eRknWMmjr+2xRSOv7bFFI69p2HoTa
-TzPdP5NF2zydBk5llEPiL1uempQpXvS3s7/vQDBb13zdnQWgjWzM9GZPxuMtt5zp
-1ZzgU8uG46+CoPP0osiwtXe/kzkIEURy9GREvjx4MeE9JxTwr/lH79RmclcAuUJA
-MvGwYgKLL/tLPOXwcnTngAn9VJizfgcdHwr2PUgHcgHP6r7ofkfJMlwhqeHBq4V0eBXRnbwrwT9zvFwDLfKAD3AcK3QVvP53pnmU7LUd0jtqBtSLdFXvEPc
+MP7UcKBqvmN5pPk6Tdb42+bkflgBvdcBNG3eRknWMmjr+2xRSOvadh6E2k8z3T+T
+Rds8nQZOZZRD4i9bnpqUKV70t7O/70AwW9d83Z0FoI1szPRmT8bjLbec6dWc4FPL
+huOvgqDz9KLIsLV3v5M5CBFEcvRkRL48eDHhPScU8K/5R+/UZnJXALlCQDLxsGIC
+iy/7Szzl8HJ054AJ/VSYs34HHRn7RqQSnbDWin7dcHwr2PUgHcgHP6r7ofkfJMlw
+hqeHBq4V0eBXRnbwrwT9zvFwDLfKAD3AcK3QVvP53pnmU7LUd0jtqBtSLdFXvEPc
 hQIDAQAB
 -----END PUBLIC KEY-----"""
     private fun deliverRuntimePermissionResult(callbackId: String, granted: Boolean, message: String = "") {
