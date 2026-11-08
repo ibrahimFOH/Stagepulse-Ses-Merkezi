@@ -225,27 +225,45 @@ def test_username_only_login_is_rejected():
         Merkez.AppApi().auth_login("stagepulseadmin", "password12345")
 
 
-def test_student_phone_login_uses_supabase_phone_identity(monkeypatch, tmp_path):
+def test_student_phone_login_uses_internal_email_alias(monkeypatch, tmp_path):
     monkeypatch.setattr(Merkez, "LICENSE_CACHE_PATH", tmp_path / "license-cache.dat")
     monkeypatch.setattr(Merkez, "SESSION_PATH", tmp_path / "session.dat")
     api = Merkez.AppApi()
     captured = {}
-
     def fake_auth_request(path, body):
         captured["path"] = path
         captured["body"] = body
-        return {"access_token": "student-access-token", "refresh_token": "student-refresh-token", "user": {"phone": "+905551112233"}}
-
+        return {"access_token": "student-access-token", "refresh_token": "student-refresh-token", "user": {"email": "905551112233@students.stagepulse.invalid"}}
     expected_context = {"role": "student", "user": {"phone": "+905551112233"}, "licensed": {"active": True}}
     monkeypatch.setattr(api, "_auth_request", fake_auth_request)
     monkeypatch.setattr(api, "_edge_call", lambda action, payload=None: expected_context)
     monkeypatch.setattr(api, "_cache_server_license", lambda context: None)
-
     result = api.auth_login("0555 111 22 33", "student-password")
-
     assert captured["path"] == "/auth/v1/token?grant_type=password"
-    assert captured["body"] == {"phone": "+905551112233", "password": "student-password"}
+    assert captured["body"] == {"email": "905551112233@students.stagepulse.invalid", "password": "student-password"}
     assert result["context"]["role"] == "student"
+
+
+def test_student_phone_signup_uses_public_server_registration(monkeypatch, tmp_path):
+    monkeypatch.setattr(Merkez, "LICENSE_CACHE_PATH", tmp_path / "license-cache.dat")
+    monkeypatch.setattr(Merkez, "SESSION_PATH", tmp_path / "session.dat")
+    api = Merkez.AppApi()
+    calls = []
+    monkeypatch.setattr(api, "_public_edge_call", lambda action, payload=None: calls.append((action, payload)) or {"ok": True})
+    monkeypatch.setattr(api, "_auth_request", lambda path, body: {"access_token": "a", "refresh_token": "r", "user": {"email": body["email"]}})
+    monkeypatch.setattr(api, "_edge_call", lambda action, payload=None: {"role": "student", "user": {"phone": "+905551112233"}})
+    monkeypatch.setattr(api, "_persist_auth_session", lambda: None)
+    monkeypatch.setattr(api, "_cache_server_license", lambda context: None)
+    result = api.auth_signup("0555 111 22 33", "student-password", "Test Student")
+    assert calls == [("student_signup", {"phone": "+905551112233", "password": "student-password", "display_name": "Test Student"})]
+    assert result["session_created"] is True
+
+
+def test_phone_normalization_rejects_invalid_turkish_mobile_numbers():
+    assert Merkez.AppApi._student_phone("0555 111 22 33") == "+905551112233"
+    assert Merkez.AppApi._student_phone("+90 555 111 22 33") == "+905551112233"
+    with pytest.raises(ValueError):
+        Merkez.AppApi._student_phone("0212 555 12 12")
 
 
 def test_student_login_keeps_email_auth_flow(monkeypatch, tmp_path):
