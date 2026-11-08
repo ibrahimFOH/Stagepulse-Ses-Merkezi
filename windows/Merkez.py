@@ -663,6 +663,40 @@ class AppApi(AcousticAnalysisApi):
         self._cache_server_license(context)
         return {"ok": True, "authenticated": True, "context": context}
 
+    def _public_edge_call(self, action: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        body = {"action": action, **(payload or {}), "app_id": "ses-merkezi", "platform": "windows"}
+        request = Request(
+            SUPABASE_URL + "/functions/v1/ses-merkezi-desktop",
+            data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Accept": "application/json", "apikey": SUPABASE_PUBLISHABLE_KEY},
+            method="POST",
+        )
+        try:
+            with urlopen(request, timeout=20) as response:
+                raw = response.read(1_000_001)
+            if len(raw) > 1_000_000:
+                raise RuntimeError("Stagepulse servis yanıtı sınırı aştı.")
+            result = json.loads(raw.decode("utf-8"))
+        except HTTPError as exc:
+            raw = exc.read(2048).decode("utf-8", errors="replace")
+            try:
+                code = json.loads(raw).get("error", "SERVER_ERROR")
+            except json.JSONDecodeError:
+                code = "SERVER_ERROR"
+            messages = {
+                "RATE_LIMITED": "Çok fazla kayıt denemesi yapıldı. Bir süre sonra tekrar dene.",
+                "PHONE_ALREADY_REGISTERED": "Bu telefon numarasıyla daha önce hesap oluşturulmuş. Giriş yapmayı dene.",
+                "STUDENT_SIGNUP_UNAVAILABLE": "Öğrenci hesabı şu anda oluşturulamadı. Daha sonra tekrar dene.",
+            }
+            raise RuntimeError(messages.get(str(code), f"Öğrenci hesabı oluşturulamadı ({exc.code}, {code}).")) from exc
+        except (URLError, TimeoutError) as exc:
+            raise RuntimeError("Stagepulse hesabına ulaşılamadı. İnternet bağlantısını kontrol et.") from exc
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise RuntimeError("Stagepulse servisinden geçersiz yanıt alındı.") from exc
+        if not isinstance(result, dict) or result.get("ok") is not True:
+            raise RuntimeError(str(result.get("error", "SERVER_ERROR")) if isinstance(result, dict) else "Servis yanıtı geçersiz.")
+        return result
+
     def _edge_call(self, action: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         if not self._session or not self._session.get("access_token"):
             raise RuntimeError("Önce Stagepulse hesabına giriş yap.")
