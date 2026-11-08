@@ -1,5 +1,13 @@
 # Değişiklik günlüğü
 
+## 3.9.2
+- 11 çalışma dalındaki işlevler tek Windows/Android ürün akışında doğrulandı: çevrimiçi oturum, Türk GSM numarasıyla öğrenci girişi/kaydı, çevrimdışı imzalı lisans, cihaz aktarımı, FULL PAKET havale bildirimi ve yönetici onayı.
+- Canlı Supabase `ses-merkezi-desktop` fonksiyonu güncel kaynakla eşitlendi; açık anahtar dağıtımı ve sunucu tarafı telefon kaydı etkinleştirildi.
+- Çevrimdışı lisans doğrulaması için RS256 imza, kullanıcı/cihaz/platform bağlama, saat geri alma, lisans süresi ve 14 günlük ücretli / 7 günlük deneme sınırı regresyon testleri eklendi.
+- Windows ve Android sürümleri 3.9.2 / Android versionCode 30902 olarak eşitlendi.
+- Windows/Android paketleri ve kararlı yayın, tüm kalite kontrolleri yeşil olmadan yayımlanmış sayılmaz.
+
+
 ## 3.9.0
 - Windows ve Android uygulama sürümleri 3.9.0 / Android versionCode 30900 olarak eşitlendi.
 - Windows canlı RTA, iki saniyeyi aşan ses akışı kesintisini güncel olmayan veri olarak işaretler.
@@ -108,6 +116,14 @@
 - Tek kurulum EXE hedefi ve SHA-256 doğrulaması korunur.
 
 # Değişiklik günlüğü
+
+## 3.9.2
+- 11 çalışma dalındaki işlevler tek Windows/Android ürün akışında doğrulandı: çevrimiçi oturum, Türk GSM numarasıyla öğrenci girişi/kaydı, çevrimdışı imzalı lisans, cihaz aktarımı, FULL PAKET havale bildirimi ve yönetici onayı.
+- Canlı Supabase `ses-merkezi-desktop` fonksiyonu güncel kaynakla eşitlendi; açık anahtar dağıtımı ve sunucu tarafı telefon kaydı etkinleştirildi.
+- Çevrimdışı lisans doğrulaması için RS256 imza, kullanıcı/cihaz/platform bağlama, saat geri alma, lisans süresi ve 14 günlük ücretli / 7 günlük deneme sınırı regresyon testleri eklendi.
+- Windows ve Android sürümleri 3.9.2 / Android versionCode 30902 olarak eşitlendi.
+- Windows/Android paketleri ve kararlı yayın, tüm kalite kontrolleri yeşil olmadan yayımlanmış sayılmaz.
+
 
 ## 3.5.1 - 29 Ekim 2026
 

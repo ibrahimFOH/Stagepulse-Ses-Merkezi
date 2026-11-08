@@ -100,3 +100,23 @@ Aşağıdaki arşivlerin işlevleri kaynak kodu ve lisansları üzerinden incele
 - M32/X32 sahne okuyucusu salt okunurdur ve henüz bütün konsol alanlarını yorumladığını iddia etmez.
 - 3B FEM/BEM, canlı donanım keşfi, konsol dosyasına geri yazma ve tüm üretici biçimleri bu sürümde bulunmaz.
 
+
+## 3.9.2 - 11 çalışma dalının işlevsel birleştirme denetimi
+
+Bu 11 çalışma ayrı uygulama olarak dağıtılmaz. Uyumlu kodlar tek Windows/Android Ses Merkezi ve ortak Supabase akışına alınır; yinelenen veya eski dal dosyaları paralel ürün olarak tutulmaz.
+
+| Çalışma dalı | Üründeki karşılığı | Doğrulama noktası |
+|---|---|---|
+| `research-quality-hardening-20261107` | Güvenli profil deposu, ürün sözleşmesi ve kalite kontrolleri | Windows Python testleri, statik kontroller |
+| `research-enable-automatic-codeql` | Kod güvenliği taraması | CodeQL iş akışı |
+| `fix-student-phone-alias-auth` | Türk GSM numarasıyla giriş ve eski Supabase Phone Auth hesabı geri dönüşü | `auth_login`, telefon normalizasyon testleri |
+| `feat-full-package-bank-transfer` | FULL PAKET havale bildirimi ve yalnızca yönetici onayıyla lisans üretimi | `purchase_submit`, `purchase_review`, atomik RPC |
+| `research-docs-stable-3.9.0` | Türkçe kurulum, sürüm ve yayın belgeleri | README / CHANGELOG sürüm eşitliği |
+| `research-update-download-timeout-fix` | Güncelleme manifesti doğrulama, indirme zaman aşımı, tekrar deneme ve SHA-256 | Güncelleme API testleri |
+| `fix-license-only-offline-device-transfer` | Lisanslı cihazı güvenli şekilde başka cihaza aktarma | Atomik revoke/transfer RPC ve lisans testleri |
+| `research-release-trigger-doc-filter` | Yalnızca ilgili kaynak değişikliklerinde yayın hattını tetikleme | GitHub Actions tetikleyici |
+| `research-android-engineering-tools-parity` | Android'de ortak mühendislik araçları ve eğitim varlıkları | Android asset denetimi, Kotlin/JS kontrolleri |
+| `fix-android-release-only-ci` | Android yayın ve sürüm kalite denetimi | Android kalite iş akışı |
+| `research-student-signup-password-8` | Sunucu tarafı öğrenci kaydı, en az 8 karakter parola ve hız sınırı | `student_signup`, auth sözleşme testleri |
+
+Çevrimdışı lisansın ücretli hesapta azami 14 gün, deneme hesabında azami 7 gün geçerli olması; imza, kullanıcı, cihaz, uygulama/platform ve saat geri alma kontrolleriyle doğrulanır. Çevrimiçi bağlantı geldiğinde Supabase oturumu yenilenir ve lisans bağlamı tekrar alınır. Çevrimdışı çalışma, sunucuya bağlı öğrenci ilerleme/senkronizasyon işlemlerinin çevrimdışı kaydedildiği anlamına gelmez.

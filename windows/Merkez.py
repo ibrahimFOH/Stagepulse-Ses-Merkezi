@@ -25,13 +25,15 @@ from urllib.error import HTTPError, URLError
 from core.acoustic_api import AcousticAnalysisApi
 
 APP_NAME = "Stagepulse Ses Mühendisliği Merkezi"
-APP_VERSION = "3.9.1"
+APP_VERSION = "3.9.2"
 SUPABASE_URL = "https://itasctyjzyewcykozuex.supabase.co"
 SUPABASE_PUBLISHABLE_KEY = "sb_publishable_tP3CMhVAjv6FNtrkYfVEOA_dbF9m8Jb"
 WEBSITE_URL = "https://stagepulse.com.tr"
 UPDATE_CHANNEL = "stable"
 UPDATE_MANIFEST_URL = f"https://itasctyjzyewcykozuex.supabase.co/functions/v1/ses-merkezi-updates?platform=windows&channel={UPDATE_CHANNEL}"
-OFFLINE_LICENSE_GRACE_DAYS = 7
+OFFLINE_TRIAL_LICENSE_GRACE_DAYS = 7
+OFFLINE_PAID_LICENSE_GRACE_DAYS = 14
+OFFLINE_LICENSE_GRACE_DAYS = OFFLINE_TRIAL_LICENSE_GRACE_DAYS
 if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
     RESOURCE_ROOT = Path(sys._MEIPASS).resolve()
     APP_HOME = Path(sys.executable).resolve().parent
@@ -252,6 +254,8 @@ class AppApi(AcousticAnalysisApi):
             "data_dir": str(DATA_ROOT), "runtime": "WebView2",
             "website": WEBSITE_URL, "update_manifest": UPDATE_MANIFEST_URL,
             "offline_license_grace_days": OFFLINE_LICENSE_GRACE_DAYS,
+            "offline_paid_license_grace_days": OFFLINE_PAID_LICENSE_GRACE_DAYS,
+            "offline_trial_license_grace_days": OFFLINE_TRIAL_LICENSE_GRACE_DAYS,
             "cached_license": cached,
             "backend": "Supabase lisans ve öğretmen onaylı ilerleme servisi",
         }
