@@ -284,7 +284,7 @@ def test_full_package_bank_transfer_requires_owner_approval_and_server_license_c
 def test_manual_full_package_license_generation_is_owner_only_and_atomic():
     desktop_edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
     core_edge = (ROOT / 'supabase/functions/license-core/index.ts').read_text('utf-8')
-    migration = (ROOT / 'supabase/migrations/20261108191635_sesm_manual_full_package_license_generation.sql').read_text('utf-8')
+    migration = (ROOT / 'supabase/migrations/20261108192450_sesm_manual_license_use_core_sync_trigger.sql').read_text('utf-8')
 
     direct_create = desktop_edge[desktop_edge.index('if (action === "license_create")'):]
     direct_create = direct_create[:direct_create.index('if (action === "license_payment_update")')]
@@ -297,6 +297,8 @@ def test_manual_full_package_license_generation_is_owner_only_and_atomic():
     assert 'security invoker' in migration.lower()
     assert 'revoke all on function public.sesm_create_manual_full_package_license' in migration
     assert 'to service_role' in migration
+    assert 'after insert sync trigger' in migration.lower()
+    assert 'select id into v_core_id' in migration
     assert "ses-merkezi-android" in migration
     admin_create = core_edge[core_edge.index('async function adminCreate'):core_edge.index('Deno.serve')]
     assert 'BANK_TRANSFER_APPROVAL_REQUIRED' in admin_create
