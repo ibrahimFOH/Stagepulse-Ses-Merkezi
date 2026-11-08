@@ -186,8 +186,8 @@ async function getOfflineLeaseSigningKey(): Promise<CryptoKey | null> {
   const publicDer = new Uint8Array(await crypto.subtle.exportKey("spki", publicKey));
   let publicBinary = "";
   for (const byte of publicDer) publicBinary += String.fromCharCode(byte);
-  const publicBase64 = btoa(publicBinary).match(/.{1,64}/g)?.join("\\n") ?? "";
-  offlineLeasePublicKeyPem = "-----BEGIN PUBLIC KEY-----\\n" + publicBase64 + "\\n-----END PUBLIC KEY-----";
+  const publicBase64 = btoa(publicBinary).match(/.{1,64}/g)?.join("\n") ?? "";
+  offlineLeasePublicKeyPem = "-----BEGIN PUBLIC KEY-----\n" + publicBase64 + "\n-----END PUBLIC KEY-----";
 
   offlineLeaseSigningKey = await crypto.subtle.importKey("pkcs8", der, algorithm, false, ["sign"]);
   return offlineLeaseSigningKey;

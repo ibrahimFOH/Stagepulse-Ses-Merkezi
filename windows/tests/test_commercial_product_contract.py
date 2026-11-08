@@ -294,3 +294,11 @@ def test_full_package_sales_cannot_bypass_bank_transfer_owner_approval():
     assert 'appId === "ses-merkezi"' in admin_create
     assert 'appId === "ses-merkezi-android"' in admin_create
     assert 'BANK_TRANSFER_APPROVAL_REQUIRED' in admin_create
+
+
+def test_offline_lease_public_key_pem_uses_real_line_breaks():
+    edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
+    assert '.join("\\n")' in edge
+    assert '.join("\\\\n")' not in edge
+    assert '"-----BEGIN PUBLIC KEY-----\\n"' in edge
+    assert '"\\n-----END PUBLIC KEY-----"' in edge
