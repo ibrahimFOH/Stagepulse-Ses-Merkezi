@@ -568,14 +568,37 @@ class AppApi(AcousticAnalysisApi):
             self._persist_auth_session()
             self._cache_server_license(self._account_context)
         session_created = bool(result.get("access_token"))
-        message = "Öğrenci hesabı oluşturuldu ve giriş yapıldı." if session_created else "Hesap oluşturuldu. Giriş yapabilirsin."
+        message = (
+            "Öğrenci hesabı oluşturuldu ve giriş yapıldı."
+            if session_created
+            else "Hesap oluşturuldu. Giriş yapmadan önce e-posta adresini doğrula."
+        )
         return {"ok": True, "session_created": session_created, "message": message}
 
     def auth_login(self, identity: str, password: str) -> dict[str, Any]:
+        phone = self._student_phone(identity)
         auth_identity = self._auth_identity_payload(identity)
         if not password:
             raise ValueError("Şifre gerekli.")
-        result = self._auth_request("/auth/v1/token?grant_type=password", {**auth_identity, "password": str(password)})
+        credentials = {**auth_identity, "password": str(password)}
+        try:
+            result = self._auth_request("/auth/v1/token?grant_type=password", credentials)
+        except RuntimeError as exc:
+            detail = str(exc).lower()
+            legacy_phone_error = any(marker in detail for marker in (
+                "invalid login credentials",
+                "invalid_credentials",
+                "user not found",
+                "kimlik servisi http 400",
+                "kimlik servisi http 401",
+            ))
+            if not phone or not legacy_phone_error:
+                raise
+            # Eski Supabase Phone Auth hesaplarını, yeni dahili e-posta kimliğine geçmeden önce destekle.
+            result = self._auth_request("/auth/v1/token?grant_type=password", {
+                "phone": phone,
+                "password": str(password),
+            })
         if not result.get("access_token") or not result.get("user"):
             raise RuntimeError("Giriş başarısız. E-postayı doğruladığını ve doğru şifre kullandığını kontrol et.")
         if not result.get("refresh_token"):
