@@ -119,7 +119,9 @@ def test_all_windows_owner_logins_use_shared_supabase_auth():
     source = (ROOT / 'Merkez.py').read_text('utf-8')
     assert 'LICENSE_ADMIN_EMAILS' not in source
     assert '_admin_auth_request' not in source
-    assert 'if not identity or "@" not in identity or not password' in source
+    assert 'def _auth_identity_payload(identity: str)' in source
+    assert 'return {"phone": "+" + digits}' in source
+    assert 'return {"email": email}' in source
     assert 'self._auth_request("/auth/v1/token?grant_type=password"' in source
 
 
