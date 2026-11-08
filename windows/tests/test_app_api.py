@@ -288,6 +288,79 @@ def test_student_login_keeps_email_auth_flow(monkeypatch, tmp_path):
     assert result["context"]["role"] == "student"
 
 
+
+def test_legacy_phone_login_falls_back_to_supabase_phone_identity(monkeypatch, tmp_path):
+    monkeypatch.setattr(Merkez, "LICENSE_CACHE_PATH", tmp_path / "license-cache.dat")
+    monkeypatch.setattr(Merkez, "SESSION_PATH", tmp_path / "session.dat")
+    api = Merkez.AppApi()
+    attempts = []
+
+    def fake_auth_request(path, body):
+        attempts.append((path, body))
+        if "email" in body:
+            raise RuntimeError("Invalid login credentials")
+        return {
+            "access_token": "legacy-phone-access",
+            "refresh_token": "legacy-phone-refresh",
+            "user": {"id": "legacy-student", "phone": "+905551112233"},
+        }
+
+    context = {"role": "student", "user": {"id": "legacy-student", "phone": "+905551112233"}}
+    monkeypatch.setattr(api, "_auth_request", fake_auth_request)
+    monkeypatch.setattr(api, "_edge_call", lambda action, payload=None: context)
+    monkeypatch.setattr(api, "_cache_server_license", lambda value: None)
+
+    result = api.auth_login("0555 111 22 33", "legacy-password")
+
+    assert len(attempts) == 2
+    assert attempts[0][1] == {
+        "email": "905551112233@students.stagepulse.invalid",
+        "password": "legacy-password",
+    }
+    assert attempts[1][1] == {
+        "phone": "+905551112233",
+        "password": "legacy-password",
+    }
+    assert result["context"]["user"]["id"] == "legacy-student"
+
+
+def test_email_signup_pending_confirmation_does_not_create_password_session(monkeypatch, tmp_path):
+    monkeypatch.setattr(Merkez, "LICENSE_CACHE_PATH", tmp_path / "license-cache.dat")
+    monkeypatch.setattr(Merkez, "SESSION_PATH", tmp_path / "session.dat")
+    api = Merkez.AppApi()
+    calls = []
+
+    def fake_auth_request(path, body):
+        calls.append((path, body))
+        return {
+            "user": {"id": "new-student", "email": "student@example.com"},
+            "confirmation_sent_at": "2026-11-08T15:00:00Z",
+        }
+
+    monkeypatch.setattr(api, "_auth_request", fake_auth_request)
+    result = api.auth_signup("student@example.com", "student-password", "Test Student")
+
+    assert len(calls) == 1
+    assert calls[0][0] == "/auth/v1/signup"
+    assert result["ok"] is True
+    assert result["session_created"] is False
+    assert "e-posta adresini doğrula" in result["message"].lower()
+
+
+def test_android_auth_supports_legacy_phone_login_and_pending_email_confirmation():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    kotlin = (
+        root / "android" / "app" / "src" / "main" / "java"
+        / "com" / "stagepulse" / "sesmerkezi" / "MainActivity.kt"
+    ).read_text(encoding="utf-8")
+    assert 'if (phone == null || e.statusCode !in 400..401) throw e' in kotlin
+    assert 'JSONObject().put("phone", phone).put("password", password)' in kotlin
+    assert 'session.optString("refresh_token").isBlank()' in kotlin
+    assert '.put("session_created", false)' in kotlin
+    assert 'Giriş yapmadan önce e-posta adresini doğrula.' in kotlin
+
 def test_android_ai_bridge_only_supports_groq_and_does_not_persist_keys():
     from pathlib import Path
 
