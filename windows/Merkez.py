@@ -25,7 +25,7 @@ from urllib.error import HTTPError, URLError
 from core.acoustic_api import AcousticAnalysisApi
 
 APP_NAME = "Stagepulse Ses Mühendisliği Merkezi"
-APP_VERSION = "3.9.0"
+APP_VERSION = "3.9.1"
 SUPABASE_URL = "https://itasctyjzyewcykozuex.supabase.co"
 SUPABASE_PUBLISHABLE_KEY = "sb_publishable_tP3CMhVAjv6FNtrkYfVEOA_dbF9m8Jb"
 WEBSITE_URL = "https://stagepulse.com.tr"
