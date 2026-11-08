@@ -280,13 +280,13 @@ Deno.serve(async (req: Request) => {
     if (!body || typeof body !== "object" || Array.isArray(body)) return fail("INVALID_REQUEST", 400);
     const action = typeof body?.action === "string" ? body.action : "";
     if (action === "student_signup") {
-      const rawPhone = String(body.phone ?? "").trim();
-      const digits = rawPhone.replace(/\\D/g, "");
-      if (!/^\\+?90?5[0-9]{9}$/.test(rawPhone.replace(/[\\s()-]/g, "")) &&
-          !(digits.length === 12 && digits.startsWith("90") && digits.slice(2).startsWith("5"))) {
-        return fail("STUDENT_PHONE_INVALID", 400);
-      }
-      const normalizedPhone = "+" + (digits.startsWith("90") ? digits : digits.startsWith("0") ? "90" + digits.slice(1) : "90" + digits);
+      const digits = String(body.phone ?? "").replace(/\\D/g, "");
+      let normalizedDigits = "";
+      if (digits.length === 10 && digits.startsWith("5")) normalizedDigits = "90" + digits;
+      else if (digits.length === 11 && digits.startsWith("05")) normalizedDigits = "90" + digits.slice(1);
+      else if (digits.length === 12 && digits.startsWith("905")) normalizedDigits = digits;
+      else return fail("STUDENT_PHONE_INVALID", 400);
+      const normalizedPhone = "+" + normalizedDigits;
       const password = String(body.password ?? "");
       const displayName = String(body.display_name ?? "").trim().replace(/\\s+/g, " ").slice(0, 120);
       if (password.length < 8 || password.length > 256 || displayName.length < 2) return fail("STUDENT_SIGNUP_DATA_INVALID", 400);
