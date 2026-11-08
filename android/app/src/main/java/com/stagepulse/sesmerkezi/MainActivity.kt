@@ -1002,11 +1002,19 @@ class MainActivity : Activity() {
                     .put("offline_cache", validCache)
             }
             "auth_login" -> {
-                val identity = authIdentityPayload(payload.optString("email"))
+                val rawIdentity = payload.optString("email")
+                val phone = normalizedStudentPhone(rawIdentity)
+                val identity = authIdentityPayload(rawIdentity)
                 val password = payload.optString("password")
                 if (password.isBlank()) throw IllegalArgumentException("Şifre gerekli.")
-                val session = requestSupabase("POST", "/auth/v1/token?grant_type=password",
-                    JSONObject().put("email", identity.getString("email")).put("password", password))
+                val session = try {
+                    requestSupabase("POST", "/auth/v1/token?grant_type=password",
+                        JSONObject().put("email", identity.getString("email")).put("password", password))
+                } catch (e: MobileApiException) {
+                    if (phone == null || e.statusCode !in 400..401) throw e
+                    requestSupabase("POST", "/auth/v1/token?grant_type=password",
+                        JSONObject().put("phone", phone).put("password", password))
+                }
                 saveAuthSession(session)
                 return JSONObject().put("context", fetchMobileContext())
             }
@@ -1016,21 +1024,26 @@ class MainActivity : Activity() {
                 val password = payload.optString("password")
                 val displayName = payload.optString("display_name").trim().take(120)
                 if (password.length < 8 || password.length > 256) throw IllegalArgumentException("Şifre en az 8, en fazla 256 karakter olmalı.")
-                val email = if (phone != null) {
+                val session = if (phone != null) {
                     if (displayName.length < 2) throw IllegalArgumentException("Öğrenci adı en az 2 karakter olmalı.")
                     callPublicSesEdge("student_signup", JSONObject().put("phone", phone)
                         .put("password", password).put("display_name", displayName))
-                    phone.removePrefix("+") + "@students.stagepulse.invalid"
+                    requestSupabase("POST", "/auth/v1/token?grant_type=password",
+                        JSONObject().put("email", phone.removePrefix("+") + "@students.stagepulse.invalid")
+                            .put("password", password))
                 } else {
                     val realEmail = authIdentityPayload(rawIdentity).getString("email")
                     requestSupabase("POST", "/auth/v1/signup", JSONObject().put("email", realEmail)
                         .put("password", password).put("data", JSONObject().put("display_name", displayName)))
-                    realEmail
                 }
-                val session = requestSupabase("POST", "/auth/v1/token?grant_type=password",
-                    JSONObject().put("email", email).put("password", password))
+                if (session.optString("access_token").isBlank() || session.optString("refresh_token").isBlank()) {
+                    return JSONObject().put("ok", true).put("session_created", false)
+                        .put("message", "Hesap oluşturuldu. Giriş yapmadan önce e-posta adresini doğrula.")
+                }
                 saveAuthSession(session)
+                val context = fetchMobileContext()
                 return JSONObject().put("ok", true).put("session_created", true)
+                    .put("context", context)
                     .put("message", "Öğrenci hesabı oluşturuldu ve giriş yapıldı.")
             }
             "auth_context" -> return JSONObject().put("context", fetchMobileContext())
