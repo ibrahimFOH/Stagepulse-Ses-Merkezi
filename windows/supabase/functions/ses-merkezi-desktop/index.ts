@@ -308,9 +308,7 @@ Deno.serve(async (req: Request) => {
         user_metadata: { display_name: displayName, phone: normalizedPhone, account_type: "student" },
       });
       if (error || !data?.user) {
-        const duplicate = String(error?.message ?? "").toLowerCase().includes("already") ||
-          String(error?.code ?? "").toLowerCase().includes("duplicate");
-        return fail(duplicate ? "PHONE_ALREADY_REGISTERED" : "STUDENT_SIGNUP_UNAVAILABLE", duplicate ? 409 : 503);
+        return fail("STUDENT_SIGNUP_UNAVAILABLE", 503);
       }
       return reply({ ok: true, user_id: data.user.id });
     }
