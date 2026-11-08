@@ -5,6 +5,7 @@ Windows dışı geliştirme/test ortamlarında AES-GCM kullanılır.
 """
 from __future__ import annotations
 
+import base64
 import json
 import os
 import secrets
@@ -145,3 +146,98 @@ def write_json(path: Path, data: Any) -> None:
             temp.unlink(missing_ok=True)
         except OSError:
             pass
+
+OFFLINE_LEASE_PUBLIC_KEY_PEM = b"""-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhA5HcOfxrcGqZnEvpNBV
+MP7UcKBqvmN5pPk6Tdb42+bkflgBvdcBNG3eRknWMmjr+2xRSOvadh6E2k8z3T+T
+Rds8nQZOZZRD4i9bnpqUKV70t7O/70AwW9d83Z0FoI1szPRmT8bjLbec6dWc4FPL
+huOvgqDz9KLIsLV3v5M5CBFEcvRkRL48eDHhPScU8K/5R+/UZnJXALlCQDLxsGIC
+iy/7Szzl8HJ054AJ/VSYs34HHRn7RqQSnbDWin7dcHwr2PUgHcgHP6r7ofkfJMlw
+hqeHBq4V0eBXRnbwrwT9zvFwDLfKAD3AcK3QVvP53pnmU7LUd0jtqBtSLdFXvEPc
+hQIDAQAB
+-----END PUBLIC KEY-----"""
+
+OFFLINE_PAID_LEASE_MS = 14 * 24 * 60 * 60 * 1000
+OFFLINE_TRIAL_LEASE_MS = 7 * 24 * 60 * 60 * 1000
+OFFLINE_CLOCK_SKEW_MS = 5 * 60 * 1000
+
+
+def _decode_base64url(value: str) -> bytes:
+    if not isinstance(value, str) or not value or len(value) > 16384:
+        raise ValueError("Offline lisans alanı geçersiz.")
+    padded = value + ("=" * (-len(value) % 4))
+    try:
+        return base64.urlsafe_b64decode(padded.encode("ascii"))
+    except (ValueError, UnicodeEncodeError) as exc:
+        raise ValueError("Offline lisans kodlaması geçersiz.") from exc
+
+
+def verify_offline_lease(
+    envelope: Any,
+    *,
+    expected_user_id: str,
+    expected_device_hash: str,
+    expected_app_id: str,
+    expected_platform: str,
+    now_ms: int | None = None,
+    last_seen_ms: int = 0,
+    public_key_pem: bytes = OFFLINE_LEASE_PUBLIC_KEY_PEM,
+) -> dict[str, Any]:
+    """Verify the server-signed RS256 offline entitlement and its binding."""
+    if not isinstance(envelope, dict) or envelope.get("v") != 1 or envelope.get("alg") != "RS256":
+        raise ValueError("Offline lisans zarfı desteklenmiyor.")
+    payload_bytes = _decode_base64url(envelope.get("payload", ""))
+    signature = _decode_base64url(envelope.get("signature", ""))
+    if len(payload_bytes) > 4096 or len(signature) != 256:
+        raise ValueError("Offline lisans boyutu geçersiz.")
+
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import padding
+    from cryptography.exceptions import InvalidSignature
+
+    try:
+        public_key = serialization.load_pem_public_key(public_key_pem)
+        public_key.verify(signature, payload_bytes, padding.PKCS1v15(), hashes.SHA256())
+        claims = json.loads(payload_bytes.decode("utf-8"))
+    except (ValueError, TypeError, UnicodeDecodeError, json.JSONDecodeError, InvalidSignature) as exc:
+        raise ValueError("Offline lisans imzası doğrulanamadı.") from exc
+
+    if not isinstance(claims, dict) or claims.get("v") != 1:
+        raise ValueError("Offline lisans içeriği geçersiz.")
+    if (
+        claims.get("uid") != expected_user_id
+        or claims.get("device_hash") != expected_device_hash
+        or claims.get("app_id") != expected_app_id
+        or claims.get("platform") != expected_platform
+    ):
+        raise ValueError("Offline lisans farklı kullanıcıya veya cihaza ait.")
+
+    issued_at = claims.get("issued_at_ms")
+    expires_at = claims.get("expires_at_ms")
+    if not isinstance(issued_at, int) or not isinstance(expires_at, int) or issued_at <= 0 or expires_at <= issued_at:
+        raise ValueError("Offline lisans zamanı geçersiz.")
+    current = int(time.time() * 1000) if now_ms is None else int(now_ms)
+    if current < int(last_seen_ms or 0) - OFFLINE_CLOCK_SKEW_MS:
+        raise ValueError("Sistem saati geri alınmış.")
+    if issued_at > current + OFFLINE_CLOCK_SKEW_MS or current >= expires_at:
+        raise ValueError("Offline lisans süresi dolmuş veya henüz başlamamış.")
+
+    duration = expires_at - issued_at
+    entitlement = claims.get("entitlement")
+    is_paid = claims.get("paid") is True
+    if is_paid:
+        license_expiry = claims.get("license_expires_at_ms")
+        if entitlement != "paid" or duration > OFFLINE_PAID_LEASE_MS:
+            raise ValueError("Ücretli offline lisans sınırı geçersiz.")
+        if license_expiry is not None and (
+            not isinstance(license_expiry, int) or expires_at > license_expiry or current >= license_expiry
+        ):
+            raise ValueError("Ücretli lisansın asıl süresi dolmuş.")
+    else:
+        trial_expiry = claims.get("trial_expires_at_ms")
+        if entitlement != "trial" or duration > OFFLINE_TRIAL_LEASE_MS:
+            raise ValueError("Deneme offline lisans sınırı geçersiz.")
+        if not isinstance(trial_expiry, int) or expires_at > trial_expiry or current >= trial_expiry:
+            raise ValueError("Deneme süresi dolmuş.")
+
+    return claims
