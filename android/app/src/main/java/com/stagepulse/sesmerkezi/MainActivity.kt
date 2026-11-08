@@ -918,7 +918,7 @@ class MainActivity : Activity() {
                 return JSONObject()
                     .put("ok", true)
                     .put("session_created", hasSession)
-                    .put("message", if (hasSession) "Öğrenci hesabı oluşturuldu." else "Hesap oluşturuldu. E-posta doğrulamasını tamamla, ardından giriş yap.")
+                    .put("message", if (hasSession) "Öğrenci hesabı oluşturuldu." else "Hesap isteği alındı. Supabase doğrulaması açıksa tamamlayıp giriş yap.")
             }
             "auth_context" -> return JSONObject().put("context", fetchMobileContext())
             "auth_restore" -> return restoreMobileAuthSession()
