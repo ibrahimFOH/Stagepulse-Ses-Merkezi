@@ -284,7 +284,7 @@ def test_full_package_bank_transfer_requires_owner_approval_and_server_license_c
 def test_manual_full_package_license_generation_is_owner_only_and_atomic():
     desktop_edge = (ROOT / 'supabase/functions/ses-merkezi-desktop/index.ts').read_text('utf-8')
     core_edge = (ROOT / 'supabase/functions/license-core/index.ts').read_text('utf-8')
-    migration = (ROOT / 'supabase/migrations/20261108210000_sesm_manual_full_package_license_generation.sql').read_text('utf-8')
+    migration = (ROOT / 'supabase/migrations/20261108191635_sesm_manual_full_package_license_generation.sql').read_text('utf-8')
 
     direct_create = desktop_edge[desktop_edge.index('if (action === "license_create")'):]
     direct_create = direct_create[:direct_create.index('if (action === "license_payment_update")')]
