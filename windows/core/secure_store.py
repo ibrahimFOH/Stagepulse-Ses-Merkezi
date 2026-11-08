@@ -147,16 +147,6 @@ def write_json(path: Path, data: Any) -> None:
         except OSError:
             pass
 
-OFFLINE_LEASE_PUBLIC_KEY_PEM = b"""-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhA5HcOfxrcGqZnEvpNBV
-MP7UcKBqvmN5pPk6Tdb42+bkflgBvdcBNG3eRknWMmjr+2xRSOvadh6E2k8z3T+T
-Rds8nQZOZZRD4i9bnpqUKV70t7O/70AwW9d83Z0FoI1szPRmT8bjLbec6dWc4FPL
-huOvgqDz9KLIsLV3v5M5CBFEcvRkRL48eDHhPScU8K/5R+/UZnJXALlCQDLxsGIC
-iy/7Szzl8HJ054AJ/VSYs34HHRn7RqQSnbDWin7dcHwr2PUgHcgHP6r7ofkfJMlw
-hqeHBq4V0eBXRnbwrwT9zvFwDLfKAD3AcK3QVvP53pnmU7LUd0jtqBtSLdFXvEPc
-hQIDAQAB
------END PUBLIC KEY-----"""
-
 OFFLINE_PAID_LEASE_MS = 14 * 24 * 60 * 60 * 1000
 OFFLINE_TRIAL_LEASE_MS = 7 * 24 * 60 * 60 * 1000
 OFFLINE_CLOCK_SKEW_MS = 5 * 60 * 1000
@@ -179,9 +169,9 @@ def verify_offline_lease(
     expected_device_hash: str,
     expected_app_id: str,
     expected_platform: str,
+    public_key_pem: bytes | str,
     now_ms: int | None = None,
     last_seen_ms: int = 0,
-    public_key_pem: bytes = OFFLINE_LEASE_PUBLIC_KEY_PEM,
 ) -> dict[str, Any]:
     """Verify the server-signed RS256 offline entitlement and its binding."""
     if not isinstance(envelope, dict) or envelope.get("v") != 1 or envelope.get("alg") != "RS256":
@@ -196,7 +186,10 @@ def verify_offline_lease(
     from cryptography.exceptions import InvalidSignature
 
     try:
-        public_key = serialization.load_pem_public_key(public_key_pem)
+        pem_bytes = public_key_pem.encode("ascii") if isinstance(public_key_pem, str) else bytes(public_key_pem)
+        if not pem_bytes.startswith(b"-----BEGIN PUBLIC KEY-----"):
+            raise ValueError("Offline lisans açık anahtarı bulunamadı.")
+        public_key = serialization.load_pem_public_key(pem_bytes)
         public_key.verify(signature, payload_bytes, padding.PKCS1v15(), hashes.SHA256())
         claims = json.loads(payload_bytes.decode("utf-8"))
     except (ValueError, TypeError, UnicodeDecodeError, json.JSONDecodeError, InvalidSignature) as exc:
