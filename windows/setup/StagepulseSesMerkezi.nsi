@@ -4,7 +4,7 @@
 !include "LogicLib.nsh"
 
 !ifndef VERSION
-  !define VERSION "3.9.2"
+  !define VERSION "3.9.3"
 !endif
 !ifndef APP_PAYLOAD
   !error "APP_PAYLOAD tanımlanmamış. EXE_OLUSTUR.ps1 üzerinden çalıştırın."
