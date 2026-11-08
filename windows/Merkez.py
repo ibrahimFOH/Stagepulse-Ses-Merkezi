@@ -258,22 +258,43 @@ class AppApi(AcousticAnalysisApi):
 
     def _cached_license_status(self) -> dict[str, Any]:
         cached = _secure_read(LICENSE_CACHE_PATH, {})
-        if not isinstance(cached, dict) or not cached.get("active"):
+        if not isinstance(cached, dict):
             return {"active": False, "reason": "not_verified"}
+        user_id = str(cached.get("user_id") or "")
+        lease = cached.get("offline_lease")
+        if not user_id or not isinstance(lease, dict):
+            return {"active": False, "reason": "offline_lease_missing"}
         try:
-            checked = float(cached.get("verified_at", 0))
-            now = time.time()
-            if checked <= 0 or checked > now + 300:
-                return {"active": False, "reason": "cache_invalid"}
-            if now - checked > OFFLINE_LICENSE_GRACE_DAYS * 86400:
-                return {"active": False, "reason": "offline_grace_expired"}
-            expires = cached.get("expires_at")
-            if expires and time.time() >= __import__("datetime").datetime.fromisoformat(str(expires).replace("Z", "+00:00")).timestamp():
-                return {"active": False, "reason": "license_expired"}
-            # A cached owner role never restores teacher/admin access while offline.
-            return {"active": True, "trial": bool(cached.get("trial")), "reason": "offline_trial_grace" if cached.get("trial") else "offline_grace", "plan_code": cached.get("plan_code", "student"), "bundle_code": cached.get("bundle_code", "full_master"), "expires_at": expires, "verified_at": checked, "user_id": cached.get("user_id")}
-        except (ValueError, TypeError, OverflowError):
-            return {"active": False, "reason": "cache_invalid"}
+            from core.secure_store import verify_offline_lease
+            now_ms = int(time.time() * 1000)
+            claims = verify_offline_lease(
+                lease,
+                expected_user_id=user_id,
+                expected_device_hash=_installation_device_hash(),
+                expected_app_id="ses-merkezi",
+                expected_platform="windows",
+                now_ms=now_ms,
+                last_seen_ms=int(cached.get("last_seen_at_ms") or 0),
+            )
+            _secure_write(LICENSE_CACHE_PATH, {
+                "user_id": user_id,
+                "offline_lease": lease,
+                "last_seen_at_ms": now_ms,
+            })
+            is_trial = claims.get("entitlement") == "trial"
+            return {
+                "active": True,
+                "paid": claims.get("paid") is True,
+                "trial_active": is_trial,
+                "reason": "offline_grace",
+                "plan_code": claims.get("plan_code", "trial" if is_trial else "student"),
+                "bundle_code": claims.get("bundle_code", "trial" if is_trial else "start"),
+                "expires_at": claims.get("license_expires_at_ms"),
+                "lease_expires_at_ms": claims.get("expires_at_ms"),
+                "user_id": user_id,
+            }
+        except (ValueError, TypeError, RuntimeError, OverflowError):
+            return {"active": False, "reason": "offline_lease_invalid"}
 
     def load_profiles(self) -> dict[str, Any]:
         data = _secure_read(PROFILE_PATH, None)
@@ -754,18 +775,31 @@ class AppApi(AcousticAnalysisApi):
     def _cache_server_license(self, context: dict[str, Any] | None) -> None:
         if not isinstance(context, dict):
             return
-        license_info = context.get("licensed") if isinstance(context.get("licensed"), dict) else {}
-        trial_info = context.get("trial") if isinstance(context.get("trial"), dict) else {}
-        licensed = bool(license_info.get("active"))
-        trial_active = bool(trial_info.get("active")) and not licensed
-        cache = {
-            "active": licensed or trial_active, "trial": trial_active, "verified_at": time.time(),
-            "expires_at": license_info.get("expires_at") if licensed else trial_info.get("expires_at"),
-            "plan_code": license_info.get("plan_code") if licensed else "trial",
-            "bundle_code": license_info.get("bundle_code", "full_master") if licensed else "full_master",
-            "user_id": (context.get("user") or {}).get("id"),
-        }
-        _secure_write(LICENSE_CACHE_PATH, cache)
+        user = context.get("user") if isinstance(context.get("user"), dict) else {}
+        user_id = str(user.get("id") or "")
+        lease = context.get("offline_lease")
+        if not user_id or not isinstance(lease, dict):
+            _secure_write(LICENSE_CACHE_PATH, {"active": False, "reason": "no_signed_lease"})
+            return
+        try:
+            from core.secure_store import verify_offline_lease
+            now_ms = int(time.time() * 1000)
+            verify_offline_lease(
+                lease,
+                expected_user_id=user_id,
+                expected_device_hash=_installation_device_hash(),
+                expected_app_id="ses-merkezi",
+                expected_platform="windows",
+                now_ms=now_ms,
+            )
+        except (ValueError, TypeError, RuntimeError, OverflowError):
+            _secure_write(LICENSE_CACHE_PATH, {"active": False, "reason": "signed_lease_invalid"})
+            return
+        _secure_write(LICENSE_CACHE_PATH, {
+            "user_id": user_id,
+            "offline_lease": lease,
+            "last_seen_at_ms": now_ms,
+        })
 
     def auth_context(self) -> dict[str, Any]:
         context = self._edge_call("context", {"device_hash": _installation_device_hash()})
