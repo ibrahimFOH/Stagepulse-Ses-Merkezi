@@ -77,15 +77,6 @@ class MainActivity : Activity() {
     @Volatile private var updateDownloadInProgress = false
     private var pendingInstallerPermissionRequest = false
     private var pendingUpdateManifest: MobileUpdateManifest? = null
-    private val offlineLeasePublicKeyPem = """-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhA5HcOfxrcGqZnEvpNBV
-MP7UcKBqvmN5pPk6Tdb42+bkflgBvdcBNG3eRknWMmjr+2xRSOvadh6E2k8z3T+T
-Rds8nQZOZZRD4i9bnpqUKV70t7O/70AwW9d83Z0FoI1szPRmT8bjLbec6dWc4FPL
-huOvgqDz9KLIsLV3v5M5CBFEcvRkRL48eDHhPScU8K/5R+/UZnJXALlCQDLxsGIC
-iy/7Szzl8HJ054AJ/VSYs34HHRn7RqQSnbDWin7dcHwr2PUgHcgHP6r7ofkfJMlw
-hqeHBq4V0eBXRnbwrwT9zvFwDLfKAD3AcK3QVvP53pnmU7LUd0jtqBtSLdFXvEPc
-hQIDAQAB
------END PUBLIC KEY-----"""
     private fun deliverRuntimePermissionResult(callbackId: String, granted: Boolean, message: String = "") {
         if (!callbackId.matches(Regex("[A-Za-z0-9_-]{1,64}"))) return
         val script = "window.__stagepulseResolveMediaPermission && window.__stagepulseResolveMediaPermission(" +
@@ -477,13 +468,16 @@ hQIDAQAB
         storeSecret("validated_at", System.currentTimeMillis().toString())
         val lease = context.optJSONObject("offline_lease")
         val userId = context.optJSONObject("user")?.optString("id").orEmpty()
-        if (lease != null && userId.isNotBlank()) {
+        val publicKey = context.optString("offline_lease_public_key")
+        if (lease != null && userId.isNotBlank() && publicKey.startsWith("-----BEGIN PUBLIC KEY-----")) {
             storeSecret("offline_lease", lease.toString())
+            storeSecret("offline_lease_public_key", publicKey)
             storeSecret("offline_user_id", userId)
             storeSecret("offline_last_seen_at_ms", System.currentTimeMillis().toString())
         } else {
             secureSessionPrefs.edit()
                 .remove("offline_lease")
+                .remove("offline_lease_public_key")
                 .remove("offline_user_id")
                 .remove("offline_last_seen_at_ms")
                 .apply()
@@ -508,6 +502,7 @@ hQIDAQAB
             Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING
         )
         if (payload.size > 4096 || signatureBytes.size != 256) return null
+        val offlineLeasePublicKeyPem = readSecret("offline_lease_public_key") ?: return null
         val pemBody = offlineLeasePublicKeyPem
             .replace("-----BEGIN PUBLIC KEY-----", "")
             .replace("-----END PUBLIC KEY-----", "")
@@ -581,6 +576,7 @@ hQIDAQAB
             .remove("account_context")
             .remove("validated_at")
             .remove("offline_lease")
+            .remove("offline_lease_public_key")
             .remove("offline_user_id")
             .remove("offline_last_seen_at_ms")
             .apply()
