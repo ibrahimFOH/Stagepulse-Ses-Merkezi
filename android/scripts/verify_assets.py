@@ -27,6 +27,9 @@ for p in (HTML, UI / "app.js", UI / "style.css", UI / "rta_math.js", UI / "acous
 
 if HTML.is_file():
     source = HTML.read_text(encoding="utf-8")
+    style_source = (UI / "style.css").read_text(encoding="utf-8") if (UI / "style.css").is_file() else ""
+    if ".dynamics-grid" not in style_source or ".dynamics-panel" not in style_source:
+        errors.append("Compressor/Gate kulak eğitimi stilleri eksik.")
     for control in DYNAMICS_CONTROLS:
         if f'id="{control}"' not in source:
             errors.append("Kulak eğitimi dinamik işlemci kontrolü eksik: " + control)
