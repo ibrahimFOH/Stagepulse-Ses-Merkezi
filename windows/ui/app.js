@@ -252,8 +252,8 @@ function initShell(){
   if(window.requestAnimationFrame)window.requestAnimationFrame(()=>window.setTimeout(()=>runNext(0),0));
   else window.setTimeout(()=>runNext(0),30);
 }
-window.addEventListener('error',event=>{const message=(event.error&&event.error.message)||event.message||'Bilinmeyen JavaScript hatası';console.error('Stagepulse yakalanan JavaScript hatası:',event.error||event.message);if($('footerStatus'))setStatus('Arayüz hatası: '+String(message).slice(0,180));});
-window.addEventListener('unhandledrejection',event=>{const reason=event.reason,message=(reason&&reason.message)||String(reason||'Bilinmeyen asenkron hata');console.error('Stagepulse yakalanan asenkron hata:',reason);if($('footerStatus'))setStatus('Arka plan işlemi başarısız: '+String(message).slice(0,180));});
+window.addEventListener('error',event=>{const message=(event.error&&event.error.message)||event.message||'Bilinmeyen JavaScript hatası';console.error('Stagepulse yakalanan JavaScript hatası:',event.error||event.message);if($('footerStatus'))setStatus('Arayüzde beklenmeyen bir hata oluştu. Uygulamayı yeniden başlatmayı dene.');});
+window.addEventListener('unhandledrejection',event=>{const reason=event.reason,message=(reason&&reason.message)||String(reason||'Bilinmeyen asenkron hata');console.error('Stagepulse yakalanan asenkron hata:',reason);if($('footerStatus'))setStatus('Bir arka plan işlemi tamamlanamadı. Lütfen işlemi yeniden dene.');});
 
 window.addEventListener('DOMContentLoaded',initShell);
 window.addEventListener('pywebviewready',()=>{apiReady=true;initializeNativeData();});
