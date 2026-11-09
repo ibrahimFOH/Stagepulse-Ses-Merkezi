@@ -1,4 +1,10 @@
-# Stagepulse Ses Merkezi 3.9.5
+# Stagepulse Ses Merkezi 3.9.6
+
+- Android Compressor ve Gate kulak eğitimi; A/B dinleme, rastgele sınav ve arayüz stilleriyle yeniden doğrulandı.
+- SPL 2D/3D görünümünde kaynak seçme ve sürükleme davranışı, tuvalin gerçek mantıksal koordinatlarına göre düzeltildi.
+- Android varlık denetimi Compressor/Gate kontrollerini ve stillerini zorunlu doğrulamaya aldı.
+
+## 3.9.5
 
 - RTA ölçüm adayları için doğrulama ve müdahale adımları eklendi.
 - SPL saha ölçüm sihirbazı, ölçüm noktası kaydı ve CSV özeti eklendi.
