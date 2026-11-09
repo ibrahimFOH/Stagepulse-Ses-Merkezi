@@ -1172,7 +1172,8 @@ class MainActivity : Activity() {
                 "audio/x-wav" to ".wav"
             )
             val safeExt = safeExtensions[mimeType] ?: return false
-            val safeName = "Stagepulse_export" + safeExt
+            val requestedName = fileName.substringBeforeLast('.').filter { it.isLetterOrDigit() || it == '-' || it == '_' }.take(64)
+            val safeName = (requestedName.ifBlank { "Stagepulse_export" }) + safeExt
             return try {
                 val bytes = Base64.decode(encoded, Base64.DEFAULT)
                 val values = ContentValues().apply {

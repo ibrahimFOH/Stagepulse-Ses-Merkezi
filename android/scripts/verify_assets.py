@@ -21,7 +21,7 @@ MAIN = ROOT / "android" / "app" / "src" / "main" / "java" / "com" / "stagepulse"
 MANIFEST = ROOT / "android" / "app" / "src" / "main" / "AndroidManifest.xml"
 errors = []
 
-for p in (HTML, UI / "app.js", UI / "style.css", UI / "rta_math.js", UI / "acoustic_math.js", UI / "first_party_tools.js", MAIN, MANIFEST, DOC_LIST):
+for p in (HTML, UI / "app.js", UI / "style.css", UI / "rta_math.js", UI / "acoustic_math.js", UI / "first_party_tools.js", UI / "advanced_modules.js", MAIN, MANIFEST, DOC_LIST):
     if not p.is_file():
         errors.append("Zorunlu dosya eksik: " + str(p.relative_to(ROOT)))
 
@@ -60,10 +60,19 @@ if HTML.is_file():
             errors.append("Android mühendislik sayfası eksik: " + route)
         if route not in nav_names:
             errors.append("Android menüsünde mühendislik aracı eksik: " + route)
+    advanced_position = page_source.find("advanced_modules.js")
     first_party_position = page_source.find("first_party_tools.js")
     app_position = page_source.find("/assets/ui/app.js")
-    if first_party_position < 0 or app_position < 0 or first_party_position > app_position:
+    if first_party_position < 0 or advanced_position < 0 or app_position < 0 or first_party_position > advanced_position or advanced_position > app_position:
         errors.append("Ortak mühendislik motoru ana uygulama JS dosyasından önce yüklenmiyor.")
+
+shared_advanced = UI / "advanced_modules.js"
+desktop_advanced = ROOT / "windows" / "ui" / "advanced_modules.js"
+if shared_advanced.is_file() and desktop_advanced.is_file():
+    if shared_advanced.read_text(encoding="utf-8") != desktop_advanced.read_text(encoding="utf-8"):
+        errors.append("Android gelişmiş mühendislik modülleri Windows sürümüyle eşleşmiyor.")
+else:
+    errors.append("Gelişmiş mühendislik modülleri Windows ve Android paketlerinde bulunmalı.")
 
 shared_tools = UI / "first_party_tools.js"
 desktop_tools = ROOT / "windows" / "ui" / "first_party_tools.js"

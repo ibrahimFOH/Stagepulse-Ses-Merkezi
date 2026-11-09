@@ -1,9 +1,9 @@
-// Stagepulse UI release 3.9.4
+// Stagepulse UI release 3.9.5
 'use strict';
 const $ = (id) => document.getElementById(id);
 const routes = {
   home:'Ana sayfa', frequency:'Frekans bulucu', ear:'Kulak eğitimi', calculators:'Hesaplayıcılar', acoustics:'SPL / alan planı', systemplan:'Sahne ve ses-görüntü planı', patch:'Mikser kanal bağlantı raporu', rf:'Kablosuz frekans planı', distribution:'70/100 V hoparlör hattı', roommap:'Oda ses basınç seviyesi haritası', speaker:'Hoparlör ve sayısal sinyal işleme', wavelab:'Dalga / faz / gecikme laboratuvarı',
-  rta:'Gerçek zamanlı analiz (RTA)', mixer:'Ses katmanı atölyesi', wav:'Ses dosyası kalite analizi (WAV)', lufs:'Ses yüksekliği normalizasyonu (LUFS)',
+  rta:'Gerçek zamanlı analiz (RTA)', mixer:'Ses katmanı atölyesi', mixlab:'Sanal mikser laboratuvarı', videoacademy:'Video akademi', wav:'Ses dosyası kalite analizi (WAV)', lufs:'Ses yüksekliği normalizasyonu (LUFS)',
   cues:'Sahne ipucu (Cue) ve video notları', checklists:'Kontrol listeleri', docs:'Ders kılavuzları', pdf:'Öğrenci PDF kitaplığı',
   curriculum:'Eğitim dalları / ustalık yolu', student:'Öğrenci ilerlemesi', assistant:'Yapay zekâ / çalışma asistanı', account:'Hesap / lisans', settings:'Ayarlar ve gizlilik'
 };

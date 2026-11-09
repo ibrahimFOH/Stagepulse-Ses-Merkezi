@@ -116,3 +116,25 @@ assert.match(androidApp, /Durdur düğmesi bekleyen izni iptal eder/, 'Android m
 assert.ok(androidApp.includes("if(token!==rtaGeneration){$('rtaStart').disabled=false;$('rtaStop').disabled=true;return;}"), 'İptal edilen mikrofon başlatması getUserMedia öncesinde durmalı.');
 
 console.log('İLK TARAF ARAÇ TESTLERİ BAŞARILI');
+
+const advancedPath = path.join(__dirname, '..', 'ui', 'advanced_modules.js');
+const advancedSource = fs.readFileSync(advancedPath, 'utf8');
+const advancedContext = { window: {}, console, Math, Number, Array, Object, Error, String, JSON };
+vm.runInNewContext(advancedSource, advancedContext, { filename: 'advanced_modules.js' });
+const advanced = advancedContext.window.StagepulseAdvanced;
+assert.ok(advanced, 'Gelişmiş mühendislik modülleri dışa açılmalı.');
+const singlePhase = advanced.calculatePower({phase:'single',powerW:3000,voltage:230,powerFactor:0.9,efficiency:0.9,reserve:0,lengthM:20,sectionMm2:2.5,material:'copper'});
+assert.ok(Math.abs(singlePhase.currentA - 16.103) < 0.02, 'Tek faz akımı doğru hesaplanmalı.');
+const threePhase = advanced.calculatePower({phase:'three',powerW:12000,voltage:400,powerFactor:0.9,efficiency:0.95,reserve:0,lengthM:30,sectionMm2:6,material:'copper'});
+assert.ok(Math.abs(threePhase.currentA - 20.267) < 0.03, 'Üç faz akımı doğru hesaplanmalı.');
+assert.ok(threePhase.voltageDropV > 0 && threePhase.voltageDropPercent > 0, 'Kablo gerilim düşümü hesaplanmalı.');
+assert.throws(() => advanced.calculatePower({phase:'single',powerW:0,voltage:230,powerFactor:0.9,efficiency:0.9,lengthM:10,sectionMm2:2.5}), /Güç/);
+const rfPlan = advanced.coordinateRf({minMHz:470,maxMHz:694,handhelds:4,iems:2,stepMHz:0.025,spacingMHz:0.3,guardMHz:0.15,noiseThresholdDbm:-70,scan:[]});
+assert.equal(rfPlan.assigned,6, 'Dört el mikrofonu ve iki IEM için altı aday kanal bulunmalı.');
+assert.equal(rfPlan.channels.filter(x=>x.type==='El mikrofonu').length,4);
+assert.equal(rfPlan.channels.filter(x=>x.type==='IEM').length,2);
+for(let i=0;i<rfPlan.channels.length;i++)for(let j=i+1;j<rfPlan.channels.length;j++)assert.ok(Math.abs(rfPlan.channels[i].frequencyMHz-rfPlan.channels[j].frequencyMHz)>=0.3,'RF kanalları minimum aralığı korumalı.');
+const parsed=advanced.parseRtaCandidates('125 Hz\nKomşu bant medyanından +6,0 dB · aday kesim 3 dB\n1,25 kHz\nKomşu bant medyanından +4,5 dB · aday kesim 2 dB');
+assert.equal(parsed.length,2);assert.equal(parsed[0].frequencyHz,125);assert.equal(parsed[0].excessDb,6);
+assert.equal(advanced.videoLessons.length,8,'Video akademi için sekiz ders senaryosu bulunmalı.');
+assert.ok(advanced.videoLessons.every(x=>x.script.length>100&&x.shots.length>=3),'Her video dersi anlatım ve storyboard içermeli.');

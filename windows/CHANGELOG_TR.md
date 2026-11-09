@@ -1,3 +1,14 @@
+# Stagepulse Ses Merkezi 3.9.5
+
+- RTA ölçüm adayları için doğrulama ve müdahale adımları eklendi.
+- SPL saha ölçüm sihirbazı, nokta kaydı ve CSV raporu eklendi.
+- Tek/üç faz akım ve gerilim düşümü ön hesaplayıcısı eklendi.
+- El mikrofonu ve IEM için birleşik RF ön koordinasyon aracı eklendi.
+- Dört kanallı sanal mikser, gain staging, EQ ve compressor pratiği eklendi.
+- AI video ders senaryoları, storyboard ve video oynatıcı kütüphanesi eklendi.
+- Asistan, Operatör ve Mühendis öğrenme yolu ile PDF katılım belgesi eklendi.
+- Katılım belgesinin resmî yeterlilik veya akreditasyon sağlamadığı açıkça belirtildi.
+
 # Değişiklik günlüğü
 
 ## 3.9.4
