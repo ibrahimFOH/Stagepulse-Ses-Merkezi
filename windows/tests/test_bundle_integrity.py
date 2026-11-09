@@ -15,7 +15,7 @@ def test_ui_has_no_external_script_or_stylesheet_dependencies():
 
 
 def test_packaged_paths_exist():
-    required = ['Merkez.py', 'ui/index.html', 'ui/app.js', 'ui/rta_math.js', 'ui/acoustic_math.js', 'ui/style.css', 'ui/first_party_tools.js', 'tests/test_first_party_tools.js',
+    required = ['Merkez.py', 'ui/index.html', 'ui/app.js', 'ui/rta_math.js', 'ui/acoustic_math.js', 'ui/style.css', 'ui/first_party_tools.js', 'ui/advanced_modules.js', 'tests/test_first_party_tools.js',
                 'araclar/Frekans_Bulucu/index.html', 'egitim_paketleri/00_Uygulama_Kullanimi_Ogrenci.pdf',
                 'egitim_paketleri/01_Ses_Muhendisligi_Ogrenci_Ders_Kitabi.pdf',
                 'egitim_paketleri/09_SPL_dB_3D_Gorsel_Atlasi.pdf',
@@ -448,3 +448,39 @@ def test_windows_saved_auth_session_is_restored_during_native_startup():
     assert 'SESSION_PATH = DATA_ROOT / "hesap_oturumu.dat"' in merkez
     assert 'def auth_restore(self)' in merkez
     assert '_persist_auth_session()' in merkez
+
+
+def test_spl_equipment_editor_and_live_source_map_are_wired():
+    html = (ROOT / 'ui/index.html').read_text(encoding='utf-8')
+    app = (ROOT / 'ui/app.js').read_text(encoding='utf-8')
+    assert 'id="splEquipmentEditor"' in html
+    for control in ('splEquipmentCategory', 'splEquipmentAdd', 'splEquipmentList',
+                    'splEquipmentProperties', 'splEquipmentReset'):
+        assert f'id="{control}"' in html
+    assert 'function initSplEquipmentEditor()' in app
+    assert 'function renderSplEquipment()' in app
+    assert 'function splMapLevel(x,y,p)' in app
+    assert 'energy+=Math.pow(10,level/10)' in app
+    assert 'splEquipment.forEach(e=>' in app
+    assert 'pointermove' in app and 'pointerdown' in app
+    assert 'çoklu noktasal kaynak enerji toplamı' in html.lower() or 'çoklu noktasal kaynakların enerji toplamı' in html.lower()
+
+
+def test_student_purchase_and_whatsapp_support_are_visible():
+    html = (ROOT / 'ui/index.html').read_text(encoding='utf-8')
+    app = (ROOT / 'ui/app.js').read_text(encoding='utf-8')
+    assert 'id="studentPurchaseCta"' in html
+    assert 'id="studentWhatsAppCta"' in html
+    assert 'WhatsApp destek / iletişim' in html
+    assert 'https://wa.me/905320683012' in app
+    assert 'open_whatsapp' in app
+
+
+def test_compressor_and_gate_ear_training_are_not_removed():
+    html = (ROOT / 'ui/index.html').read_text(encoding='utf-8')
+    tools = (ROOT / 'ui/first_party_tools.js').read_text(encoding='utf-8')
+    for item in ('compThreshold', 'compRatio', 'compPlayA', 'compPlayB',
+                 'gateThreshold', 'gateRange', 'gatePlayA', 'gatePlayB'):
+        assert f'id="{item}"' in html
+    assert 'processCompressor' in tools and 'processGate' in tools
+    assert 'initDynamicsEarTraining' in tools
