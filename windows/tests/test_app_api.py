@@ -575,6 +575,42 @@ def test_windows_updater_accepts_only_canonical_stable_release(monkeypatch):
     {"sha256": "not-a-sha256"},
     {"version": "3.9.1-preview"},
 ])
+def test_windows_updater_retries_transient_manifest_failures(monkeypatch):
+    from urllib.error import URLError
+
+    version = "3.9.4"
+    filename = f"Stagepulse-Ses-Merkezi-Windows-{version}.exe"
+    manifest = {
+        "ok": True, "published": True, "channel": "stable", "prerelease": False,
+        "version": version, "filename": filename,
+        "url": f"https://github.com/ibrahimFOH/Stagepulse-Releases/releases/download/v{version}/{filename}",
+        "sha256": "b" * 64,
+    }
+
+    class FakeResponse:
+        def __enter__(self): return self
+        def __exit__(self, *args): return False
+        def read(self, limit=-1): return json.dumps(manifest).encode("utf-8")
+
+    attempts = {"count": 0}
+    def flaky_urlopen(*args, **kwargs):
+        attempts["count"] += 1
+        if attempts["count"] < 3:
+            raise URLError("temporary network failure")
+        return FakeResponse()
+
+    monkeypatch.setattr(Merkez, "APP_VERSION", "3.9.3")
+    monkeypatch.setattr(Merkez, "urlopen", flaky_urlopen)
+    monkeypatch.setattr(Merkez.time, "sleep", lambda _: None)
+
+    result = Merkez.AppApi().check_updates()
+
+    assert attempts["count"] == 3
+    assert result["ok"] is True
+    assert result["available"] is True
+    assert result["version"] == version
+
+
 def test_windows_updater_rejects_untrusted_or_non_stable_manifest(monkeypatch, change):
     version = "3.9.1"
     filename = f"Stagepulse-Ses-Merkezi-Windows-{version}.exe"
