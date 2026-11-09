@@ -115,6 +115,27 @@ assert.match(androidHtml, /id="patchPrint" disabled/, 'SCN dosyası seçilmeden 
 assert.match(androidApp, /Durdur düğmesi bekleyen izni iptal eder/, 'Android mikrofon başlatılırken durdurma kullanılabilir olmalı.');
 assert.ok(androidApp.includes("if(token!==rtaGeneration){$('rtaStart').disabled=false;$('rtaStop').disabled=true;return;}"), 'İptal edilen mikrofon başlatması getUserMedia öncesinde durmalı.');
 
+const androidToolsSource = fs.readFileSync(path.join(androidUiPath, 'first_party_tools.js'), 'utf8');
+assert.equal(androidToolsSource, source, 'Android ve Windows ortak ses araçları aynı kaynak kodunu kullanmalı.');
+const dynamicsIds = ['compThreshold','compPlayA','compPlayB','compNew','compQuizNew','gateThreshold','gatePlayA','gatePlayB','gateNew','gateQuizNew'];
+function pageMarkup(html, page, nextPage) {
+  const start = html.indexOf(`<section class="page" data-page="${page}"`);
+  const end = html.indexOf(`<section class="page" data-page="${nextPage}"`, start + 1);
+  assert.ok(start >= 0 && end > start, `${page} sayfası doğru sınırlarla bulunmalı.`);
+  return html.slice(start, end);
+}
+const windowsEarPage = pageMarkup(htmlSource, 'ear', 'calculators');
+const androidEarPage = pageMarkup(androidHtml, 'ear', 'calculators');
+const androidWavePage = pageMarkup(androidHtml, 'wavelab', 'checklists');
+for (const id of dynamicsIds) {
+  assert.equal((windowsEarPage.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, `Windows Kulak Eğitimi ${id} kontrolünü bir kez içermeli.`);
+  assert.equal((androidEarPage.match(new RegExp(`id="${id}"`, 'g')) || []).length, 1, `Android Kulak Eğitimi ${id} kontrolünü bir kez içermeli.`);
+  assert.ok(!androidWavePage.includes(`id="${id}"`), `Android ${id} kontrolü Dalga Laboratuvarı içinde kalmamalı.`);
+}
+assert.equal((windowsEarPage.match(/class="section-heading dynamics-heading"/g) || []).length, 1, 'Windows dinamik işlemci eğitimi tek bölüm olmalı.');
+assert.equal((androidEarPage.match(/class="section-heading dynamics-heading"/g) || []).length, 1, 'Android dinamik işlemci eğitimi tek bölüm olmalı.');
+
+
 console.log('İLK TARAF ARAÇ TESTLERİ BAŞARILI');
 
 const advancedPath = path.join(__dirname, '..', 'ui', 'advanced_modules.js');
