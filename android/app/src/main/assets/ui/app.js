@@ -351,7 +351,7 @@ function initAcoustics(){
    try{drawSplCoverageMaps();}catch(err){const el=$('splMapSummary');if(el)el.textContent='Harita hesaplanamadı: '+err.message;}
   });
  };
- ['splReferenceLevel','splReferenceDistance','splSourceCount','audienceWidth','audienceDepth','speakerCoverageAngle'].forEach(id=>$(id).addEventListener('input',redrawMap));
+ ['splReferenceLevel','splReferenceDistance','splSourceCount','audienceWidth','audienceDepth','audienceHeight','speakerCoverageAngle'].forEach(id=>$(id).addEventListener('input',()=>{redrawMap();if(splEquipment.length){const p=splMapParams();splEquipment.forEach(e=>{e.x=Math.max(-p.width/2,Math.min(p.width/2,e.x));e.y=Math.max(0,Math.min(p.depth,e.y));});saveSplEquipment();renderSplEquipment();}}));
  window.addEventListener('resize',redrawMap,{passive:true});
  window.visualViewport?.addEventListener('resize',redrawMap,{passive:true});
  const mapRoot=$('splMap2d')?.closest('.spl-visual-grid');
@@ -360,6 +360,7 @@ function initAcoustics(){
   observer.observe(mapRoot);
  }
 
+ initSplEquipmentEditor();
  $('useFarDistance').addEventListener('click',()=>{if(lastFarthestDistance!==null){$('splTargetDistance').value=lastFarthestDistance.toFixed(2);setStatus('Alan planındaki uzak köşe mesafesi SPL hedef mesafesine aktarıldı; varsayımları yeniden kontrol et.');}});
  $('useAudienceVolume').addEventListener('click',()=>{if(lastAudienceVolume!==null){$('rt60Volume').value=lastAudienceVolume.toFixed(1);setStatus('Alan planındaki hacim Sabine hesabına aktarıldı; soğurma alanını doğrula.');}});
  $('calcSplDistance').addEventListener('click',()=>{try{const r=AcousticMath.distanceSpl(val('splReferenceLevel'),val('splReferenceDistance'),val('splTargetDistance'),val('splSourceCount'));$('splDistanceResult').textContent=`Tek kaynak kestirimi: ${fmt(r.singleSourceDbSpl,2)} dB SPL\n${val('splSourceCount')} eşit kaynak için enerji toplamı kestirimi: ${fmt(r.combinedEnergyEstimateDbSpl,2)} dB SPL\nMesafe düzeltmesi: ${fmt(r.distanceCorrectionDb,2)} dB · kaynak toplamı: +${fmt(r.sourceCountEnergyCorrectionDb,2)} dB\nVarsayımlar: ${r.assumptions.join(' ')}`;redrawMap();}catch(e){showCalcError('splDistanceResult',e);}});
@@ -400,7 +401,43 @@ function splMapParams(){
  if(!Number.isFinite(width)||!Number.isFinite(depth))throw new Error('Alan boyutları geçerli sayısal değer olmalı.');
  return {width,depth,refLevel,refDistance};
 }
-function splMapLevel(x,y,p){const r=Math.max(p.refDistance,Math.hypot(x,y));return p.refLevel-20*Math.log10(r/p.refDistance);}
+const SPL_EQUIPMENT_KEY='stagepulse.splEquipment.v1';
+const SPL_EQUIPMENT_CATEGORIES={pa:'Ana PA',sub:'Subwoofer',monitor:'Sahne monitörü',stage:'Sahne',foh:'FOH',audience:'Dinleyici alanı'};
+function splDefaultEquipment(width=20,depth=30){return [
+{id:'pa-l',category:'pa',name:'Sol ana PA',x:-width*.3,y:1,level:100,angle:0,beam:90},{id:'pa-r',category:'pa',name:'Sağ ana PA',x:width*.3,y:1,level:100,angle:0,beam:90},
+{id:'sub-l',category:'sub',name:'Sol sub',x:-width*.22,y:2,level:100,angle:0,beam:360},{id:'sub-r',category:'sub',name:'Sağ sub',x:width*.22,y:2,level:100,angle:0,beam:360},
+{id:'mon-l',category:'monitor',name:'Monitör 1',x:-1.2,y:.5,level:96,angle:180,beam:120},{id:'mon-r',category:'monitor',name:'Monitör 2',x:1.2,y:.5,level:96,angle:180,beam:120},
+{id:'stage',category:'stage',name:'Sahne kutusu',x:0,y:0,level:0,angle:0,beam:360},{id:'foh',category:'foh',name:'FOH',x:0,y:depth*.8,level:0,angle:0,beam:360}
+];}
+let splEquipment=[],splSelectedEquipmentId='',splEquipmentDrag=null;
+function splEmitter(e){return ['pa','sub','monitor'].includes(e.category);}
+function splNormalizeAngle(a){return ((a+540)%360)-180;}
+function loadSplEquipment(){try{const v=JSON.parse(localStorage.getItem(SPL_EQUIPMENT_KEY)||'null');if(Array.isArray(v)&&v.length)splEquipment=v;}catch(_){}if(!splEquipment.length)splEquipment=splDefaultEquipment(val('audienceWidth')||20,val('audienceDepth')||30);}
+function saveSplEquipment(){try{localStorage.setItem(SPL_EQUIPMENT_KEY,JSON.stringify(splEquipment));}catch(_){}}
+function splMapLevel(x,y,p){
+ const active=splEquipment.filter(splEmitter);if(!active.length){const r=Math.max(p.refDistance,Math.hypot(x,y));return p.refLevel-20*Math.log10(r/p.refDistance);}
+ let energy=0;for(const s of active){const dx=x-s.x,dy=y-s.y,r=Math.max(p.refDistance,Math.hypot(dx,dy)),bearing=Math.atan2(dx,dy)*180/Math.PI,diff=Math.abs(splNormalizeAngle(bearing-(Number(s.angle)||0))),beam=Math.max(10,Math.min(360,Number(s.beam)||90)),outside=Math.max(0,diff-beam/2),attenuation=beam>=359?0:-Math.min(18,outside/Math.max(1,180-beam/2)*18),level=p.refLevel+(Number(s.level)-100)-20*Math.log10(r/p.refDistance)+attenuation;energy+=Math.pow(10,level/10);}
+ return energy>0?10*Math.log10(energy):-120;
+}
+function splMapTransform(e,p,pad,pw,ph){return {x:pad.l+(e.x/p.width+.5)*pw,y:pad.t+e.y/p.depth*ph};}
+function renderSplEquipment(){
+ const list=$('splEquipmentList'),props=$('splEquipmentProperties');if(!list||!props)return;
+ list.innerHTML=Object.keys(SPL_EQUIPMENT_CATEGORIES).map(cat=>{const items=splEquipment.filter(x=>x.category===cat);return items.length?'<section class="spl-equipment-group"><h4>'+SPL_EQUIPMENT_CATEGORIES[cat]+' <small>'+items.length+'</small></h4>'+items.map(x=>'<button type="button" class="spl-equipment-item '+(x.id===splSelectedEquipmentId?'active':'')+'" data-spl-select="'+safeText(x.id)+'"><strong>'+safeText(x.name)+'</strong><small>X '+fmt(x.x,1)+' m · Y '+fmt(x.y,1)+' m</small></button>').join('')+'</section>':'';}).join('')||'<p class="muted">Henüz ekipman yok.</p>';
+ list.querySelectorAll('[data-spl-select]').forEach(b=>b.addEventListener('click',()=>{splSelectedEquipmentId=b.dataset.splSelect;renderSplEquipment();drawSplCoverageMaps();}));
+ const s=splEquipment.find(x=>x.id===splSelectedEquipmentId);if(!s){props.innerHTML='<strong>Bir ekipman seç</strong><p class="muted">Haritada sürükleyebilir veya sayısal olarak düzenleyebilirsin.</p>';return;}
+ props.innerHTML='<strong>'+safeText(s.name)+'</strong><div class="field"><label for="splEditName">Ad</label><input id="splEditName" maxlength="50" value="'+safeText(s.name)+'"></div><div class="spl-property-grid"><div class="field"><label for="splEditX">X (m)</label><input id="splEditX" type="number" step=".1" value="'+s.x+'"></div><div class="field"><label for="splEditY">Y (m)</label><input id="splEditY" type="number" step=".1" value="'+s.y+'"></div></div>'+(splEmitter(s)?'<div class="spl-property-grid"><div class="field"><label for="splEditLevel">Referans SPL (dB)</label><input id="splEditLevel" type="number" min="40" max="140" step=".1" value="'+s.level+'"></div><div class="field"><label for="splEditAngle">Yön (°)</label><input id="splEditAngle" type="number" min="-180" max="180" step="1" value="'+s.angle+'"></div><div class="field"><label for="splEditBeam">Yatay açı (°)</label><input id="splEditBeam" type="number" min="10" max="360" step="1" value="'+s.beam+'"></div></div>':'<p class="muted">Bu işaret SPL kaynağı değildir.</p>')+'<div class="row-actions"><button class="btn btn-secondary" id="splEditApply">Değişiklikleri uygula</button><button class="btn btn-secondary" id="splEditRemove">Seçileni kaldır</button></div>';
+ $('splEditApply').addEventListener('click',()=>{const p=splMapParams();s.name=$('splEditName').value.trim().slice(0,50)||s.name;s.x=Number($('splEditX').value);s.y=Number($('splEditY').value);if(splEmitter(s)){s.level=Number($('splEditLevel').value);s.angle=Number($('splEditAngle').value);s.beam=Number($('splEditBeam').value);}s.x=Math.max(-p.width/2,Math.min(p.width/2,s.x));s.y=Math.max(0,Math.min(p.depth,s.y));saveSplEquipment();renderSplEquipment();drawSplCoverageMaps();});
+ $('splEditRemove').addEventListener('click',()=>{splEquipment=splEquipment.filter(x=>x.id!==s.id);splSelectedEquipmentId='';saveSplEquipment();renderSplEquipment();drawSplCoverageMaps();});
+}
+function initSplEquipmentEditor(){
+ const add=$('splEquipmentAdd');if(!add||add.dataset.bound)return;add.dataset.bound='1';loadSplEquipment();splSelectedEquipmentId=splEquipment[0]?.id||'';
+ add.addEventListener('click',()=>{const p=splMapParams(),cat=$('splEquipmentCategory').value,name=$('splEquipmentName').value.trim()||SPL_EQUIPMENT_CATEGORIES[cat],e={id:'spl-'+Date.now().toString(36),category:cat,name:name.slice(0,50),x:0,y:Math.max(1,p.depth*.12),level:cat==='monitor'?96:100,angle:cat==='monitor'?180:0,beam:cat==='sub'?360:90};splEquipment.push(e);splSelectedEquipmentId=e.id;saveSplEquipment();renderSplEquipment();drawSplCoverageMaps();});
+ $('splEquipmentReset').addEventListener('click',()=>{if(!confirm('Örnek ekipman yerleşimi yüklensin mi? Mevcut yerleşimin yerine geçer.'))return;splEquipment=splDefaultEquipment(val('audienceWidth'),val('audienceDepth'));splSelectedEquipmentId=splEquipment[0]?.id||'';saveSplEquipment();renderSplEquipment();drawSplCoverageMaps();});
+ const canvas=$('splMap2d');if(canvas){let dragging=false;canvas.style.touchAction='none';canvas.addEventListener('pointerdown',ev=>{const rect=canvas.getBoundingClientRect(),p=splMapParams(),pad={l:46,r:72,t:32,b:48},pw=rect.width-pad.l-pad.r,ph=rect.height-pad.t-pad.b,x=ev.clientX-rect.left,y=ev.clientY-rect.top;let best=null,dist=1e9;splEquipment.forEach(e=>{const pt=splMapTransform(e,p,pad,pw,ph),d=Math.hypot(pt.x-x,pt.y-y);if(d<dist&&d<22){best=e;dist=d;}});if(best){dragging=true;splEquipmentDrag=best.id;splSelectedEquipmentId=best.id;canvas.setPointerCapture(ev.pointerId);renderSplEquipment();}});
+ canvas.addEventListener('pointermove',ev=>{if(!dragging||!splEquipmentDrag)return;const rect=canvas.getBoundingClientRect(),p=splMapParams(),pad={l:46,r:72,t:32,b:48},pw=rect.width-pad.l-pad.r,ph=rect.height-pad.t-pad.b,e=splEquipment.find(x=>x.id===splEquipmentDrag);if(!e)return;e.x=Math.max(-p.width/2,Math.min(p.width/2,((ev.clientX-rect.left-pad.l)/pw-.5)*p.width));e.y=Math.max(0,Math.min(p.depth,((ev.clientY-rect.top-pad.t)/ph)*p.depth));saveSplEquipment();drawSplCoverageMaps();renderSplEquipment();});
+ const stop=()=>{dragging=false;splEquipmentDrag=null;};canvas.addEventListener('pointerup',stop);canvas.addEventListener('pointercancel',stop);}
+ renderSplEquipment();
+}
 function prepareHiDPICanvas(canvas,minW=520,minH=300){
  const rect=canvas.getBoundingClientRect();
  if(!rect.width||rect.width<32)return null;
@@ -426,7 +463,8 @@ function drawSplCoverageMaps(){
  ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=1;
  for(let m=0;m<=4;m++){const xx=pad.l+pw*m/4;ctx.beginPath();ctx.moveTo(xx,pad.t);ctx.lineTo(xx,pad.t+ph);ctx.stroke();ctx.fillStyle='#bac4d1';ctx.font='10px Segoe UI';ctx.textAlign='center';ctx.fillText(`${fmt(-p.width/2+p.width*m/4,1)} m`,xx,h-28);}
  for(let m=0;m<=5;m++){const yy=pad.t+ph*m/5;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(pad.l+pw,yy);ctx.stroke();ctx.textAlign='right';ctx.fillStyle='#bac4d1';ctx.fillText(`${fmt(p.depth*m/5,0)} m`,pad.l-8,yy+3);}
- ctx.fillStyle='#252a30';ctx.fillRect(pad.l-8,pad.t-19,pw+16,16);ctx.fillStyle='#e7c778';ctx.textAlign='center';ctx.font='bold 10px Segoe UI';ctx.fillText('SAHNE / PA KAYNAĞI (noktasal model)',pad.l+pw/2,pad.t-7);
+ ctx.fillStyle='#252a30';ctx.fillRect(pad.l-8,pad.t-19,pw+16,16);ctx.fillStyle='#e7c778';ctx.textAlign='center';ctx.font='bold 10px Segoe UI';ctx.fillText('SAHNE / PA YERLEŞİMİ',pad.l+pw/2,pad.t-7);
+ splEquipment.forEach(e=>{const pt=splMapTransform(e,p,pad,pw,ph);ctx.beginPath();ctx.arc(pt.x,pt.y,e.id===splSelectedEquipmentId?7:5,0,Math.PI*2);ctx.fillStyle=e.category==='pa'?'#f0cf79':e.category==='sub'?'#58c4d0':e.category==='monitor'?'#8bbd91':e.category==='foh'?'#8b9ac7':'#b7a2d8';ctx.fill();ctx.strokeStyle=e.id===splSelectedEquipmentId?'#fff':'#10151d';ctx.lineWidth=e.id===splSelectedEquipmentId?2:1;ctx.stroke();ctx.fillStyle='#f1f4f8';ctx.textAlign='left';ctx.font='9px Segoe UI';ctx.fillText(e.name,pt.x+7,pt.y-7);});
  ctx.fillStyle='#dce2e9';ctx.textAlign='left';ctx.font='10px Segoe UI';ctx.fillText('dB SPL',pad.l+pw+12,pad.t+2);
  const grad=ctx.createLinearGradient(0,pad.t,0,pad.t+ph);for(let v=0;v<=1;v+=.1)grad.addColorStop(v,splColor(max-v*span,min,max));ctx.fillStyle=grad;ctx.fillRect(pad.l+pw+12,pad.t+10,15,ph-10);
  [max,max-span*.25,max-span*.5,max-span*.75,min].forEach((v,i)=>{const yy=pad.t+10+(ph-10)*i/4;ctx.fillStyle='#cad3de';ctx.fillText(fmt(v,0),pad.l+pw+32,yy+4);});
@@ -440,7 +478,8 @@ function drawSplCoverageMaps(){
  }
  ctx.fillStyle='#d9c080';ctx.font='bold 10px Segoe UI';ctx.textAlign='center';ctx.fillText('dB SPL / seviye yüzeyi',w*.5,17);
  ctx.fillStyle='#9daaba';ctx.font='10px Segoe UI';ctx.fillText(`Genişlik ${fmt(p.width,1)} m`,w*.27,h-14);ctx.fillText(`Derinlik ${fmt(p.depth,1)} m`,w*.74,h-14);
- const Lrear=splMapLevel(0,p.depth,p);$('splMapSummary').textContent=`Model: ${fmt(p.refLevel,1)} dB SPL @ ${fmt(p.refDistance,2)} m · uzak merkez ${fmt(Lrear,1)} dB SPL · ${fmt(p.width*p.depth,1)} m². İdeal noktasal kaynak, serbest alan ve mesafeyle 20 log kaybı varsayımı; gerçek array/oda tahmini değildir.`;
+ splEquipment.forEach(e=>{const ix=Math.max(0,Math.min(cols,e.x/p.width*cols+cols/2)),iy=Math.max(0,Math.min(rows,e.y/p.depth*rows)),pt=point(ix,iy);ctx.beginPath();ctx.arc(pt.x,pt.y-7,e.id===splSelectedEquipmentId?6:4,0,Math.PI*2);ctx.fillStyle=e.category==='pa'?'#f0cf79':e.category==='sub'?'#58c4d0':e.category==='monitor'?'#8bbd91':e.category==='foh'?'#8b9ac7':'#b7a2d8';ctx.fill();ctx.strokeStyle='#10151d';ctx.stroke();});
+ const Lrear=splMapLevel(0,p.depth,p);$('splMapSummary').textContent=`${splEquipment.filter(splEmitter).length} ses kaynağı · uzak merkez ${fmt(Lrear,1)} dB SPL · ${fmt(p.width*p.depth,1)} m². Çoklu noktasal kaynak enerji toplamı ve yaklaşık yatay yön modeli; gerçek array/oda tahmini değildir.`;
 }
 
 // --- Kulak eğitimi ---
