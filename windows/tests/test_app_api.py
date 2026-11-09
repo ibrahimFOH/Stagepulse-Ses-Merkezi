@@ -567,14 +567,6 @@ def test_windows_updater_accepts_only_canonical_stable_release(monkeypatch):
     assert result["url"] == manifest["url"]
 
 
-@pytest.mark.parametrize("change", [
-    {"channel": "beta"},
-    {"prerelease": True},
-    {"url": "https://github.com/attacker/repo/releases/download/v3.9.1/evil.exe"},
-    {"filename": "evil.exe"},
-    {"sha256": "not-a-sha256"},
-    {"version": "3.9.1-preview"},
-])
 def test_windows_updater_retries_transient_manifest_failures(monkeypatch):
     from urllib.error import URLError
 
@@ -611,6 +603,14 @@ def test_windows_updater_retries_transient_manifest_failures(monkeypatch):
     assert result["version"] == version
 
 
+@pytest.mark.parametrize("change", [
+    {"channel": "beta"},
+    {"prerelease": True},
+    {"url": "https://github.com/attacker/repo/releases/download/v3.9.1/evil.exe"},
+    {"filename": "evil.exe"},
+    {"sha256": "not-a-sha256"},
+    {"version": "3.9.1-preview"},
+])
 def test_windows_updater_rejects_untrusted_or_non_stable_manifest(monkeypatch, change):
     version = "3.9.1"
     filename = f"Stagepulse-Ses-Merkezi-Windows-{version}.exe"
