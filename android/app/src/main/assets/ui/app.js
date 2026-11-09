@@ -2,6 +2,7 @@
 'use strict';
 const $ = (id) => document.getElementById(id);
 const routes = {
+  version:'3.9.5',
   home:'Ana sayfa', frequency:'Frekans bulucu', ear:'Kulak eğitimi', calculators:'Hesaplayıcılar', acoustics:'SPL / alan planı', systemplan:'Sahne ve ses-görüntü planı', patch:'Mikser kanal bağlantı raporu', rf:'Kablosuz frekans planı', distribution:'70/100 V hoparlör hattı', roommap:'Oda ses basınç seviyesi haritası', speaker:'Hoparlör ve sayısal sinyal işleme', wavelab:'Dalga / faz / gecikme laboratuvarı',
   rta:'Canlı RTA', mixer:'Ses katmanı atölyesi', mixlab:'Sanal mikser laboratuvarı', videoacademy:'Video akademi', wav:'WAV kalite analizi', lufs:'LUFS normalizasyonu',
   cues:'Cue ve video notları', checklists:'Kontrol listeleri', docs:'Ders kılavuzları', pdf:'Öğrenci PDF kitaplığı',
@@ -1399,7 +1400,8 @@ function refreshAccountUi(){
  }).catch(()=>{});
 }
 async function checkForUpdates(silent=false){const bridge=api()||(typeof accountApi==='function'?accountApi():null);if(!bridge||typeof bridge.check_updates!=='function'||updateCheckInProgress)return null;updateCheckInProgress=true;const check=$('checkUpdates'),status=$('updateStatus'),install=$('installUpdate');if(!silent&&check){check.disabled=true;if(status)status.textContent='Stagepulse güncellemeleri denetleniyor…';}try{const result=await bridge.check_updates();if(!result||result.offline||result.ok===false){if(!silent&&status)status.textContent=result?.message||'Güncelleme servisine şu anda ulaşılamıyor.';return null;}latestUpdateManifest=result;const available=result.published===true&&result.available===true;if(install)install.classList.toggle('hidden',!available);if(available){const version=result.version||result.versionName||'Yeni sürüm';const message=`Yeni sürüm mevcut: ${version}.\n${result.message||'Güncelleme indirilmeye hazır.'}${result.notes?'\n\nSürüm notları: '+result.notes:''}`;if(status)status.textContent=message;if(silent)setStatus(`Yeni Stagepulse sürümü mevcut: ${version}. Hesap / güncellemeler bölümünden indirebilirsin.`);}else if(!silent&&status){status.textContent=result.message||(result.published?'Uygulama güncel.':'Henüz yayımlanmış kararlı güncelleme yok.');}return result;}catch(error){if(!silent&&status)status.textContent='Güncelleme denetlenemedi: '+String(error.message||error);return null;}finally{updateCheckInProgress=false;if(!silent&&check)check.disabled=false;}}
-async function initAccount(){
+async function openWhatsAppSupport(){const url='https://wa.me/905320683012?text='+encodeURIComponent('Merhaba Stagepulse, uygulama desteği almak istiyorum.');try{if(window.StagepulseAndroid&&typeof window.StagepulseAndroid.openWhatsApp==='function'){window.StagepulseAndroid.openWhatsApp();return;}}catch(_){}try{if(window.pywebview&&window.pywebview.api&&typeof window.pywebview.api.open_whatsapp==='function'){window.pywebview.api.open_whatsapp();return;}}catch(_){}window.open(url,'_blank','noopener');}
+function initAccount(){
  initFullPackageCommerce();
  if(!accountApi()){
   ['accountLogin','accountSignup','licenseActivate','checkUpdates','installUpdate'].forEach(id=>{const el=$(id);if(el)el.disabled=true;});
@@ -1417,7 +1419,7 @@ async function initAccount(){
  $('refreshLicenseList')?.addEventListener('click',refreshLicenseList);
  $('checkUpdates').addEventListener('click',()=>checkForUpdates(false));
  $('installUpdate').addEventListener('click',async()=>{if(!latestUpdateManifest)return;try{$('installUpdate').disabled=true;$('updateStatus').textContent='Kurulum paketi indiriliyor ve SHA-256 doğrulanıyor…';const r=await accountApi().install_update(JSON.stringify(latestUpdateManifest));$('updateStatus').textContent=r.message||'Güncelleme başlatıldı.';}catch(err){$('updateStatus').textContent='Güncelleme kurulamadı: '+err.message;}finally{$('installUpdate').disabled=false;}});
- $('openStagepulseSite').addEventListener('click',()=>accountApi()?.open_website('home'));$('openSupportSite').addEventListener('click',()=>accountApi()?.open_website('support'));
+ $('openStagepulseSite').addEventListener('click',()=>accountApi()?.open_website('home'));$('openSupportSite').addEventListener('click',()=>openWhatsAppSupport());$('studentPurchaseCta')?.addEventListener('click',()=>{setPage('account');$('accountEmail')?.focus();});$('studentWhatsAppCta')?.addEventListener('click',openWhatsAppSupport);
  // Updates are checked only when the user opens this panel and clicks the button.
 }
 async function refreshLicenseList(){

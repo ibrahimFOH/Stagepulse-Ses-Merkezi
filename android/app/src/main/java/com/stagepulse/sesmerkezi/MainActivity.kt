@@ -1215,6 +1215,19 @@ class MainActivity : Activity() {
         }
 
         @JavascriptInterface
+        fun openWhatsApp(): Boolean {
+            return try {
+                val uri = android.net.Uri.parse("https://wa.me/905320683012?text=Merhaba%20Stagepulse%2C%20uygulama%20deste%C4%9Fi%20almak%20istiyorum.")
+                startActivity(Intent(Intent.ACTION_VIEW, uri))
+                true
+            } catch (e: Exception) {
+                android.util.Log.e("StagepulseSupport", "WhatsApp açılamadı", e)
+                runOnUiThread { Toast.makeText(this@MainActivity, "WhatsApp açılamadı. WhatsApp veya tarayıcı kurulumunu kontrol et.", Toast.LENGTH_LONG).show() }
+                false
+            }
+        }
+
+        @JavascriptInterface
         fun openPdf(fileName: String): Boolean {
             if (!allowedStudentPdfs.contains(fileName)) return false
             return try {

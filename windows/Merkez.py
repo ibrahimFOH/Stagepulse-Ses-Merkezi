@@ -1085,6 +1085,11 @@ class AppApi(AcousticAnalysisApi):
         webbrowser.open(target)
         return {"ok": True, "url": target}
 
+    def open_whatsapp(self) -> dict[str, Any]:
+        target = "https://wa.me/905320683012?text=Merhaba%20Stagepulse%2C%20uygulama%20deste%C4%9Fi%20almak%20istiyorum."
+        webbrowser.open(target)
+        return {"ok": True, "url": target}
+
     def export_json_dialog(self, suggested_name: str, json_text: str) -> dict[str, Any]:
         import webview
         path = _dialog_path(self.window.create_file_dialog(
