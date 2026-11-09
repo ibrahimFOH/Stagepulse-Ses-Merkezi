@@ -1,5 +1,11 @@
 # Değişiklik günlüğü
 
+## 3.9.4
+- Ayarlar ekranında çevrimdışı lisans süresi, önbellek ve benzeri dahili tanılama alanları gizlendi; yalnızca kullanıcıya dönük sürüm/platform/bağlantı durumu gösterilir.
+- Windows ve Android uygulamaları açılışta kararlı güncelleme servisini otomatik denetler; yeni sürüm varsa bildirim ve mevcut güvenli indirme/kurulum akışı sunulur.
+- Çevrimdışı durumda otomatik denetim sessiz kalır; güncelleme altyapısı ve lisans doğrulama alanları korunur.
+- Windows ve Android sürümleri 3.9.4 / Android versionCode 30904 olarak eşitlendi.
+
 ## 3.9.2
 - 11 çalışma dalındaki işlevler tek Windows/Android ürün akışında doğrulandı: çevrimiçi oturum, Türk GSM numarasıyla öğrenci girişi/kaydı, çevrimdışı imzalı lisans, cihaz aktarımı, FULL PAKET havale bildirimi ve yönetici onayı.
 - Canlı Supabase `ses-merkezi-desktop` fonksiyonu güncel kaynakla eşitlendi; açık anahtar dağıtımı ve sunucu tarafı telefon kaydı etkinleştirildi.
