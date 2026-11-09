@@ -916,6 +916,7 @@ class AppApi(AcousticAnalysisApi):
 
     def check_updates(self) -> dict[str, Any]:
         request = Request(UPDATE_MANIFEST_URL, headers={"Accept": "application/json", "User-Agent": f"StagepulseSesMerkezi/{APP_VERSION}"})
+        # Manifest kontrolü geçici ağ/HTTP hatalarında sınırlı geri çekilmeyle yinelenir.
         raw = None
         for attempt in range(3):
             try:
