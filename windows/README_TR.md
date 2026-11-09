@@ -1,6 +1,18 @@
-# Stagepulse Ses Mühendisliği Merkezi 3.9.4
+# Stagepulse Ses Mühendisliği Merkezi 3.9.5
 
 **Tek Windows kurulum dosyası · tek pencere uygulama · lisanssız yerel demo · çevrimiçi lisans, satış ve öğretmen kontrolü**
+
+## 3.9.5 sürümündeki yeni araçlar
+
+- RTA ölçüm adayları için çoklu konum doğrulaması ve adım adım müdahale önerileri.
+- SPL saha ölçüm sihirbazı, ölçüm noktası kaydı ve CSV özeti.
+- Tek/üç faz güç, akım ve kablo gerilim düşümü ön hesaplayıcısı.
+- El mikrofonu ve IEM kanallarını birlikte ele alan RF ön koordinasyon aracı.
+- Dört kanallı sanal mikser laboratuvarı: gain, HPF, EQ, compressor, mute/solo ve ses dosyası oynatma.
+- Sekiz AI video ders senaryosu, storyboard ve video oynatıcı altyapısı.
+- Asistan, Operatör ve Mühendis öğrenme yolu ile PDF katılım belgesi.
+
+Katılım belgesi yalnızca Stagepulse eğitimine katılımı gösterir; resmî yeterlilik, akreditasyon veya mesleki yetki sağlamaz.
 
 ## 3.9.0 sürümündeki yerel araçlar
 
@@ -17,9 +29,9 @@ Yeni araçların hesaplama kodu Stagepulse içinde bağımsızdır. Kaynak ZIP a
 
 ## Öğrenci / müşteri kurulumu
 
-3.9.4 kaynak sürümüdür. Windows EXE ve kalıcı Stagepulse keystore ile imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Güvenilir yayıncı doğrulaması için gelecekteki sürümden önce geçerli bir Windows Code Signing sertifikası ve release secret'ları yapılandırılmalıdır. Bu kurucu uygulamayı `%LOCALAPPDATA%\Programs\Stagepulse\SesMerkezi` altına yerleştirir, masaüstüne ve Başlat menüsüne kısayol ekler ve Windows uygulama kaldırma kaydı oluşturur. Son kullanıcıya Python, CMD, BAT veya ayrı araç EXE'leri verilmez. Güncelleme aynı kurucunun sessiz yükseltme modunu kullanır; öğrenci profilleri kurulum güncellemesinde silinmez.
+3.9.5 kaynak sürümüdür. Windows EXE ve kalıcı Stagepulse keystore ile imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Güvenilir yayıncı doğrulaması için gelecekteki sürümden önce geçerli bir Windows Code Signing sertifikası ve release secret'ları yapılandırılmalıdır. Bu kurucu uygulamayı `%LOCALAPPDATA%\Programs\Stagepulse\SesMerkezi` altına yerleştirir, masaüstüne ve Başlat menüsüne kısayol ekler ve Windows uygulama kaldırma kaydı oluşturur. Son kullanıcıya Python, CMD, BAT veya ayrı araç EXE'leri verilmez. Güncelleme aynı kurucunun sessiz yükseltme modunu kullanır; öğrenci profilleri kurulum güncellemesinde silinmez.
 
-Bu depo kaynak koddur. Windows kurulum EXE'si, Windows x64 ortamındaki `EXE_OLUSTUR.bat` veya `EXE_OLUSTUR.ps1` ile üretilir. 3.9.4 kaynak sürümüdür; Windows x64 EXE, kalıcı anahtarla imzalı Android APK, SHA-256 ve GitHub Release doğrulamaları yayın hattında yapılır. Derleme bilgisayarında Python 3.11/3.12/3.13/3.14 x64 gerekir; son kullanıcıda gerekmez. Node.js derleme ortamında isteğe bağlıdır; kuruluysa JavaScript sözdizimi ve yerel araç çalışma zamanı testleri çalıştırılır. Kurulu değilse bu iki Node testi atlanır, Python kaynak testleri yine yürütülür. Betik önce testleri çalıştırır, Microsoft WebView2 yükleyicisinin dijital imzasını ve NSIS paketinin SHA-256 değerini doğrular; derleme sonunda geçici araçları siler ve `dist` klasöründe yalnızca tek kurulum EXE'si bırakır.
+Bu depo kaynak koddur. Windows kurulum EXE'si, Windows x64 ortamındaki `EXE_OLUSTUR.bat` veya `EXE_OLUSTUR.ps1` ile üretilir. 3.9.5 kaynak sürümüdür; Windows x64 EXE, kalıcı anahtarla imzalı Android APK, SHA-256 ve GitHub Release doğrulamaları yayın hattında yapılır. Derleme bilgisayarında Python 3.11/3.12/3.13/3.14 x64 gerekir; son kullanıcıda gerekmez. Node.js derleme ortamında isteğe bağlıdır; kuruluysa JavaScript sözdizimi ve yerel araç çalışma zamanı testleri çalıştırılır. Kurulu değilse bu iki Node testi atlanır, Python kaynak testleri yine yürütülür. Betik önce testleri çalıştırır, Microsoft WebView2 yükleyicisinin dijital imzasını ve NSIS paketinin SHA-256 değerini doğrular; derleme sonunda geçici araçları siler ve `dist` klasöründe yalnızca tek kurulum EXE'si bırakır.
 
 ## Eğitim yolları ve yeterlilik
 
