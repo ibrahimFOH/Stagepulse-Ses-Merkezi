@@ -36,8 +36,13 @@ def test_literal_javascript_dom_ids_exist_and_html_ids_are_unique():
     assert len(ids) == len(set(ids)), 'Duplicate HTML id'
     app_js = (ROOT / 'ui/app.js').read_text(encoding='utf-8')
     referenced = set(re.findall(r"\$\(['\"]([A-Za-z][A-Za-z0-9_-]*)['\"]\)", app_js))
-    missing = sorted(referenced - set(ids))
+    # SPL equipment editor builds these controls only after an item is selected.
+    dynamic_ids = {'splEditAngle', 'splEditApply', 'splEditBeam', 'splEditLevel',
+                   'splEditName', 'splEditRemove', 'splEditX', 'splEditY'}
+    missing = sorted(referenced - set(ids) - dynamic_ids)
     assert not missing, f'JavaScript refers to missing DOM ids: {missing}'
+    for dynamic_id in dynamic_ids:
+        assert f'id="{dynamic_id}"' in app_js, f'Dynamic SPL control is not rendered: {dynamic_id}'
 
 
 def test_pdf_save_does_not_navigate_out_of_the_single_app_window():
