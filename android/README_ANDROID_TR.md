@@ -1,7 +1,7 @@
-# Stagepulse Ses Mühendisliği Merkezi 3.9.6 · Android
+# Stagepulse Ses Mühendisliği Merkezi 3.9.7 · Android
 
 **Uygulama kimliği:** `com.stagepulse.sesmerkezi`  
-**Sürüm kodu:** `30906`  
+**Sürüm kodu:** `30907`  
 **Minimum Android:** API 26  
 **Hedef Android:** API 35  
 **Derleme:** JDK 17 · Gradle 8.13 · Android Gradle Plugin 8.13.2 · Android SDK 35
@@ -15,6 +15,9 @@
 - `scripts/verify_assets.py`: HTML/CSS kaynakları, PDF kataloğu, Kotlin izin listesi ve sürüm eşleşmesi denetimi.
 
 ## Android'de bulunan özellikler
+
+- OSC/UDP: IPv4 hedefe float/integer/string parametre gönderimi; M32/X32 için varsayılan port 10023. UDP paketi gönderildi bilgisi cihazın komutu uyguladığını kanıtlamaz.
+- MIDI Type 0 dosyası üretimi ve İndirilenler/Stagepulse klasörüne kaydetme.
 
 - WebView içinde yerel paketlenmiş arayüz; çevrimdışı eğitim belgeleri ve araçlar.
 - Telefon ve tablet boyutlarına göre uyarlanan gezinme ve çalışma alanı.

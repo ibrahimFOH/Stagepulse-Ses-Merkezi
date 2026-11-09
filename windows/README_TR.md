@@ -1,6 +1,12 @@
-# Stagepulse Ses Mühendisliği Merkezi 3.9.6
+# Stagepulse Ses Mühendisliği Merkezi 3.9.7
 
 **Tek Windows kurulum dosyası · tek pencere uygulama · lisanssız yerel demo · çevrimiçi lisans, satış ve öğretmen kontrolü**
+
+## 3.9.7 yeni araçlar
+
+- OSC/UDP mesaj gönderimi: IPv4 hedef, UDP portu ve float/integer/string parametreleri.
+- MIDI Type 0 dosyası üretimi: tempo, kanal, program, nota, velocity ve süre.
+- OSC gönderimi tek yönlüdür; mikserden durum/yanıt okuma veya otomatik geri bildirim içermez.
 
 ## 3.9.5 sürümündeki yeni araçlar
 

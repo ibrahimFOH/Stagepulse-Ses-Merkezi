@@ -1,4 +1,4 @@
-/* Stagepulse - özgün yerel mühendislik araçları, sürüm 3.9.6
+/* Stagepulse - özgün yerel mühendislik araçları, sürüm 3.9.7
    Dış kütüphane, CDN veya çevrimiçi hesaplama servisi kullanmaz. */
 (function () {
   'use strict';
@@ -1495,6 +1495,164 @@
     updateWave(); updatePhase(false); updateSources(); updateSpl(true); updateMicDelay();
   }
 
+
+  // ---------------------------------------------------------------------------
+  // 9. OSC / UDP VE STANDART MIDI DOSYASI ARAÇLARI
+  // ---------------------------------------------------------------------------
+  function oscPaddedString(value) {
+    const bytes = new TextEncoder().encode(String(value));
+    const length = Math.ceil((bytes.length + 1) / 4) * 4;
+    const padded = new Uint8Array(length);
+    padded.set(bytes);
+    return padded;
+  }
+
+  function buildOscPacket(options = {}) {
+    const address = String(options.address || '').trim();
+    const type = String(options.valueType || 'float').toLowerCase();
+    if (!/^\/[A-Za-z0-9_./-]{1,127}$/.test(address)) throw new Error('OSC adresi / ile başlamalı ve yalnızca harf, rakam, nokta, alt çizgi, tire veya / içermeli.');
+    const tags = { float: 'f', int: 'i', string: 's' };
+    if (!Object.prototype.hasOwnProperty.call(tags, type)) throw new Error('OSC veri türü float, int veya string olmalı.');
+    const parts = [oscPaddedString(address), oscPaddedString(',' + tags[type])];
+    if (type === 'float') {
+      const value = Number(String(options.value ?? '').replace(',', '.'));
+      if (!Number.isFinite(value) || Math.abs(value) > 3.4028235e38) throw new Error('OSC float değeri sonlu ve geçerli olmalı.');
+      const bytes = new Uint8Array(4);
+      new DataView(bytes.buffer).setFloat32(0, value, false);
+      parts.push(bytes);
+    } else if (type === 'int') {
+      const raw = String(options.value ?? '').trim();
+      if (!/^-?\d+$/.test(raw)) throw new Error('OSC integer değeri tam sayı olmalı.');
+      const value = Number(raw);
+      if (!Number.isSafeInteger(value) || value < -2147483648 || value > 2147483647) throw new Error('OSC integer değeri 32 bit sınırını aşamaz.');
+      const bytes = new Uint8Array(4);
+      new DataView(bytes.buffer).setInt32(0, value, false);
+      parts.push(bytes);
+    } else {
+      const value = String(options.value ?? '');
+      if (value.includes('\0') || new TextEncoder().encode(value).length > 256) throw new Error('OSC metin değeri boş karakter içeremez ve 256 UTF-8 baytını aşamaz.');
+      parts.push(oscPaddedString(value));
+    }
+    const size = parts.reduce((sum, part) => sum + part.length, 0);
+    if (size > 1024) throw new Error('OSC paketi 1024 bayt sınırını aşıyor.');
+    const packet = new Uint8Array(size);
+    let offset = 0;
+    parts.forEach(part => { packet.set(part, offset); offset += part.length; });
+    return packet;
+  }
+
+  function midiVariableLength(value) {
+    let remaining = Math.max(0, Math.floor(value));
+    const bytes = [remaining & 0x7f];
+    while ((remaining >>= 7) > 0) bytes.unshift((remaining & 0x7f) | 0x80);
+    return bytes;
+  }
+
+  function buildMidiFile(options = {}) {
+    const tempo = Number(options.tempo ?? 120);
+    const channel = Number(options.channel ?? 1);
+    const program = Number(options.program ?? 0);
+    const note = Number(options.note ?? 69);
+    const velocity = Number(options.velocity ?? 100);
+    const duration = Number(options.duration ?? 1);
+    if (!Number.isInteger(tempo) || tempo < 20 || tempo > 300) throw new Error('Tempo 20–300 BPM arasında tam sayı olmalı.');
+    if (!Number.isInteger(channel) || channel < 1 || channel > 16) throw new Error('MIDI kanalı 1–16 arasında olmalı.');
+    if (!Number.isInteger(program) || program < 0 || program > 127) throw new Error('Program numarası 0–127 arasında olmalı.');
+    if (!Number.isInteger(note) || note < 0 || note > 127) throw new Error('Nota numarası 0–127 arasında olmalı.');
+    if (!Number.isInteger(velocity) || velocity < 1 || velocity > 127) throw new Error('Velocity 1–127 arasında olmalı.');
+    if (!Number.isFinite(duration) || duration < 0.05 || duration > 120) throw new Error('Nota süresi 0,05–120 saniye arasında olmalı.');
+    const micros = Math.round(60000000 / tempo);
+    const offTick = Math.max(1, Math.round(duration * tempo / 60 * 480));
+    const events = [
+      { tick: 0, order: 0, data: [0xff, 0x51, 0x03, (micros >> 16) & 255, (micros >> 8) & 255, micros & 255] },
+      { tick: 0, order: 1, data: [0xc0 + channel - 1, program] },
+      { tick: 0, order: 2, data: [0x90 + channel - 1, note, velocity] },
+      { tick: offTick, order: 0, data: [0x80 + channel - 1, note, 0] },
+      { tick: offTick, order: 1, data: [0xff, 0x2f, 0x00] }
+    ].sort((a, b) => a.tick - b.tick || a.order - b.order);
+    const track = [];
+    let previousTick = 0;
+    for (const event of events) {
+      track.push(...midiVariableLength(event.tick - previousTick), ...event.data);
+      previousTick = event.tick;
+    }
+    const u32 = value => [(value >>> 24) & 255, (value >>> 16) & 255, (value >>> 8) & 255, value & 255];
+    return new Uint8Array([
+      0x4d, 0x54, 0x68, 0x64, 0, 0, 0, 6, 0, 0, 0, 1, 1, 0xe0,
+      0x4d, 0x54, 0x72, 0x6b, ...u32(track.length), ...track
+    ]);
+  }
+
+  async function downloadBinaryFile(filename, bytes, mimeType) {
+    const blob = new Blob([bytes], { type: mimeType });
+    const android = window.StagepulseAndroid;
+    if (android && typeof android.saveBase64File === 'function') {
+      if (blob.size > 18 * 1024 * 1024) throw new Error('Dosya 18 MiB sınırını aşıyor.');
+      const encoded = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || '').split(',')[1] || '');
+        reader.onerror = () => reject(new Error('MIDI dosyası okunamadı.'));
+        reader.readAsDataURL(blob);
+      });
+      if (!android.saveBase64File(filename, mimeType, encoded)) throw new Error('Android dosya deposuna kayıt yapılamadı.');
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = filename;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
+  function initOscMidiTools() {
+    if (!byId('oscSend') || !byId('midiCreate')) return;
+    const sendButton = byId('oscSend');
+    const midiButton = byId('midiCreate');
+    bind('oscSend', 'click', async () => {
+      sendButton.disabled = true;
+      try {
+        const host = byId('oscHost').value.trim();
+        const port = Number(byId('oscPort').value);
+        const address = byId('oscAddress').value.trim();
+        const value = byId('oscValue').value;
+        const valueType = byId('oscValueType').value;
+        buildOscPacket({ address, value, valueType });
+        let result;
+        if (window.StagepulseAndroid && typeof window.StagepulseAndroid.sendOscMessage === 'function') {
+          const raw = window.StagepulseAndroid.sendOscMessage(host, port, address, value, valueType);
+          result = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        } else if (window.pywebview && window.pywebview.api && typeof window.pywebview.api.send_osc_message === 'function') {
+          result = await window.pywebview.api.send_osc_message(host, port, address, value, valueType);
+        } else {
+          throw new Error('OSC UDP gönderimi yalnızca Stagepulse Windows EXE veya Android uygulamasında kullanılabilir.');
+        }
+        if (!result || !result.ok) throw new Error(result && result.error ? result.error : 'UDP paketi gönderilemedi.');
+        text('oscStatus', 'OSC UDP paketi ' + host + ':' + port + ' adresine gönderildi. Cihaz yanıtı alınmaz; mikser bağlantısını ve OSC ayarını ayrıca doğrula.');
+      } catch (error) {
+        showError('oscStatus', error);
+      } finally {
+        sendButton.disabled = false;
+      }
+    });
+    bind('midiCreate', 'click', async () => {
+      midiButton.disabled = true;
+      try {
+        const bytes = buildMidiFile({
+          tempo: number('midiTempo'), channel: number('midiChannel'), program: number('midiProgram'),
+          note: number('midiNote'), velocity: number('midiVelocity'), duration: number('midiDuration')
+        });
+        let filename = safeFileName(byId('midiFilename').value || 'Stagepulse_MIDI');
+        if (!filename.toLowerCase().endsWith('.mid')) filename += '.mid';
+        await downloadBinaryFile(filename, bytes, 'audio/midi');
+        text('midiStatus', filename + ' oluşturuldu. Format 0, tek kanal/tek nota olayı; dosya MIDI uyumlu DAW veya oynatıcıda açılabilir.');
+      } catch (error) {
+        showError('midiStatus', error);
+      } finally {
+        midiButton.disabled = false;
+      }
+    });
+  }
+
   function initAll() {
     const steps = [
       ['Kompresör ve gate kulak eğitimi', initDynamicsEarTraining],
@@ -1504,7 +1662,8 @@
       ['Oda SPL haritası', initRoomMap],
       ['Hoparlör kabini ve filtre hesabı', initSpeakerTools],
       ['Sahne ve AV planı', initStagePlanner],
-      ['Dalga, faz ve ses gecikmesi laboratuvarı', initWaveLab]
+      ['Dalga, faz ve ses gecikmesi laboratuvarı', initWaveLab],
+      ['OSC / MIDI kontrol araçları', initOscMidiTools]
     ];
     steps.forEach(([name, fn]) => {
       try { fn(); }
@@ -1519,6 +1678,8 @@
     processCompressor,
     processGate,
     waveMath,
-    isRoomMeasurementInsideRoom
+    isRoomMeasurementInsideRoom,
+    buildOscPacket,
+    buildMidiFile
   };
 })();

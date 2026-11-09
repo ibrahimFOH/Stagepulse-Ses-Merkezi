@@ -747,6 +747,54 @@ def test_offline_lease_rejects_clock_rollback_expiry_and_overlong_trial():
     with pytest.raises(ValueError, match="Deneme offline lisans sınırı"):
         verify_offline_lease(trial["envelope"], now_ms=now + 60_000, **{**common, "public_key_pem": trial["public_key"]})
 
+
+def test_osc_udp_message_is_encoded_and_sent(monkeypatch):
+    import struct
+
+    sent = {}
+
+    class FakeSocket:
+        def __init__(self, *args):
+            sent["socket_args"] = args
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def settimeout(self, value):
+            sent["timeout"] = value
+        def sendto(self, payload, target):
+            sent["payload"] = payload
+            sent["target"] = target
+            return len(payload)
+
+    monkeypatch.setattr(Merkez.socket, "socket", FakeSocket)
+    result = Merkez.AppApi().send_osc_message(
+        "192.168.1.100", 10023, "/ch/01/mix/fader", "0.75", "float"
+    )
+    assert result["ok"] is True
+    assert result["acknowledged"] is False
+    assert sent["target"] == ("192.168.1.100", 10023)
+    assert sent["payload"][:20] == b"/ch/01/mix/fader\0\0\0\0"
+    assert sent["payload"][20:24] == b",f\0\0"
+    assert sent["payload"][-4:] == struct.pack(">f", 0.75)
+
+
+@pytest.mark.parametrize(
+    "args, message",
+    [
+        (("not-an-ip", 10023, "/ch/01/mix/fader", "0.5", "float"), "IPv4"),
+        (("192.168.1.100", 0, "/ch/01/mix/fader", "0.5", "float"), "port"),
+        (("192.168.1.100", 10023, "ch/01/fader", "0.5", "float"), "OSC adresi"),
+        (("192.168.1.100", 10023, "/ch/01/fader", "NaN", "float"), "float"),
+        (("192.168.1.100", 10023, "/ch/01/fader", "1.5", "int"), "integer"),
+        (("192.168.1.100", 10023, "/ch/01/fader", "1", "unknown"), "veri türü"),
+    ],
+)
+def test_osc_udp_rejects_invalid_input(args, message):
+    with pytest.raises(ValueError, match=message):
+        Merkez.AppApi().send_osc_message(*args)
+
+
 def test_generated_pdf_export_uses_safe_save_dialog_and_validates_pdf(tmp_path, monkeypatch):
     import base64
     import sys

@@ -6,7 +6,7 @@ const vm = require('node:vm');
 
 const sourcePath = path.join(__dirname, '..', 'ui', 'first_party_tools.js');
 const source = fs.readFileSync(sourcePath, 'utf8');
-const context = { window: {}, console, Blob, URL, setTimeout };
+const context = { window: {}, console, Blob, URL, setTimeout, TextEncoder, TextDecoder };
 vm.runInNewContext(source, context, { filename: 'first_party_tools.js' });
 const tools = context.window.StagepulseFirstPartyTools;
 assert.ok(tools, 'Yerel araç modülü dışa açılmalı.');
@@ -117,6 +117,18 @@ assert.ok(androidApp.includes("if(token!==rtaGeneration){$('rtaStart').disabled=
 
 const androidToolsSource = fs.readFileSync(path.join(androidUiPath, 'first_party_tools.js'), 'utf8');
 assert.equal(androidToolsSource, source, 'Android ve Windows ortak ses araçları aynı kaynak kodunu kullanmalı.');
+
+const protocolIds = ['oscHost','oscPort','oscAddress','oscValueType','oscValue','oscSend','oscStatus','midiTempo','midiChannel','midiProgram','midiNote','midiVelocity','midiDuration','midiFilename','midiCreate','midiStatus'];
+for (const id of protocolIds) {
+  assert.ok(htmlSource.includes('id="' + id + '"'), 'Windows OSC/MIDI kontrolü eksik: ' + id);
+  assert.ok(androidHtml.includes('id="' + id + '"'), 'Android OSC/MIDI kontrolü eksik: ' + id);
+}
+assert.ok(htmlSource.includes('data-page="protocol"') && htmlSource.includes('data-route="protocol"'), 'OSC/MIDI ekranı menüden açılmalı.');
+assert.ok(androidApp.includes("protocol:'OSC / MIDI kontrolü'"), 'Android OSC/MIDI yönlendirmesi eksik.');
+const androidMainActivity = fs.readFileSync(path.join(__dirname, '..', '..', 'android', 'app', 'src', 'main', 'java', 'com', 'stagepulse', 'sesmerkezi', 'MainActivity.kt'), 'utf8');
+assert.ok(androidMainActivity.includes('fun sendOscMessage('), 'Android yerel OSC UDP köprüsü eksik.');
+assert.ok(androidMainActivity.includes('"audio/midi" to ".mid"'), 'Android MIDI dosya türü dışa aktarma listesinde olmalı.');
+
 const dynamicsIds = ['compThreshold','compPlayA','compPlayB','compNew','compQuizNew','gateThreshold','gatePlayA','gatePlayB','gateNew','gateQuizNew'];
 function pageMarkup(html, page, nextPage) {
   const start = html.indexOf(`<section class="page" data-page="${page}"`);
@@ -135,6 +147,21 @@ for (const id of dynamicsIds) {
 assert.equal((windowsEarPage.match(/class="section-heading dynamics-heading"/g) || []).length, 1, 'Windows dinamik işlemci eğitimi tek bölüm olmalı.');
 assert.equal((androidEarPage.match(/class="section-heading dynamics-heading"/g) || []).length, 1, 'Android dinamik işlemci eğitimi tek bölüm olmalı.');
 
+
+
+const oscPacket = tools.buildOscPacket({address:'/ch/01/mix/fader',value:'0.75',valueType:'float'});
+assert.equal(oscPacket.length % 4, 0, 'OSC paketi dört bayt hizalı olmalı.');
+const oscTagOffset = 20;
+assert.equal(new TextDecoder().decode(oscPacket.slice(oscTagOffset, oscTagOffset + 4)), ',f\0\0');
+assert.ok(Math.abs(new DataView(oscPacket.buffer, oscPacket.byteOffset + oscTagOffset + 4, 4).getFloat32(0, false) - 0.75) < 0.00001);
+const midiFile = tools.buildMidiFile({tempo:120,channel:1,program:0,note:69,velocity:100,duration:1});
+assert.equal(String.fromCharCode(...midiFile.slice(0,4)), 'MThd');
+assert.equal(String.fromCharCode(...midiFile.slice(14,18)), 'MTrk');
+assert.ok(Array.from(midiFile).some((value,index)=>value===0x90&&midiFile[index+1]===69&&midiFile[index+2]===100), 'MIDI Note On olayı bulunmalı.');
+assert.ok(Array.from(midiFile).some((value,index)=>value===0x80&&midiFile[index+1]===69&&midiFile[index+2]===0), 'MIDI Note Off olayı bulunmalı.');
+assert.throws(() => tools.buildOscPacket({address:'ch/01/fader',value:1,valueType:'float'}), /OSC adresi/);
+assert.throws(() => tools.buildOscPacket({address:'/ch/01/fader',value:'NaN',valueType:'float'}), /float/);
+assert.throws(() => tools.buildMidiFile({tempo:0}), /Tempo/);
 
 console.log('İLK TARAF ARAÇ TESTLERİ BAŞARILI');
 

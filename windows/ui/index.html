@@ -20,6 +20,7 @@
       <button class="nav-item" data-route="calculators"><span>∑</span>Hesaplayıcılar</button>
       <button class="nav-item" data-route="acoustics"><span>⌂</span>Ses basınç seviyesi (SPL) / alan planı</button>
       <button class="nav-item" data-route="rta"><span>⌁</span>Gerçek zamanlı analiz (RTA)</button>
+      <button class="nav-item" data-route="protocol"><span>⌘</span>OSC / MIDI kontrolü</button>
       <button class="nav-item" data-route="mixer"><span>▥</span>Ses katmanı atölyesi</button>
       <button class="nav-item" data-route="mixlab"><span>▤</span>Sanal mikser laboratuvarı</button>
       <button class="nav-item" data-route="wav"><span>∿</span>Ses dosyası kalite analizi (WAV)</button>
@@ -43,7 +44,7 @@
       <button class="nav-item" data-route="account"><span>♙</span>Hesap / lisans</button>
       <button class="nav-item" data-route="settings"><span>⚙</span>Ayarlar ve gizlilik</button>
     </nav>
-    <div class="sidebar-foot"><div class="foot-line"><span class="status-dot"></span><span id="connectionText">Yerel mod hazır</span></div><small>v3.9.6 · Stagepulse · Yerel ses mühendisliği araçları</small></div>
+    <div class="sidebar-foot"><div class="foot-line"><span class="status-dot"></span><span id="connectionText">Yerel mod hazır</span></div><small>v3.9.7 · Stagepulse · Yerel ses mühendisliği araçları</small></div>
   </aside>
 
   <main class="main-area">
@@ -59,6 +60,7 @@
        <button class="tool-card" data-route="calculators"><span class="tool-icon">∑</span><strong>Teknik hesaplayıcılar</strong><p>Gerilim, dB, gecikme, empedans ve oda modları.</p><span class="tool-link">Hesapla →</span></button>
        <button class="tool-card" data-route="acoustics"><span class="tool-icon">⌂</span><strong>Ses basınç seviyesi (SPL) / alan planı</strong><p>Mesafe kaybı, kapsama geometrisi ve maruziyet tahmini.</p><span class="tool-link">Planla →</span></button>
        <button class="tool-card" data-route="rta"><span class="tool-icon">⌁</span><strong>Canlı RTA</strong><p>Mikrofon girişinden anlık spektrum.</p><span class="tool-link">Analizi aç →</span></button>
+       <button class="tool-card" data-route="protocol"><span class="tool-icon">⌘</span><strong>OSC / MIDI kontrolü</strong><p>Mikserlere OSC/UDP mesajı gönder ve MIDI dosyası üret.</p><span class="tool-link">Kontrol araçlarını aç →</span></button>
        <button class="tool-card" data-route="mixer"><span class="tool-icon">▥</span><strong>Ses katmanı atölyesi</strong><p>Çoklu WAV, gain/pan, filtre, cue ve dışa aktarma.</p><span class="tool-link">Atölyeyi aç →</span></button>
        <button class="tool-card" data-route="wav"><span class="tool-icon">∿</span><strong>Dosya kalite kontrolü</strong><p>PCM formatı, peak, RMS ve clipping taraması.</p><span class="tool-link">Dosyayı incele →</span></button>
       </div>
@@ -602,6 +604,42 @@
 </section>
 
 
+
+
+    <section class="page" data-page="protocol">
+      <div class="page-intro"><div><span class="eyebrow">MİKSER KONTROLÜ / MIDI DIŞA AKTARMA</span><h2>OSC / MIDI kontrol araçları</h2><p>Yerel ağdaki OSC destekli mikserlere tekil UDP mesajı gönder veya standart MIDI Type 0 dosyası oluştur.</p></div><span class="badge badge-gold">Windows + Android</span></div>
+      <div class="two-col">
+        <article class="panel">
+          <div class="panel-head"><div><span class="eyebrow">OSC / UDP</span><h3>Ses konsoluna OSC mesajı gönder</h3></div><span class="chip">Tek yönlü gönderim</span></div>
+          <div class="row-fields">
+            <div class="field"><label for="oscHost">Mikser IPv4 adresi</label><input id="oscHost" type="text" inputmode="decimal" value="192.168.1.100" autocomplete="off"></div>
+            <div class="field"><label for="oscPort">UDP portu</label><input id="oscPort" type="number" min="1" max="65535" step="1" value="10023"></div>
+            <div class="field"><label for="oscAddress">OSC adresi</label><input id="oscAddress" type="text" value="/ch/01/mix/fader" maxlength="128" autocomplete="off"></div>
+            <div class="field"><label for="oscValueType">Veri türü</label><select id="oscValueType"><option value="float" selected>Float (ondalıklı)</option><option value="int">Integer (tam sayı)</option><option value="string">String (metin)</option></select></div>
+            <div class="field"><label for="oscValue">Gönderilecek değer</label><input id="oscValue" type="text" value="0.75" autocomplete="off"></div>
+          </div>
+          <div class="row-actions"><button class="btn btn-gold" id="oscSend" type="button">OSC mesajını gönder</button></div>
+          <div id="oscStatus" class="report-box" role="status" aria-live="polite">Mikserin IP adresini, OSC portunu ve parametre yolunu doğrula. Varsayılan port 10023'tür.</div>
+          <p class="muted">M32/X32 örneği: <code>/ch/01/mix/fader</code> için 0,00–1,00 aralığında float değer. UDP gönderimi cihazdan yanıt veya işlem onayı alındığı anlamına gelmez.</p>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><span class="eyebrow">STANDARD MIDI FILE</span><h3>MIDI dosyası oluştur</h3></div><span class="chip">Format 0</span></div>
+          <div class="row-fields">
+            <div class="field"><label for="midiTempo">Tempo (BPM)</label><input id="midiTempo" type="number" min="20" max="300" step="1" value="120"></div>
+            <div class="field"><label for="midiChannel">MIDI kanalı (1–16)</label><input id="midiChannel" type="number" min="1" max="16" step="1" value="1"></div>
+            <div class="field"><label for="midiProgram">Program numarası (0–127)</label><input id="midiProgram" type="number" min="0" max="127" step="1" value="0"></div>
+            <div class="field"><label for="midiNote">Nota numarası (0–127)</label><input id="midiNote" type="number" min="0" max="127" step="1" value="69"></div>
+            <div class="field"><label for="midiVelocity">Velocity (1–127)</label><input id="midiVelocity" type="number" min="1" max="127" step="1" value="100"></div>
+            <div class="field"><label for="midiDuration">Nota süresi (saniye)</label><input id="midiDuration" type="number" min="0.05" max="120" step="0.05" value="1"></div>
+            <div class="field"><label for="midiFilename">Dosya adı</label><input id="midiFilename" type="text" value="Stagepulse_MIDI" maxlength="48"></div>
+          </div>
+          <div class="row-actions"><button class="btn btn-gold" id="midiCreate" type="button">.mid dosyası oluştur</button></div>
+          <div id="midiStatus" class="report-box" role="status" aria-live="polite">Tempo, kanal, program ve nota değerlerini ayarla. Dosya cihazına kaydedilir.</div>
+          <p class="muted">Tek nota olayı içeren standart MIDI Type 0 dosyasıdır. Bu araç canlı MIDI portuna veri göndermez.</p>
+        </article>
+      </div>
+      <div class="notice notice-warn"><strong>Bağlantı sınırı</strong><span>OSC yalnızca aynı yerel ağa erişebilen cihazlara UDP paketi yollar. M32/X32 üzerinde uzaktan kontrol/OSC ayarının açık olduğunu, IP adresini ve portu doğrula. Ağ üzerinden gönderilen seviye komutlarını düşük ses seviyesinde test et; bu araç mikser durumunu geri okumaz.</span></div>
+    </section>
 
     <footer class="app-footer"><span>STAGEPULSE · Sesin gücü, işin kalitesi.</span><span id="footerStatus">Yerel çalışma alanı hazır</span></footer>
   </main>

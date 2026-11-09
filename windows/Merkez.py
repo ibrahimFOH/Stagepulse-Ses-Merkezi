@@ -6,6 +6,10 @@ import json
 import os
 import shutil
 import socket
+import ipaddress
+import math
+import re
+import struct
 import sys
 import threading
 import time
@@ -25,7 +29,7 @@ from urllib.error import HTTPError, URLError
 from core.acoustic_api import AcousticAnalysisApi
 
 APP_NAME = "Stagepulse Ses Mühendisliği Merkezi"
-APP_VERSION = "3.9.6"
+APP_VERSION = "3.9.7"
 SUPABASE_URL = "https://itasctyjzyewcykozuex.supabase.co"
 SUPABASE_PUBLISHABLE_KEY = "sb_publishable_tP3CMhVAjv6FNtrkYfVEOA_dbF9m8Jb"
 WEBSITE_URL = "https://stagepulse.com.tr"
@@ -204,6 +208,72 @@ class AppApi(AcousticAnalysisApi):
         if self._rta_capture is None:
             return {"ok": True, "running": False}
         return self._rta_capture.stop()
+
+
+    def send_osc_message(self, host: Any, port: Any, address: Any,
+                         value: Any, value_type: Any = "float") -> dict[str, Any]:
+        """Send one explicitly requested OSC message as a local UDP datagram."""
+        try:
+            target_ip = ipaddress.ip_address(str(host).strip())
+        except ValueError as exc:
+            raise ValueError("OSC hedefi geçerli bir IPv4 adresi olmalı.") from exc
+        if target_ip.version != 4:
+            raise ValueError("OSC hedefi IPv4 adresi olmalı.")
+        port_text = str(port).strip()
+        if not re.fullmatch(r"\d{1,5}", port_text):
+            raise ValueError("OSC UDP portu 1–65535 arasında tam sayı olmalı.")
+        target_port = int(port_text)
+        if not 1 <= target_port <= 65535:
+            raise ValueError("OSC UDP portu 1–65535 arasında olmalı.")
+        osc_address = str(address).strip()
+        if not re.fullmatch(r"/[A-Za-z0-9_./-]{1,127}", osc_address):
+            raise ValueError("OSC adresi / ile başlamalı ve yalnızca harf, rakam, nokta, alt çizgi, tire veya / içermeli.")
+        kind = str(value_type or "float").strip().lower()
+
+        def padded_string(item: str) -> bytes:
+            raw = item.encode("utf-8")
+            if b"\x00" in raw:
+                raise ValueError("OSC metin alanı boş karakter içeremez.")
+            return raw + b"\x00" + (b"\x00" * (-(len(raw) + 1) % 4))
+
+        if kind == "float":
+            try:
+                numeric = float(str(value).strip().replace(",", "."))
+            except (TypeError, ValueError) as exc:
+                raise ValueError("OSC float değeri sayısal olmalı.") from exc
+            if not math.isfinite(numeric) or abs(numeric) > 3.4028235e38:
+                raise ValueError("OSC float değeri sonlu ve geçerli olmalı.")
+            argument = struct.pack(">f", numeric)
+            tag = ",f"
+        elif kind == "int":
+            try:
+                numeric = int(str(value).strip())
+            except (TypeError, ValueError) as exc:
+                raise ValueError("OSC integer değeri tam sayı olmalı.") from exc
+            if not -2147483648 <= numeric <= 2147483647:
+                raise ValueError("OSC integer değeri 32 bit sınırını aşamaz.")
+            argument = struct.pack(">i", numeric)
+            tag = ",i"
+        elif kind == "string":
+            string_value = str(value)
+            if len(string_value.encode("utf-8")) > 256:
+                raise ValueError("OSC metin değeri 256 UTF-8 baytını aşamaz.")
+            argument = padded_string(string_value)
+            tag = ",s"
+        else:
+            raise ValueError("OSC veri türü float, int veya string olmalı.")
+
+        packet = padded_string(osc_address) + padded_string(tag) + argument
+        if len(packet) > 1024:
+            raise ValueError("OSC paketi 1024 bayt sınırını aşıyor.")
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as udp:
+            udp.settimeout(1.0)
+            udp.sendto(packet, (str(target_ip), target_port))
+        return {
+            "ok": True, "host": str(target_ip), "port": target_port,
+            "address": osc_address, "value_type": kind, "bytes": len(packet),
+            "acknowledged": False,
+        }
 
     def _get_tf_capture(self):
         if self._tf_capture is None:

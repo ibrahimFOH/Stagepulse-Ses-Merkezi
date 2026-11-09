@@ -45,6 +45,11 @@ import java.security.spec.X509EncodedKeySpec
 import java.security.Signature
 import java.security.KeyFactory
 import java.net.UnknownHostException
+import java.net.DatagramPacket
+import java.net.DatagramSocket
+import java.net.InetAddress
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.net.SocketTimeoutException
 import java.net.ConnectException
 import java.io.IOException
@@ -1127,6 +1132,49 @@ class MainActivity : Activity() {
         webView.evaluateJavascript(script, null)
     }
 
+
+    private fun oscPaddedString(value: String): ByteArray {
+        val raw = value.toByteArray(Charsets.UTF_8)
+        val paddedSize = ((raw.size + 1 + 3) / 4) * 4
+        return ByteArray(paddedSize).also { raw.copyInto(it) }
+    }
+
+    private fun buildOscPacket(address: String, value: String, valueType: String): ByteArray {
+        if (!address.matches(Regex("/[A-Za-z0-9_./-]{1,127}"))) {
+            throw IllegalArgumentException("OSC adresi / ile başlamalı ve yalnızca harf, rakam, nokta, alt çizgi, tire veya / içermeli.")
+        }
+        val output = ByteArrayOutputStream()
+        output.write(oscPaddedString(address))
+        when (valueType.lowercase()) {
+            "float" -> {
+                val numeric = value.replace(',', '.').toDoubleOrNull()
+                    ?: throw IllegalArgumentException("OSC float değeri sayısal olmalı.")
+                if (!numeric.isFinite() || kotlin.math.abs(numeric) > Float.MAX_VALUE.toDouble()) {
+                    throw IllegalArgumentException("OSC float değeri sonlu ve geçerli olmalı.")
+                }
+                output.write(oscPaddedString(",f"))
+                output.write(ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putFloat(numeric.toFloat()).array())
+            }
+            "int" -> {
+                val numeric = value.trim().toIntOrNull()
+                    ?: throw IllegalArgumentException("OSC integer değeri tam sayı olmalı.")
+                output.write(oscPaddedString(",i"))
+                output.write(ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt(numeric).array())
+            }
+            "string" -> {
+                if (value.contains('\u0000') || value.toByteArray(Charsets.UTF_8).size > 256) {
+                    throw IllegalArgumentException("OSC metin değeri boş karakter içeremez ve 256 UTF-8 baytını aşamaz.")
+                }
+                output.write(oscPaddedString(",s"))
+                output.write(oscPaddedString(value))
+            }
+            else -> throw IllegalArgumentException("OSC veri türü float, int veya string olmalı.")
+        }
+        val packet = output.toByteArray()
+        if (packet.size > 1024) throw IllegalArgumentException("OSC paketi 1024 bayt sınırını aşıyor.")
+        return packet
+    }
+
     private inner class AndroidBridge {
         @JavascriptInterface
         fun requestRuntimePermission(permission: String, callbackId: String) {
@@ -1161,6 +1209,27 @@ class MainActivity : Activity() {
 
 
         @JavascriptInterface
+        fun sendOscMessage(host: String, port: Int, address: String, value: String, valueType: String): String {
+            return try {
+                if (!host.matches(Regex("^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}$"))) {
+                    throw IllegalArgumentException("OSC hedefi geçerli bir IPv4 adresi olmalı.")
+                }
+                val target = InetAddress.getByName(host)
+                if (target.address.size != 4 || port !in 1..65535) {
+                    throw IllegalArgumentException("OSC UDP portu 1–65535 arasında olmalı.")
+                }
+                val packet = buildOscPacket(address, value, valueType)
+                DatagramSocket().use { socket ->
+                    socket.send(DatagramPacket(packet, packet.size, target, port))
+                }
+                JSONObject().put("ok", true).put("host", host).put("port", port)
+                    .put("address", address).put("bytes", packet.size).put("acknowledged", false).toString()
+            } catch (e: Exception) {
+                JSONObject().put("ok", false).put("error", e.message ?: "OSC UDP paketi gönderilemedi.").toString()
+            }
+        }
+
+        @JavascriptInterface
         fun saveBase64File(fileName: String, mimeType: String, encoded: String): Boolean {
             if (encoded.length > 24 * 1024 * 1024) return false
             val safeExtensions = mapOf(
@@ -1169,7 +1238,8 @@ class MainActivity : Activity() {
                 "text/plain" to ".txt",
                 "text/csv" to ".csv",
                 "audio/wav" to ".wav",
-                "audio/x-wav" to ".wav"
+                "audio/x-wav" to ".wav",
+                "audio/midi" to ".mid"
             )
             val safeExt = safeExtensions[mimeType] ?: return false
             val requestedName = fileName.substringBeforeLast('.').filter { it.isLetterOrDigit() || it == '-' || it == '_' }.take(64)

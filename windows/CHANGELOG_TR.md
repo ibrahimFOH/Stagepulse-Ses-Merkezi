@@ -1,4 +1,10 @@
-# Stagepulse Ses Merkezi 3.9.6
+# Stagepulse Ses Merkezi 3.9.7
+
+- Windows ve Android'e ortak OSC/UDP mesaj gönderimi eklendi. IPv4, UDP portu, OSC adresi ve float/integer/string veri türü doğrulanır; gönderim cihaz yanıtı olarak raporlanmaz.
+- Windows ve Android'de tempo, kanal, program, nota, velocity ve süre ayarlı standart MIDI Type 0 dosyası oluşturulabilir.
+- MIDI dosyası Android'de İndirilenler/Stagepulse klasörüne, Windows'ta indirme akışına kaydedilir.
+- Arşivdeki SPL/FFT, sabit 230 V kablo hesabı ve gerçek tarama yapmayan RF sezgiseli mevcut daha gelişmiş Stagepulse araçlarıyla çakıştığı veya güvenilir ölçüm üretmediği için taşınmadı.
+
 
 - Android Compressor ve Gate kulak eğitimi; A/B dinleme, rastgele sınav ve arayüz stilleriyle yeniden doğrulandı.
 - SPL 2D/3D görünümünde kaynak seçme ve sürükleme davranışı, tuvalin gerçek mantıksal koordinatlarına göre düzeltildi.

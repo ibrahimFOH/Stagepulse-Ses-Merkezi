@@ -55,7 +55,7 @@ if HTML.is_file():
         if not target.is_file():
             errors.append("HTML kaynağı APK içinde bulunamadı: " + value + " -> " + str(target.relative_to(ASSETS)))
 
-ENGINEERING_PAGES = ("systemplan", "patch", "rf", "distribution", "roommap", "speaker", "wavelab")
+ENGINEERING_PAGES = ("systemplan", "patch", "rf", "distribution", "roommap", "speaker", "wavelab", "protocol")
 if HTML.is_file():
     page_source = HTML.read_text(encoding="utf-8")
     page_names = re.findall(r"""data-page\s*=\s*["']([^"']+)["']""", page_source)
@@ -143,6 +143,11 @@ if android_app_js.is_file():
     tool_source = shared_tools.read_text(encoding="utf-8") if shared_tools.is_file() else ""
     if "window.StagepulseAndroid.saveBase64File" not in tool_source or "readAsDataURL" not in tool_source:
         errors.append("Android mühendislik araçları dışa aktarımı yerel dosya köprüsünü kullanmıyor.")
+    if "function initOscMidiTools()" not in tool_source or "function buildOscPacket(" not in tool_source or "function buildMidiFile(" not in tool_source:
+        errors.append("Ortak OSC/MIDI üretim ve gönderim araçları eksik.")
+    for element_id in ("oscHost", "oscPort", "oscAddress", "oscValueType", "oscValue", "oscSend", "oscStatus", "midiTempo", "midiChannel", "midiProgram", "midiNote", "midiVelocity", "midiDuration", "midiFilename", "midiCreate", "midiStatus"):
+        if f'id="{element_id}"' not in page_source:
+            errors.append("OSC/MIDI arayüz bileşeni eksik: " + element_id)
     if "function initWaveLab()" not in tool_source or "pascalsToDbSpl" not in tool_source:
         errors.append("Dalga / faz / gecikme laboratuvarının ortak motoru eksik.")
     for required in ('data-wave-tab="live"', "waveMicStart", "waveMicStop", "waveMicDelaySlider", "waveMicMonitor", "function startMicDelay()", "function stopMicDelay()", "N = round(Δt × fₛ)", "varsayılan olarak kamera veya mikrofon açmaz"):
@@ -282,6 +287,8 @@ if MAIN.is_file():
             errors.append("Öğrenci PDF izin listesi uyuşmuyor: eksik=" + repr(missing) + "; extra=" + repr(extra))
     if 'provider != "groq"' not in content or "api.groq.com" not in content:
         errors.append("Android AI köprüsü yalnızca Groq sağlayıcısıyla sınırlandırılmamış.")
+    if "fun sendOscMessage(" not in content or '"audio/midi" to ".mid"' not in content:
+        errors.append("Android OSC UDP köprüsü veya MIDI dosya dışa aktarımı eksik.")
     if "StagepulseSesMerkezi/3.6.2" in content:
         errors.append("Android AI User-Agent eski 3.6.2 sürümünü içeriyor.")
     for required in (
