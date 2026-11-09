@@ -916,18 +916,28 @@ class AppApi(AcousticAnalysisApi):
 
     def check_updates(self) -> dict[str, Any]:
         request = Request(UPDATE_MANIFEST_URL, headers={"Accept": "application/json", "User-Agent": f"StagepulseSesMerkezi/{APP_VERSION}"})
+        raw = None
+        for attempt in range(3):
+            try:
+                with urlopen(request, timeout=12) as response:
+                    raw = response.read(256_001)
+                break
+            except HTTPError as exc:
+                if exc.code == 404:
+                    return {"ok": True, "available": False, "published": False, "message": "Güncelleme servisi henüz stagepulse.com.tr üzerinde yayınlanmamış."}
+                if exc.code not in (408, 425, 429, 500, 502, 503, 504) or attempt == 2:
+                    raise RuntimeError(f"Güncelleme servisi HTTP {exc.code} döndürdü.") from exc
+            except (URLError, TimeoutError, OSError):
+                if attempt == 2:
+                    return {"ok": False, "available": False, "offline": True, "message": "Güncelleme servisine ulaşılamadı. Yerel araçlar kullanılabilir."}
+            if attempt < 2:
+                time.sleep(attempt + 1)
+        if raw is None:
+            return {"ok": False, "available": False, "offline": True, "message": "Güncelleme servisine ulaşılamadı. Yerel araçlar kullanılabilir."}
+        if len(raw) > 256_000:
+            raise RuntimeError("Güncelleme bildirimi beklenenden büyük.")
         try:
-            with urlopen(request, timeout=12) as response:
-                raw = response.read(256_001)
-            if len(raw) > 256_000:
-                raise RuntimeError("Güncelleme bildirimi beklenenden büyük.")
             manifest = json.loads(raw.decode("utf-8"))
-        except HTTPError as exc:
-            if exc.code == 404:
-                return {"ok": True, "available": False, "published": False, "message": "Güncelleme servisi henüz stagepulse.com.tr üzerinde yayınlanmamış."}
-            raise RuntimeError(f"Güncelleme servisi HTTP {exc.code} döndürdü.") from exc
-        except (URLError, TimeoutError) as exc:
-            return {"ok": False, "available": False, "offline": True, "message": "Çevrimdışı. Yerel araçlar kullanılabilir."}
         except (json.JSONDecodeError, UnicodeDecodeError) as exc:
             raise RuntimeError("Güncelleme bildirimi geçerli JSON değil.") from exc
         if manifest.get("published") is not True:
