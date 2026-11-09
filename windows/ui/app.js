@@ -38,6 +38,7 @@ let remoteProgress = {};
 let teacherStudents = [];
 let selectedTeacherStudentId = '';
 let latestUpdateManifest = null;
+let updateCheckInProgress = false;
 let profiles = {};
 let profilesLoaded = false;
 let profilesLoadPromise = null;
@@ -180,6 +181,7 @@ $('mobileMenuBackdrop')?.addEventListener('click',()=>setMobileMenu(false));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')setMobileMenu(false);});
 
 window.addEventListener('online',()=>{ $('runtimeBadge').innerHTML='<i></i>İnternet erişimi var'; setStatus('İnternet erişimi var · yerel araçlar çalışmaya devam ediyor'); });
+window.addEventListener('online',()=>{window.setTimeout(()=>checkForUpdates(true),1200);});
 window.addEventListener('offline',()=>{ $('runtimeBadge').innerHTML='<i></i>Çevrimdışı'; setStatus('Çevrimdışı · temel araçlar kullanılabilir'); });
 
 async function loadCurriculumWorkshop(){
@@ -282,6 +284,7 @@ async function initializeNativeData(){
   }
   loadAppInfo();
   refreshAccountUi();
+  window.setTimeout(()=>checkForUpdates(true),1800);
 }
 
 // --- Teknik hesaplar ---
@@ -1036,6 +1039,7 @@ function refreshAccountUi(){
   if(licenseGatePending){licenseGatePending=false;setPage(appAuthorized?'home':'account');}
  }).catch(()=>{});
 }
+async function checkForUpdates(silent=false){const bridge=api()||accountApi();if(!bridge||typeof bridge.check_updates!=='function'||updateCheckInProgress)return null;updateCheckInProgress=true;const check=$('checkUpdates'),status=$('updateStatus'),install=$('installUpdate');if(!silent&&check){check.disabled=true;if(status)status.textContent='Stagepulse güncellemeleri denetleniyor…';}try{const result=await bridge.check_updates();if(!result||result.offline||result.ok===false){if(!silent&&status)status.textContent=result?.message||'Güncelleme servisine şu anda ulaşılamıyor.';return null;}latestUpdateManifest=result;const available=result.published===true&&result.available===true;if(install)install.classList.toggle('hidden',!available);if(available){const version=result.version||result.versionName||'Yeni sürüm';const message=`Yeni sürüm mevcut: ${version}.\\n${result.message||'Güncelleme indirilmeye hazır.'}${result.notes?'\\n\\nSürüm notları: '+result.notes:''}`;if(status)status.textContent=message;if(silent)setStatus(`Yeni Stagepulse sürümü mevcut: ${version}. Hesap / güncellemeler bölümünden indirebilirsin.`);}else if(!silent&&status){status.textContent=result.message||(result.published?'Uygulama güncel.':'Henüz yayımlanmış kararlı güncelleme yok.');}return result;}catch(error){if(!silent&&status)status.textContent='Güncelleme denetlenemedi: '+String(error.message||error);return null;}finally{updateCheckInProgress=false;if(!silent&&check)check.disabled=false;}}
 async function initAccount(){
  initFullPackageCommerce();
  $('accountLogin').addEventListener('click',async()=>{try{$('accountLogin').disabled=true;$('accountStatus').textContent='Hesap doğrulanıyor…';const result=await api().auth_login($('accountEmail').value,$('accountPassword').value);applyAccountContext(result.context);$('accountPassword').value='';setStatus('Stagepulse hesabına giriş yapıldı.');}catch(err){$('accountStatus').textContent='Giriş başarısız: '+err.message;}finally{$('accountLogin').disabled=false;}});
@@ -1044,7 +1048,7 @@ async function initAccount(){
  $('accountLogout').addEventListener('click',async()=>{try{if(api())await api().auth_logout();}catch(_){}currentAccountContext=null;currentRole='guest';appAuthorized=false;remoteProgress={};selectedTeacherStudentId='';latestUpdateManifest=null;$('teacherLicensePanel').classList.add('hidden');$('teacherProgressPanel').classList.add('hidden');$('fullPackageAdminPanel')?.classList.add('hidden');$('fullPackagePurchasePanel')?.classList.add('hidden');$('accountPassword').value='';$('accountStatus').textContent='Oturum kapatıldı. Yerel lisans önbelleği de temizlendi.';setPage('account');renderStudentModules();});
 
  $('refreshLicenseList')?.addEventListener('click',refreshLicenseList);
- $('checkUpdates').addEventListener('click',async()=>{try{$('checkUpdates').disabled=true;$('updateStatus').textContent='Stagepulse güncelleme bildirimi denetleniyor…';const r=await api().check_updates();latestUpdateManifest=r;$('updateStatus').textContent=`Mevcut sürüm: ${r.current_version||'—'}\nSunucu sürümü: ${r.version||'—'}\n${r.message||''}${r.notes?'\n\nNotlar: '+r.notes:''}`;$('installUpdate').classList.toggle('hidden',!r.available);if(!r.published)$('updateStatus').textContent+='\n\nNot: Web sitesinde latest.json ve kurulum EXE’si yayımlanmadığı için otomatik güncelleme henüz etkin değil.';}catch(err){$('updateStatus').textContent='Güncelleme denetlenemedi: '+err.message;}finally{$('checkUpdates').disabled=false;}});
+ $('checkUpdates').addEventListener('click',()=>checkForUpdates(false));
  $('installUpdate').addEventListener('click',async()=>{if(!latestUpdateManifest)return;try{$('installUpdate').disabled=true;$('updateStatus').textContent='Kurulum paketi indiriliyor ve SHA-256 doğrulanıyor…';const r=await api().install_update(JSON.stringify(latestUpdateManifest));$('updateStatus').textContent=r.message||'Güncelleme başlatıldı.';}catch(err){$('updateStatus').textContent='Güncelleme kurulamadı: '+err.message;}finally{$('installUpdate').disabled=false;}});
  $('openStagepulseSite').addEventListener('click',()=>api()?.open_website('home'));$('openSupportSite').addEventListener('click',()=>api()?.open_website('support'));
  // Updates are checked only when the user opens this panel and clicks the button.
@@ -1116,7 +1120,7 @@ async function refreshTeacherStudents(){if(currentRole!=='owner'||!api())return;
 
 // --- Settings ---
 function initSettings(){$('checkOffline').addEventListener('click',()=>{$('settingsInfo').textContent=`Tarayıcı bağlantı işareti: ${navigator.onLine?'ağ bağlantısı var':'çevrimdışı'}\nYerel araçlar: hazır\nMikrofon: yalnızca RTA başlatılınca istenir\nÖğrenci deposu: ${apiReady?'bağlı':'önizleme modu'}`;});$('exportAllData').addEventListener('click',()=>downloadBlob(new Blob([JSON.stringify({profiles},null,2)],{type:'application/json'}),'Stagepulse_Tum_Ogrenci_Verileri.json'));}
-async function loadAppInfo(){if(!api())return;try{const info=await api().app_info();$('settingsInfo').textContent=Object.entries(info).map(([k,v])=>`${k}: ${typeof v==='object'?JSON.stringify(v):v}`).join('\n');if(!currentAccountContext&&info.cached_license?.active){appAuthorized=true;if(activeRoute==='account')refreshAccountUi();}}catch(err){$('settingsInfo').textContent='Uygulama bilgisi okunamadı: '+err.message;}}
+async function loadAppInfo(){if(!api())return;try{const info=await api().app_info();const platform=info.platform==='android'?'Android':info.runtime==='WebView2'?'Windows masaüstü':'Masaüstü';$('settingsInfo').textContent=[`Sürüm: ${info.version||'Bilinmiyor'}`,`Platform: ${platform}`,`Bağlantı: ${navigator.onLine?'İnternet erişimi var':'Çevrimdışı'}`,'Yerel araçlar: Hazır'].join('\\n');if(!currentAccountContext&&info.cached_license?.active){appAuthorized=true;if(activeRoute==='account')refreshAccountUi();}}catch(err){$('settingsInfo').textContent='Uygulama durumu şu anda okunamıyor.';}}
 
 // Keyboard shortcut: Ctrl+K focuses current module (future-proof, no network calls).
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();const route=prompt('Araç adı gir: '+Object.values(routes).join(', '));if(!route)return;const entry=Object.entries(routes).find(([,label])=>label.toLocaleLowerCase('tr').includes(route.toLocaleLowerCase('tr')));if(entry)setPage(entry[0]);}});
