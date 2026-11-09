@@ -4,9 +4,9 @@ const $ = (id) => document.getElementById(id);
 const routes = {
   version:'3.9.7',
   home:'Ana sayfa', frequency:'Frekans bulucu', ear:'Kulak eğitimi', calculators:'Hesaplayıcılar', acoustics:'SPL / alan planı', systemplan:'Sahne ve ses-görüntü planı', patch:'Mikser kanal bağlantı raporu', rf:'Kablosuz frekans planı', distribution:'70/100 V hoparlör hattı', roommap:'Oda ses basınç seviyesi haritası', speaker:'Hoparlör ve sayısal sinyal işleme', wavelab:'Dalga / faz / gecikme laboratuvarı',
-  rta:'Gerçek zamanlı analiz (RTA)', protocol:'OSC / MIDI kontrolü', mixer:'Ses katmanı atölyesi', mixlab:'Sanal mikser laboratuvarı', videoacademy:'Video akademi', wav:'Ses dosyası kalite analizi (WAV)', lufs:'Ses yüksekliği normalizasyonu (LUFS)',
-  cues:'Sahne ipucu (Cue) ve video notları', checklists:'Kontrol listeleri', docs:'Ders kılavuzları', pdf:'Öğrenci PDF kitaplığı',
-  curriculum:'Eğitim dalları / ustalık yolu', student:'Öğrenci ilerlemesi', assistant:'Yapay zekâ / çalışma asistanı', account:'Hesap / lisans', settings:'Ayarlar ve gizlilik'
+  rta:'Canlı RTA', protocol:'OSC / MIDI kontrolü', mixer:'Ses katmanı atölyesi', mixlab:'Sanal mikser laboratuvarı', videoacademy:'Video akademi', wav:'WAV kalite analizi', lufs:'LUFS normalizasyonu',
+  cues:'Cue ve video notları', checklists:'Kontrol listeleri', docs:'Ders kılavuzları', pdf:'Öğrenci PDF kitaplığı',
+  curriculum:'Eğitim dalları / usta yolu', student:'Öğrenci ilerlemesi', assistant:'AI / çalışma asistanı', account:'Hesap / lisans', settings:'Ayarlar ve gizlilik'
 };
 const progressModules = [
   ['frequency','Frekans ve nota'],['ear','Kulak eğitimi'],['calculators','Teknik hesaplar'],['protocol','OSC / MIDI kontrolü'],['acoustics','SPL ve alan planı'],['rta','RTA ve ölçüm sınırları'],
@@ -67,14 +67,22 @@ let rtaPollTimer = 0;
 let rtaRunning = false;
 let rtaBusy = false;
 let rtaGeneration = 0;
+// Android WebView RTA kaynakları. Açıkça tanımlanmadıkları için ReferenceError oluşuyordu.
+let browserRtaStream = null;
+let browserRtaContext = null;
+let browserRtaAnalyser = null;
+let browserRtaTimeData = null;
+let browserRtaFrequencyData = null;
 let rtaCommandQueue = Promise.resolve();
 let rtaLastTime = 0;
 let rtaSampleRate = 0;
+let rtaSplOffsetDb = null;
+let rtaSplReferenceDb = null;
 let rtaFftSize = 16384;
 let rtaSmoothed = null;
 let rtaPeak = null;
-let rtaTraceHistory = [];
 let rtaFreqs = [];
+let rtaTraceHistory = [];
 let rtaOptimizerHistory = [];
 let rtaDeviceName = '';
 let videoSceneMarkers = [];
@@ -140,11 +148,74 @@ const extraCurriculumQuestions = {
 for (const [track, questions] of Object.entries(extraCurriculumQuestions)) curriculumQuizBank[track].push(...questions);
 
 function api() { return window.pywebview && window.pywebview.api ? window.pywebview.api : null; }
+let mobileAccountCallId = 0;
+function accountApi() {
+ if (api()) return api();
+ if (!window.StagepulseAndroid || typeof window.StagepulseAndroid.request !== 'function') return null;
+ if (window.__stagepulseMobileAccountApi) return window.__stagepulseMobileAccountApi;
+ window.__stagepulseMobileAccountPending = window.__stagepulseMobileAccountPending || new Map();
+ window.__stagepulseAndroidResolve = (id, raw) => {
+  const pending = window.__stagepulseMobileAccountPending.get(id);
+  if (!pending) return;
+  window.__stagepulseMobileAccountPending.delete(id);
+  try {
+   const result = JSON.parse(raw || '{}');
+   if (result && result.__error) pending.reject(new Error(result.__error));
+   else pending.resolve(result);
+  } catch (error) { pending.reject(error); }
+ };
+ const call = (action, payload = {}) => new Promise((resolve, reject) => {
+  const id = 'sesm_' + (++mobileAccountCallId);
+  window.__stagepulseMobileAccountPending.set(id, { resolve, reject });
+  try { window.StagepulseAndroid.request(action, JSON.stringify(payload), id); }
+  catch (error) { window.__stagepulseMobileAccountPending.delete(id); reject(error); }
+ });
+ window.__stagepulseMobileAccountApi = {
+  app_info: () => call('app_info'),
+  auth_login: (email, password) => call('auth_login', { email, password }),
+  auth_signup: (email, password, display_name) => call('auth_signup', { email, password, display_name }),
+  auth_context: () => call('auth_context').then(result => result.context || result),
+   auth_restore: () => call('auth_restore'),
+  auth_logout: () => call('auth_logout'),
+  license_activate: key => call('license_activate', { key }),
+  store_get: () => call('store_get'),
+  store_update: payload => call('store_update', payload),
+  purchase_submit: payload => call('purchase_submit', payload),
+  purchase_list: () => call('purchase_list'),
+  purchase_review: (purchase_id, decision, admin_note) => call('purchase_review', { purchase_id, decision, admin_note }),
+  license_create: (label, plan_code, max_activations, expires_days, customer_name, customer_email, payment_method, payment_status, amount, currency, payment_reference, bundle_code) =>
+   call('license_create', { label, plan_code, max_activations, expires_days, customer_name, customer_email, payment_method, payment_status, amount, currency, payment_reference, bundle_code }),
+  license_list: () => call('license_list'),
+  license_payment_update: (license_id, payment_status) => call('license_payment_update', { license_id, payment_status }),
+  license_revoke: license_id => call('license_revoke', { license_id }),
+  teacher_students: () => call('teacher_students'),
+  student_progress: student_user_id => call('progress_get', { student_user_id: student_user_id || '' }),
+  teacher_mark_progress: (student_user_id, module_id, completed, teacher_note) =>
+   call('progress_mark', { student_user_id, module_id, completed, teacher_note }),
+  ai_chat: (provider, model, api_key, prompt, endpoint) => call('ai_chat', { provider, model, api_key, prompt, endpoint, consent: $('aiConsent').checked }),
+  check_updates: () => call('check_updates'),
+  install_update: manifest => call('install_update', { manifest: typeof manifest === 'string' ? manifest : JSON.stringify(manifest) }),
+  open_website: page => {
+   const url = page === 'support' ? 'https://stagepulse.com.tr/destek/' : 'https://stagepulse.com.tr/';
+   window.open(url, '_blank', 'noopener');
+  }
+ };
+ return window.__stagepulseMobileAccountApi;
+}
 function enqueueRtaCommand(task){const next=rtaCommandQueue.then(task,task);rtaCommandQueue=next.catch(()=>{});return next;}
 function setStatus(message) { $('footerStatus').textContent = message; $('connectionText').textContent = message; }
 function fmt(value, digits=2) { return Number(value).toLocaleString('tr-TR',{minimumFractionDigits:digits,maximumFractionDigits:digits}); }
 function safeText(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function downloadBlob(blob, filename) { const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500); }
+function downloadBlob(blob, filename) {
+ if(window.StagepulseAndroid&&typeof window.StagepulseAndroid.saveBase64File==='function'){
+  if(blob.size>18*1024*1024){setStatus('Dosya 18 MiB sınırını aşıyor. Daha kısa içerik dışa aktar veya masaüstü uygulamasını kullan.');return;}
+  const reader=new FileReader();
+  reader.onload=()=>{try{const data=String(reader.result||'').split(',')[1]||'';const ok=window.StagepulseAndroid.saveBase64File(filename,blob.type||'application/octet-stream',data);setStatus(ok?'Dosya İndirilenler/Stagepulse klasörüne kaydedildi.':'Dosya Android depolamasına kaydedilemedi.');}catch(err){setStatus('Dosya kaydedilemedi: '+(err.message||String(err)));}};
+  reader.onerror=()=>setStatus('Dışa aktarım dosyası okunamadı.');
+  reader.readAsDataURL(blob);return;
+ }
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
 function setPage(route) {
   if (!routes[route]) route='home';
   if (!appAuthorized && currentRole !== 'owner' && route !== 'account') route='account';
@@ -165,8 +236,8 @@ function setPage(route) {
   if (route==='settings') loadAppInfo();
   if (route==='account') refreshAccountUi();
   if (route==='student') { renderStudentModules(); if (currentRole==='student') refreshStudentProgress().catch(()=>{}); }
-  if (route==='pdf') { loadStudentPdfs(); setStatus('Öğrenci PDF kitaplığı aynı uygulama penceresinde.'); }
-  if (route==='curriculum') { loadCurriculumWorkshop().catch(err=>{const el=$('curriculumTrackDetails');if(el)el.textContent='Eğitim kataloğu yüklenemedi: '+err.message;}); }
+  if (route==='pdf') { loadStudentPdfs(); setStatus('Öğrenci PDF kitaplığı açıldı. PDF dosyaları cihazın görüntüleyicisinde açılır.'); }
+  if (route==='curriculum') { initCurriculumDownloads(); loadCurriculumWorkshop().catch(err=>{const el=$('curriculumTrackDetails');if(el)el.textContent='Eğitim kataloğu yüklenemedi: '+err.message;}); }
   if (route==='frequency') setStatus('Frekans Bulucu: tamamen yerel.');
   if (route==='mixer') renderTracks();
 }
@@ -186,7 +257,7 @@ window.addEventListener('online',()=>{window.setTimeout(()=>checkForUpdates(true
 window.addEventListener('offline',()=>{ $('runtimeBadge').innerHTML='<i></i>Çevrimdışı'; setStatus('Çevrimdışı · temel araçlar kullanılabilir'); });
 
 async function loadCurriculumWorkshop(){
- if(!curriculumCatalog){const r=await fetch('/egitim_paketleri/stagepulse_egitim_katalogu_v1.json');if(!r.ok)throw new Error('Katalog HTTP '+r.status);curriculumCatalog=await r.json();}
+ if(!curriculumCatalog){const r=await fetch('../egitim_paketleri/stagepulse_egitim_katalogu_v1.json');if(!r.ok)throw new Error('Katalog HTTP '+r.status);curriculumCatalog=await r.json();}
  const sel=$('curriculumTrackSelect'); if(!sel)return;
  if(!sel.dataset.bound){sel.dataset.bound='1';sel.addEventListener('change',renderCurriculumWorkshop);$('saveCurriculumPractice').addEventListener('click',saveCurriculumPractice);$('curriculumQuizButton').addEventListener('click',renderCurriculumQuiz);}
  renderCurriculumWorkshop();
@@ -207,82 +278,45 @@ function renderCurriculumQuiz(){
  host.classList.remove('hidden');host.innerHTML=`<h3>${safeText($('curriculumTrackSelect').selectedOptions[0].textContent)} · Bilgi testi</h3><form id="curriculumQuizForm">${qs.map((q,i)=>`<fieldset class="panel"><legend>${i+1}. ${safeText(q[0])}</legend>${q[1].map((a,j)=>`<label class="check-item"><input type="radio" name="cq${i}" value="${j}" required><span>${safeText(a)}</span></label>`).join('')}</fieldset>`).join('')}<button class="btn btn-gold" type="submit">Testi değerlendir</button></form><div id="curriculumQuizResult" class="report-box">Üç soruyu yanıtla. Bu test yalnızca ön değerlendirmedir.</div>`;
  host.querySelector('#curriculumQuizForm').addEventListener('submit',e=>{e.preventDefault();let score=0;qs.forEach((q,i)=>{const v=host.querySelector(`input[name="cq${i}"]:checked`);if(v&&Number(v.value)===q[2])score++;});const pass=score===qs.length;host.querySelector('#curriculumQuizResult').textContent=`Sonuç: ${score}/${qs.length}. ${pass?'Bu kısa ön testi geçtin. Uygulama sınavı ve öğretmen onayı yine gereklidir.':'Başarısız maddeleri ders kılavuzundan tekrar et ve testi yeniden çöz.'}`;const again=document.createElement('button');again.className='btn btn-secondary';again.type='button';again.textContent='Yeni soru seti';again.addEventListener('click',renderCurriculumQuiz);host.querySelector('#curriculumQuizResult').after(again);});
 }
-function runInitStep(name, initialize, errors){
-  try { initialize(); }
-  catch(err) {
-    const message=(err&&err.message)||String(err);
-    console.error('Stagepulse başlatma hatası ['+name+']:',err);
-    errors.push(name+': '+message);
-  }
+function initCurriculumDownloads(){
+ const json=$('downloadCurriculumJson'); if(json&&!json.dataset.bound){json.dataset.bound='1';json.addEventListener('click',()=>{const a=document.createElement('a');a.href='/assets/egitim_paketleri/stagepulse_egitim_katalogu_v1.json';a.download='Stagepulse_Egitim_Katalogu.json';document.body.appendChild(a);a.click();a.remove();});}
+
 }
 function initShell(){
-  const initErrors=[];
-  runInitStep('Ana ekran',()=>{
-    const wave=$('heroWave');
-    if(wave&&!wave.children.length){for(let i=0;i<47;i++){const b=document.createElement('span');b.style.height=(8+Math.abs(Math.sin(i*.47)*Math.cos(i*.17))*34)+'px';wave.appendChild(b);}}
-    $('runtimeBadge').innerHTML='<i></i>'+(navigator.onLine?'Yerel motor':'Çevrimdışı');
-    setStatus('Yerel çalışma alanı açılıyor…');
-  },initErrors);
-  const initSteps=[
-    ['Hesaplayıcılar',initCalculators],['SPL / alan planı',initAcoustics],
-    ['Kulak eğitimi',initEarTraining],['Ses katmanı atölyesi',initMixer],
-    ['Canlı RTA arayüzü',initRtaControls],['Akustik sistem analizi',initAcousticAnalyzer],['Canlı stereo Transfer Function',initLiveTfControls],['WAV analizi',initWav],
-    ['LUFS normalizasyonu',initLufs],['Cue notları',initCues],
-    ['Kontrol listeleri',initChecklists],['Öğrenci profilleri',initStudent],
-    ['Ders kılavuzları',initDocs],['AI asistanı',initAssistant],
-    ['Hesap ve lisans',initAccount],['Ayarlar',initSettings],['Stagepulse özgün yerel araçları',()=>window.StagepulseFirstPartyTools.initAll()]
-  ];
-  // İlk pencere çizildikten sonra her başlatma adımını ayrı görevde çalıştır.
-  // Düşük güçlü bilgisayarlarda tek uzun JS görevi Windows'un "Yanıt vermiyor"
-  // durumuna geçmesini önler; bir özellik hata verse bile diğerleri başlatılır.
-  const runNext=(index)=>{
-    if(index>=initSteps.length){
-      runInitStep('Ana sayfa göstergeleri',updateHomeMetrics,initErrors);
-      if(initErrors.length)setStatus('Bazı özellikler başlatılamadı; diğer menüler çalışmaya devam ediyor. '+initErrors.join(' | ').slice(0,360));
-      else setStatus('Yerel çalışma alanı hazır.');
-      return;
-    }
-    const [name,initialize]=initSteps[index];
-    runInitStep(name,initialize,initErrors);
-    window.setTimeout(()=>runNext(index+1),12);
-  };
-  runInitStep('Masaüstü bağlantısı',()=>{
-    if(api()){apiReady=true;initializeNativeData();}
-    else $('settingsInfo').textContent='Yerel geliştirme/önizleme modu. Dosya seçme, profil saklama ve masaüstü normalizasyonu ana uygulama köprüsü olmadan devre dışıdır.';
-  },initErrors);
-  if(window.requestAnimationFrame)window.requestAnimationFrame(()=>window.setTimeout(()=>runNext(0),0));
-  else window.setTimeout(()=>runNext(0),30);
+  const wave=$('heroWave'); if(wave&&!wave.children.length){for(let i=0;i<47;i++){const b=document.createElement('span');b.style.height=(8+Math.abs(Math.sin(i*.47)*Math.cos(i*.17))*34)+'px';wave.appendChild(b);}}
+  $('runtimeBadge').innerHTML=`<i></i>${navigator.onLine?'Yerel motor':'Çevrimdışı'}`;
+  setStatus('Yerel çalışma alanı hazır.');
+  initCalculators();initAcoustics();initEarTraining();initMixer();initRtaControls();initWav();initLufs();initCues();initChecklists();initStudent();initDocs();initAssistant();initAccount();initSettings();
+  try { window.StagepulseFirstPartyTools?.initAll(); }
+  catch (error) { console.error('Stagepulse mühendislik araçları başlatılamadı:', error); setStatus('Bazı saha araçları başlatılamadı.'); }
+  if(api() || accountApi()) { apiReady=!!api(); initializeNativeData(); }
+  else { $('settingsInfo').textContent='Yerel geliştirme/önizleme modu. Dosya seçme, profil saklama ve masaüstü normalizasyonu ana uygulama köprüsü olmadan devre dışıdır.'; }
+  updateHomeMetrics();
 }
-window.addEventListener('error',event=>{const message=(event.error&&event.error.message)||event.message||'Bilinmeyen JavaScript hatası';console.error('Stagepulse yakalanan JavaScript hatası:',event.error||event.message);if($('footerStatus'))setStatus('Arayüzde beklenmeyen bir hata oluştu. Uygulamayı yeniden başlatmayı dene.');});
-window.addEventListener('unhandledrejection',event=>{const reason=event.reason,message=(reason&&reason.message)||String(reason||'Bilinmeyen asenkron hata');console.error('Stagepulse yakalanan asenkron hata:',reason);if($('footerStatus'))setStatus('Bir arka plan işlemi tamamlanamadı. Lütfen işlemi yeniden dene.');});
-
 window.addEventListener('DOMContentLoaded',initShell);
 window.addEventListener('pywebviewready',()=>{apiReady=true;initializeNativeData();});
 async function initializeNativeData(){
-  if(nativeInitStarted || !api())return;
+  if(nativeInitStarted || (!api() && !accountApi()))return;
+  const nativeApi = api() || accountApi();
   nativeInitStarted = true;
   setPage('account');
   try { await ensureProfilesLoaded(); }
   catch(err) { setStatus('Profil deposu okunamadı. Veriler sıfırlanmadı: '+err.message); }
-
-  // Ağ yanıtı yerel araçların açılmasını bekletmez; geç yanıtlar arka planda uygulanır.
-  if (typeof api().auth_restore === 'function') {
-    const authPromise = api().auth_restore().catch(err=>{
-      setStatus('Kayıtlı hesap çevrimiçi doğrulanamadı; yerel araçlar kullanılabilir. ' + String(err.message || err).slice(0, 160));
-      return null;
-    });
-    Promise.race([authPromise,new Promise(resolve=>setTimeout(()=>resolve(null),3000))]).then(restored=>{
-      if(restored&&restored.authenticated&&restored.context)applyAccountContext(restored.context);
-    });
+  try {
+    if (typeof nativeApi.auth_restore === 'function') {
+      const restored = await nativeApi.auth_restore();
+      if (restored && restored.authenticated && restored.context) applyAccountContext(restored.context);
+    }
+  } catch (err) {
+    // Preserve the encrypted refresh token on transient network failures.
+    setStatus('Kayıtlı hesap çevrimiçi doğrulanamadı; yerel araçlar kullanılabilir. ' + String(err.message || err).slice(0, 160));
   }
-  if (typeof api().app_info === 'function') {
-    api().app_info().then(info=>{
-      const cached=info&&info.cached_license;
-      if(cached&&cached.active)appAuthorized=true;
-      if(licenseGatePending){licenseGatePending=false;setPage(appAuthorized?'home':'account');}
-      refreshAccountUi();
-    }).catch(()=>{});
-  }
+  try {
+    const info = await nativeApi.app_info();
+    const cached = info && info.cached_license;
+    if (cached && cached.active) appAuthorized = true;
+  } catch (_) { /* Lisans önbelleği çevrimdışı doğrulamada kullanılır. */ }
+  if(licenseGatePending){licenseGatePending=false;setPage(appAuthorized?'home':'account');}
   loadAppInfo();
   refreshAccountUi();
   window.setTimeout(()=>checkForUpdates(true),1800);
@@ -306,12 +340,27 @@ function initCalculators(){
 }
 
 function initAcoustics(){
- let lastFarthestDistance=null,lastAudienceVolume=null,lastEquivalentAbsorption=null;
- const redrawMap=()=>{try{drawSplCoverageMaps();}catch(err){const el=$('splMapSummary');if(el)el.textContent='Harita hesaplanamadı: '+err.message;}};
+ let lastFarthestDistance=null,lastAudienceVolume=null,lastEquivalentAbsorption=null,mapFrame=0;
+ const redrawMap=()=>{
+  if(activeRoute!=='acoustics')return;
+  if(mapFrame)cancelAnimationFrame(mapFrame);
+  mapFrame=requestAnimationFrame(()=>{
+   mapFrame=0;
+   const root=$('splMap2d')?.closest('.spl-visual-grid');
+   if(!root||root.getBoundingClientRect().width<32)return;
+   try{drawSplCoverageMaps();}catch(err){const el=$('splMapSummary');if(el)el.textContent='Harita hesaplanamadı: '+err.message;}
+  });
+ };
  ['splReferenceLevel','splReferenceDistance','splSourceCount','audienceWidth','audienceDepth','audienceHeight','speakerCoverageAngle'].forEach(id=>$(id).addEventListener('input',()=>{redrawMap();if(splEquipment.length){const p=splMapParams();splEquipment.forEach(e=>{e.x=Math.max(-p.width/2,Math.min(p.width/2,e.x));e.y=Math.max(0,Math.min(p.depth,e.y));});saveSplEquipment();renderSplEquipment();}}));
- initSplEquipmentEditor();
- window.addEventListener('resize',()=>{if($('splMap2d'))redrawMap();});
+ window.addEventListener('resize',redrawMap,{passive:true});
+ window.visualViewport?.addEventListener('resize',redrawMap,{passive:true});
+ const mapRoot=$('splMap2d')?.closest('.spl-visual-grid');
+ if(mapRoot&&'ResizeObserver'in window){
+  const observer=new ResizeObserver(redrawMap);
+  observer.observe(mapRoot);
+ }
 
+ initSplEquipmentEditor();
  $('useFarDistance').addEventListener('click',()=>{if(lastFarthestDistance!==null){$('splTargetDistance').value=lastFarthestDistance.toFixed(2);setStatus('Alan planındaki uzak köşe mesafesi SPL hedef mesafesine aktarıldı; varsayımları yeniden kontrol et.');}});
  $('useAudienceVolume').addEventListener('click',()=>{if(lastAudienceVolume!==null){$('rt60Volume').value=lastAudienceVolume.toFixed(1);setStatus('Alan planındaki hacim Sabine hesabına aktarıldı; soğurma alanını doğrula.');}});
  $('calcSplDistance').addEventListener('click',()=>{try{const r=AcousticMath.distanceSpl(val('splReferenceLevel'),val('splReferenceDistance'),val('splTargetDistance'),val('splSourceCount'));$('splDistanceResult').textContent=`Tek kaynak kestirimi: ${fmt(r.singleSourceDbSpl,2)} dB SPL\n${val('splSourceCount')} eşit kaynak için enerji toplamı kestirimi: ${fmt(r.combinedEnergyEstimateDbSpl,2)} dB SPL\nMesafe düzeltmesi: ${fmt(r.distanceCorrectionDb,2)} dB · kaynak toplamı: +${fmt(r.sourceCountEnergyCorrectionDb,2)} dB\nVarsayımlar: ${r.assumptions.join(' ')}`;redrawMap();}catch(e){showCalcError('splDistanceResult',e);}});
@@ -382,7 +431,7 @@ function renderSplEquipment(){
 }
 function initSplEquipmentEditor(){
  const add=$('splEquipmentAdd');if(!add||add.dataset.bound)return;add.dataset.bound='1';loadSplEquipment();splSelectedEquipmentId=splEquipment[0]?.id||'';
- add.addEventListener('click',()=>{const p=splMapParams(),cat=$('splEquipmentCategory').value,n=splEquipment.filter(x=>x.category===cat).length+1,name=$('splEquipmentName').value.trim()||SPL_EQUIPMENT_CATEGORIES[cat],e={id:'spl-'+Date.now().toString(36),category:cat,name:name.slice(0,50),x:0,y:Math.max(1,p.depth*.12),level:cat==='monitor'?96:100,angle:cat==='monitor'?180:0,beam:cat==='sub'?360:90};splEquipment.push(e);splSelectedEquipmentId=e.id;saveSplEquipment();renderSplEquipment();drawSplCoverageMaps();});
+ add.addEventListener('click',()=>{const p=splMapParams(),cat=$('splEquipmentCategory').value,name=$('splEquipmentName').value.trim()||SPL_EQUIPMENT_CATEGORIES[cat],e={id:'spl-'+Date.now().toString(36),category:cat,name:name.slice(0,50),x:0,y:Math.max(1,p.depth*.12),level:cat==='monitor'?96:100,angle:cat==='monitor'?180:0,beam:cat==='sub'?360:90};splEquipment.push(e);splSelectedEquipmentId=e.id;saveSplEquipment();renderSplEquipment();drawSplCoverageMaps();});
  $('splEquipmentReset').addEventListener('click',()=>{if(!confirm('Örnek ekipman yerleşimi yüklensin mi? Mevcut yerleşimin yerine geçer.'))return;splEquipment=splDefaultEquipment(val('audienceWidth'),val('audienceDepth'));splSelectedEquipmentId=splEquipment[0]?.id||'';saveSplEquipment();renderSplEquipment();drawSplCoverageMaps();});
  const canvas=$('splMap2d');if(canvas){let dragging=false;canvas.style.touchAction='none';canvas.addEventListener('pointerdown',ev=>{const rect=canvas.getBoundingClientRect(),p=splMapParams(),pad={l:46,r:72,t:32,b:48},scaleX=(canvas._spLogicalWidth||rect.width)/rect.width,scaleY=(canvas._spLogicalHeight||rect.height)/rect.height,pw=(canvas._spLogicalWidth||rect.width)-pad.l-pad.r,ph=(canvas._spLogicalHeight||rect.height)-pad.t-pad.b,x=(ev.clientX-rect.left)*scaleX,y=(ev.clientY-rect.top)*scaleY;let best=null,dist=1e9;splEquipment.forEach(e=>{const pt=splMapTransform(e,p,pad,pw,ph),d=Math.hypot(pt.x-x,pt.y-y);if(d<dist&&d<22){best=e;dist=d;}});if(best){dragging=true;splEquipmentDrag=best.id;splSelectedEquipmentId=best.id;canvas.setPointerCapture(ev.pointerId);renderSplEquipment();}});
  canvas.addEventListener('pointermove',ev=>{if(!dragging||!splEquipmentDrag)return;const rect=canvas.getBoundingClientRect(),p=splMapParams(),pad={l:46,r:72,t:32,b:48},scaleX=(canvas._spLogicalWidth||rect.width)/rect.width,scaleY=(canvas._spLogicalHeight||rect.height)/rect.height,pw=(canvas._spLogicalWidth||rect.width)-pad.l-pad.r,ph=(canvas._spLogicalHeight||rect.height)-pad.t-pad.b,e=splEquipment.find(x=>x.id===splEquipmentDrag);if(!e)return;e.x=Math.max(-p.width/2,Math.min(p.width/2,(((ev.clientX-rect.left)*scaleX-pad.l)/pw-.5)*p.width));e.y=Math.max(0,Math.min(p.depth,((ev.clientY-rect.top)*scaleY-pad.t)/ph*p.depth));saveSplEquipment();drawSplCoverageMaps();renderSplEquipment();});
@@ -394,11 +443,15 @@ function initSplEquipmentEditor(){
  renderSplEquipment();
 }
 function prepareHiDPICanvas(canvas,minW=520,minH=300){
- const rect=canvas.getBoundingClientRect(),dpr=Math.max(1,window.devicePixelRatio||1),w=Math.max(minW,rect.width||minW),h=Math.max(minH,Number(canvas.getAttribute('height'))||minH);
- if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}canvas._spLogicalWidth=w;canvas._spLogicalHeight=h;const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w,h};
+ const rect=canvas.getBoundingClientRect();
+ if(!rect.width||rect.width<32)return null;
+ const dpr=Math.min(2,Math.max(1,window.devicePixelRatio||1)),w=Math.max(280,rect.width),h=Math.max(190,w*minH/minW);
+ if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}
+ canvas._spLogicalWidth=w;canvas._spLogicalHeight=h;const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);return {ctx,w,h};
 }
 function drawSplCoverageMaps(){
  const c2=$('splMap2d'),c3=$('splMap3d');if(!c2||!c3)return;
+ if(c2.getBoundingClientRect().width<32||c3.getBoundingClientRect().width<32)return;
  const p=splMapParams();const lvals=[];for(let j=0;j<55;j++){const y=(j+.5)/55*p.depth;for(let i=0;i<72;i++){const x=((i+.5)/72-.5)*p.width;lvals.push(splMapLevel(x,y,p));}}
  const min=Math.floor(Math.min(...lvals)/5)*5,max=Math.ceil(Math.max(...lvals)/5)*5;const span=Math.max(1,max-min);
  $('splMapRange').textContent=`${fmt(min,0)}–${fmt(max,0)} dB SPL`;
@@ -435,156 +488,22 @@ function drawSplCoverageMaps(){
 }
 
 // --- Kulak eğitimi ---
-function getAudioContext(){if(!audioContext){const AudioContextCtor=window.AudioContext||window.webkitAudioContext;if(typeof AudioContextCtor!=='function')throw new Error('Bu WebView ortamında Web Audio desteklenmiyor. WebView2 Runtime güncellenmeli.');audioContext=new AudioContextCtor();}return audioContext;}
+function getAudioContext(){if(!audioContext)audioContext=new (window.AudioContext||window.webkitAudioContext)();return audioContext;}
 const earFrequencies=[63,80,100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150,4000,5000,6300,8000];
 const freqBands=[['20–80 Hz',20,80],['81–160 Hz',81,160],['161–315 Hz',161,315],['316–630 Hz',316,630],['631–1.25 kHz',631,1250],['1.26–2.5 kHz',1251,2500],['2.51–5 kHz',2501,5000],['5.01–12 kHz',5001,12000]];
 function randomChoice(xs){return xs[Math.floor(Math.random()*xs.length)];}
 function newEarQuestion(){earTarget=randomChoice(earFrequencies);earRound++;$('earRound').textContent='Tur '+earRound;$('earToneLabel').textContent='? Hz';$('earFeedback').textContent='Tonu dinle ve frekans aralığını seç.';$('earFeedback').className='feedback';const correct=freqBands.findIndex(b=>earTarget>=b[1]&&earTarget<=b[2]);let choices=[correct];while(choices.length<4){const n=Math.floor(Math.random()*freqBands.length);if(!choices.includes(n))choices.push(n);}choices.sort(()=>Math.random()-.5);$('earChoices').innerHTML='';choices.forEach(index=>{const b=freqBands[index],btn=document.createElement('button');btn.className='choice';btn.textContent=b[0];btn.dataset.band=index;btn.addEventListener('click',()=>answerEar(Number(btn.dataset.band),correct));$('earChoices').appendChild(btn);});}
-async function playTone(freq,duration=1){const ctx=getAudioContext();if(ctx.state!=='running')await ctx.resume();const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.value=freq;gain.gain.setValueAtTime(0.0001,ctx.currentTime);gain.gain.linearRampToValueAtTime(.055,ctx.currentTime+.025);gain.gain.setValueAtTime(.055,ctx.currentTime+Math.max(.04,duration-.06));gain.gain.linearRampToValueAtTime(.0001,ctx.currentTime+duration);osc.connect(gain).connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+duration+.02);}
-
+function playTone(freq,duration=1){const ctx=getAudioContext();ctx.resume();const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type='sine';osc.frequency.value=freq;gain.gain.setValueAtTime(0.0001,ctx.currentTime);gain.gain.linearRampToValueAtTime(.055,ctx.currentTime+.025);gain.gain.setValueAtTime(.055,ctx.currentTime+Math.max(.04,duration-.06));gain.gain.linearRampToValueAtTime(.0001,ctx.currentTime+duration);osc.connect(gain).connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+duration+.02);}
 function answerEar(chosen,correct){if($('earFeedback').dataset.answered===String(earRound))return;$('earFeedback').dataset.answered=String(earRound);earAnswered++;const ok=chosen===correct;if(ok)earCorrect++;document.querySelectorAll('#earChoices .choice').forEach(b=>{b.disabled=true;if(Number(b.dataset.band)===correct)b.classList.add('correct');else if(Number(b.dataset.band)===chosen)b.classList.add('wrong');});$('earFeedback').textContent=ok?'Doğru. Frekansın bulunduğu bölgeyi iyi ayırt ettin.':`Bu soru ${freqBands[correct][0]} aralığındaydı.`;$('earFeedback').className='feedback '+(ok?'good':'bad');$('earScore').textContent=`${earCorrect} / ${earAnswered}`;}
-function initEarTraining(){
-  // Web Audio is created only after a deliberate user click, never during app startup.
-  $('playEarTone').addEventListener('click',async()=>{try{await playTone(earTarget,1.25);}catch(err){$('earFeedback').textContent='Ses başlatılamadı: '+(err.message||String(err));}});
-  $('newEarTone').addEventListener('click',newEarQuestion);
-  newEarQuestion();
-  document.querySelectorAll('[data-eq]').forEach(btn=>btn.addEventListener('click',()=>{const answer=btn.dataset.eq;if($('eqFeedback').dataset.answered==='yes')return;const ok=answer===eqTarget;$('eqFeedback').dataset.answered='yes';$('eqFeedback').textContent=ok?'Doğru. Seçtiğin bölge A ve B arasında değişti.':('Bu örnekte değişen bölge: '+(eqTarget==='low'?'bas':eqTarget==='mid'?'orta frekans':eqTarget==='high'?'tiz':'belirgin değişim yok')+'.');$('eqFeedback').className='feedback '+(ok?'good':'bad');document.querySelectorAll('[data-eq]').forEach(b=>{b.disabled=true;if(b.dataset.eq===eqTarget)b.classList.add('correct');else if(b===btn)b.classList.add('wrong');});earAnswered++;if(ok)earCorrect++;$('earScore').textContent=earCorrect+' / '+earAnswered;}));
-  document.getElementById('playEqA').addEventListener('click',async()=>{try{await playNoise(false);}catch(err){$('eqFeedback').textContent='Ses başlatılamadı: '+(err.message||String(err));}});
-  document.getElementById('playEqB').addEventListener('click',async()=>{try{await playNoise(true);}catch(err){$('eqFeedback').textContent='Ses başlatılamadı: '+(err.message||String(err));}});
+function initEarTraining(){ $('playEarTone').addEventListener('click',()=>playTone(earTarget,1.25));$('newEarTone').addEventListener('click',newEarQuestion);newEarQuestion();
+  const ctx=getAudioContext();const noise=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate);const data=noise.getChannelData(0);let seed=23871;for(let i=0;i<data.length;i++){seed=(seed*16807)%2147483647;data[i]=(seed/1073741823.5)-1;}eqBuffer=noise;
+  document.querySelectorAll('[data-eq]').forEach(btn=>btn.addEventListener('click',()=>{const answer=btn.dataset.eq;if($('eqFeedback').dataset.answered==='yes')return;const ok=answer===eqTarget;$('eqFeedback').dataset.answered='yes';$('eqFeedback').textContent=ok?'Doğru. Seçtiğin bölge A ve B arasında değişti.':`Bu örnekte değişen bölge: ${eqTarget==='low'?'bas':eqTarget==='mid'?'orta frekans':eqTarget==='high'?'tiz':'belirgin değişim yok'}.`;$('eqFeedback').className='feedback '+(ok?'good':'bad');document.querySelectorAll('[data-eq]').forEach(b=>{b.disabled=true;if(b.dataset.eq===eqTarget)b.classList.add('correct');else if(b===btn)b.classList.add('wrong');});earAnswered++;if(ok)earCorrect++;$('earScore').textContent=`${earCorrect} / ${earAnswered}`;}));
+  document.getElementById('playEqA').addEventListener('click',()=>playNoise(false));document.getElementById('playEqB').addEventListener('click',()=>playNoise(true));
   $('newEqQuestion').addEventListener('click',newEqQuestion);
   newEqQuestion();
 }
-
 function newEqQuestion(){eqTarget=randomChoice(['low','mid','high','flat']);$('eqFeedback').dataset.answered='no';$('eqFeedback').textContent='A ve B örneklerini dinle, farkın bulunduğu bölgeyi seç.';$('eqFeedback').className='feedback';document.querySelectorAll('[data-eq]').forEach(b=>{b.disabled=false;b.classList.remove('correct','wrong');});const path=eqTarget==='low'?'M20 94 Q150 10 240 65 T580 80':eqTarget==='mid'?'M20 80 Q150 80 250 25 T400 80 T580 80':eqTarget==='high'?'M20 80 Q380 80 450 50 T580 25':'M20 80 Q140 80 210 80 T580 80';$('eqCurve').setAttribute('d',path);}
-async function playNoise(isB){const ctx=getAudioContext();if(ctx.state!=='running')await ctx.resume();if(!eqBuffer){const noise=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate),data=noise.getChannelData(0);let seed=23871;for(let i=0;i<data.length;i++){seed=(seed*16807)%2147483647;data[i]=(seed/1073741823.5)-1;}eqBuffer=noise;}const src=ctx.createBufferSource();src.buffer=eqBuffer;const gain=ctx.createGain();gain.gain.value=.10;src.connect(gain);if(isB&&eqTarget!=='flat'){const filter=ctx.createBiquadFilter();filter.type=eqTarget==='low'?'lowshelf':eqTarget==='high'?'highshelf':'peaking';filter.frequency.value=eqTarget==='low'?180:eqTarget==='high'?4200:1000;filter.Q.value=0.85;filter.gain.value=7;gain.connect(filter).connect(ctx.destination);}else gain.connect(ctx.destination);src.start();src.stop(ctx.currentTime+1.6);}
-
-
-
-function drawAcousticChart(canvasId, frequencies, values, minValue, maxValue, unit) {
- const canvas=$(canvasId);if(!canvas||!Array.isArray(frequencies)||!Array.isArray(values)||frequencies.length!==values.length)return;
- const width=Math.max(320,Math.floor(canvas.getBoundingClientRect().width||640)),height=210,dpr=window.devicePixelRatio||1;
- canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
- const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,width,height);
- ctx.fillStyle='#0c1117';ctx.fillRect(0,0,width,height);
- const left=54,right=12,top=12,bottom=29,plotW=width-left-right,plotH=height-top-bottom;
- ctx.font='10px Segoe UI,sans-serif';ctx.fillStyle='#9ba5b1';ctx.strokeStyle='#303944';ctx.lineWidth=1;
- for(let tick=0;tick<=4;tick++){const y=top+plotH*tick/4;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(width-right,y);ctx.stroke();ctx.fillText((maxValue-(maxValue-minValue)*tick/4).toFixed(0)+unit,3,y+3);}
- const minF=Math.max(10,frequencies.find(v=>v>0)||20),maxF=frequencies[frequencies.length-1]||20000,logMin=Math.log10(minF),logMax=Math.log10(maxF);
- [20,50,100,200,500,1000,2000,5000,10000,20000].filter(v=>v>=minF&&v<=maxF).forEach(v=>{const x=left+(Math.log10(v)-logMin)/(logMax-logMin)*plotW;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,top+plotH);ctx.stroke();ctx.fillText(v>=1000?(v/1000)+'k':String(v),x-10,height-9);});
- ctx.strokeStyle='#d7ad58';ctx.lineWidth=1.6;ctx.beginPath();let started=false;const stride=Math.max(1,Math.floor(frequencies.length/2400));
- for(let i=1;i<frequencies.length;i+=stride){const freq=frequencies[i],value=values[i];if(!Number.isFinite(freq)||!Number.isFinite(value)||freq<=0)continue;const x=left+(Math.log10(freq)-logMin)/(logMax-logMin)*plotW,y=top+(maxValue-value)/(maxValue-minValue)*plotH;if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);}
- if(started)ctx.stroke();
-}
-let liveTfRunning=false,liveTfBusy=false,liveTfTimer=null,liveTfGeneration=0;
-async function refreshLiveTfDevices(){
- const select=$('liveTfDevice');if(!select)return;
- if(!api()||typeof api().list_tf_devices!=='function'){
-  select.innerHTML='<option value="">Yalnızca Windows masaüstü EXE</option>';
-  $('liveTfStatus').textContent='Canlı stereo TF, Windows masaüstü EXE içinde kullanılabilir.';
-  return;
- }
- try{
-  const devices=await api().list_tf_devices();
-  select.innerHTML='';
-  if(!Array.isArray(devices)||!devices.length){
-   select.innerHTML='<option value="">Stereo giriş aygıtı bulunamadı</option>';
-   $('liveTfStatus').textContent='En az iki eşzamanlı giriş kanalı olan bir ses kartı bağla.';
-   return;
-  }
-  devices.forEach(device=>{
-   const option=document.createElement('option');option.value=String(device.index);
-   option.textContent=String(device.name)+' · '+String(device.host_api||'Ses aygıtı')+' · '+device.max_input_channels+' giriş';
-   select.appendChild(option);
-  });
-  $('liveTfStatus').textContent=devices.length+' stereo giriş aygıtı bulundu. CH0 referans, CH1 ölçüm mikrofonu.';
- }catch(error){$('liveTfStatus').textContent='Stereo girişler listelenemedi: '+(error.message||String(error));}
-}
-async function stopLiveTf(showMessage=true){
- liveTfGeneration++;liveTfRunning=false;liveTfBusy=false;
- if(liveTfTimer!==null){clearTimeout(liveTfTimer);liveTfTimer=null;}
- $('startLiveTf').disabled=false;$('stopLiveTf').disabled=true;
- if(api()&&typeof api().stop_tf==='function'){
-  try{await api().stop_tf();}catch(error){if(showMessage)$('liveTfStatus').textContent='TF durdurma uyarısı: '+(error.message||String(error));}
- }
- if(showMessage)$('liveTfStatus').textContent='Canlı TF durduruldu.';
-}
-async function tickLiveTf(token){
- if(!liveTfRunning||token!==liveTfGeneration)return;
- if(liveTfBusy){liveTfTimer=setTimeout(()=>tickLiveTf(token),120);return;}
- liveTfBusy=true;
- try{
-  const snapshot=await api().get_tf_snapshot('third',20,20000);
-  if(!liveTfRunning||token!==liveTfGeneration)return;
-  if(!snapshot||!snapshot.ok)throw new Error(snapshot?.error||'TF verisi alınamadı.');
-  const age=Number(snapshot.seconds_since_last_callback||0);
-  if(snapshot.stream_stale){
-   const blank=Array(snapshot.centers.length).fill(Number.NaN);
-   drawAcousticChart('acousticMagnitudeChart',snapshot.centers,blank,-36,18,' dB');
-   drawAcousticChart('acousticPhaseChart',snapshot.centers,blank,-180,180,'°');
-   drawAcousticChart('acousticCoherenceChart',snapshot.centers,blank,0,1,'');
-  }else if(snapshot.ready){
-   drawAcousticChart('acousticMagnitudeChart',snapshot.centers,snapshot.mag_db,-36,18,' dB');
-   drawAcousticChart('acousticPhaseChart',snapshot.centers,snapshot.phase_deg,-180,180,'°');
-   drawAcousticChart('acousticCoherenceChart',snapshot.centers,snapshot.coherence,0,1,'');
-  }
-  const streamNote=snapshot.stream_stale||age>2?'\nUYARI: Ses akışı durdu veya iki saniyeden uzun süredir veri gelmiyor.':'';
-  $('liveTfStatus').textContent='Canlı H1 · '+snapshot.device+'\n'+Number(snapshot.sample_rate).toLocaleString('tr-TR')+' Hz · FFT '+snapshot.fft_size+' · Ortalama '+snapshot.averages+'/'+snapshot.averages_target+'\nCH0 referans: '+Number(snapshot.peak_ref_dbfs).toFixed(1)+' dBFS peak · CH1 ölçüm: '+Number(snapshot.peak_mic_dbfs).toFixed(1)+' dBFS peak'+streamNote+(snapshot.callback_status?'\nSürücü: '+snapshot.callback_status:'');
- }catch(error){
-  $('liveTfStatus').textContent='Canlı TF hatası: '+(error.message||String(error));
- }finally{
-  liveTfBusy=false;
-  if(liveTfRunning&&token===liveTfGeneration)liveTfTimer=setTimeout(()=>tickLiveTf(token),120);
- }
-}
-function initLiveTfControls(){
- const start=$('startLiveTf');if(!start)return;
- $('refreshLiveTfDevices').addEventListener('click',refreshLiveTfDevices);
- start.addEventListener('click',async()=>{
-  if(!api()||typeof api().start_tf!=='function'){ $('liveTfStatus').textContent='Canlı stereo TF yalnızca Windows masaüstü EXE içinde kullanılabilir.';return;}
-  start.disabled=true;
-  try{
-   await stopLiveTf(false);
-   const device=$('liveTfDevice').value||'default';
-   const result=await api().start_tf(device,Number($('liveTfFft').value||16384),Number($('liveTfAverages').value||8));
-   if(!result||!result.ok)throw new Error(result?.error||'Stereo ses akışı başlatılamadı.');
-   liveTfRunning=true;liveTfGeneration++;const token=liveTfGeneration;
-   $('stopLiveTf').disabled=false;start.disabled=true;
-   $('liveTfStatus').textContent=result.message||'Stereo TF başlatıldı; ilk ortalamalar bekleniyor.';
-   tickLiveTf(token);
-  }catch(error){
-   liveTfRunning=false;start.disabled=false;$('stopLiveTf').disabled=true;
-   $('liveTfStatus').textContent='Canlı TF başlatılamadı: '+(error.message||String(error));
-  }
- });
- $('stopLiveTf').addEventListener('click',()=>stopLiveTf(true));
- if(api())refreshLiveTfDevices();
- window.addEventListener('pywebviewready',refreshLiveTfDevices,{once:true});
- window.addEventListener('pagehide',()=>{if(liveTfRunning)stopLiveTf(false);});
-}
-
-function initAcousticAnalyzer(){
- const run=$('acousticAnalyze');if(!run)return;
- run.addEventListener('click',async()=>{
-  if(!api()){ $('acousticAnalysisStatus').textContent='Bu özellik masaüstü EXE içinde çalışır.';return;}
-  run.disabled=true;$('acousticAnalysisStatus').textContent='Stereo WAV dosyası seçiliyor…';
-  try{
-   const path=await api().pick_wav();if(!path){$('acousticAnalysisStatus').textContent='Dosya seçimi iptal edildi.';return;}
-   $('acousticAnalysisStatus').textContent='Stereo WAV okunuyor ve yerel DSP motorunda analiz ediliyor…';
-   const size=Number($('acousticSegmentSize').value||8192),overlap=Number($('acousticOverlap').value||0.5);
-   const result=await api().analyze_stereo_wav(path,size,overlap);
-   if(!result||!result.ok)throw new Error(result?.error||'Analiz sonucu alınamadı.');
-   const tf=result.transfer_function,delay=result.delay,ir=result.impulse_response;
-   drawAcousticChart('acousticMagnitudeChart',tf.frequency_hz,tf.magnitude_db,-36,18,' dB');
-   drawAcousticChart('acousticPhaseChart',tf.frequency_hz,tf.phase_deg,-180,180,'°');
-   drawAcousticChart('acousticCoherenceChart',tf.frequency_hz,tf.coherence,0,1,'');
-   $('acousticDelayResult').textContent='DELAY FINDER\n'+delay.delay_samples.toFixed(2)+' örnek · '+delay.delay_ms.toFixed(3)+' ms\nKorelasyon: '+delay.correlation_peak.toFixed(4)+' · '+(delay.polarity_inverted?'Polarite ters':'Polarite normal');
-   const peakIndex=ir.impulse_response.reduce((best,v,i,a)=>Math.abs(v)>Math.abs(a[best])?i:best,0);
-   $('acousticIrResult').textContent='IMPULSE RESPONSE / ETC\n'+ir.impulse_response.length+' örnek · tepe '+(peakIndex*1000/result.sample_rate).toFixed(3)+' ms\nWelch ortalaması: '+tf.averages+' · segment: '+size;
-   $('acousticAnalysisStatus').textContent='Analiz tamamlandı: '+result.file_name+'\n'+result.channels+' kanal · '+result.sample_rate.toLocaleString('tr-TR')+' Hz · '+result.duration_seconds.toFixed(2)+' sn\nH1 Transfer Function, Phase, Coherence, Delay ve Impulse Response hesaplandı. Sonuçlar dB SPL değildir.';
-  }catch(err){$('acousticAnalysisStatus').textContent='Analiz başarısız: '+(err.message||String(err));}
-  finally{run.disabled=false;}
- });
-}
+function playNoise(isB){const ctx=getAudioContext();ctx.resume();const src=ctx.createBufferSource();src.buffer=eqBuffer;const gain=ctx.createGain();gain.gain.value=.10;src.connect(gain);if(isB&&eqTarget!=='flat'){const filter=ctx.createBiquadFilter();filter.type=eqTarget==='low'?'lowshelf':eqTarget==='high'?'highshelf':'peaking';filter.frequency.value=eqTarget==='low'?180:eqTarget==='high'?4200:1000;filter.Q.value=0.85;filter.gain.value=7;gain.connect(filter).connect(ctx.destination);}else gain.connect(ctx.destination);src.start();src.stop(ctx.currentTime+1.6);}
 
 // --- RTA: yerel PortAudio mikrofonu + test edilmiş FFT güç bantları ---
 const RtaMath=window.StagepulseRtaMath;
@@ -599,16 +518,9 @@ function rtaFormatHz(f){return f>=1000?(f/1000).toLocaleString('tr-TR',{maximumF
 function resetRtaHistory(){rtaSmoothed=null;rtaPeak=null;rtaTraceHistory=[];rtaLastTime=0;rtaOptimizerHistory=[];if($('rtaOptimizerOutput'))$('rtaOptimizerOutput').textContent='Kararlı spektrum örneği bekleniyor.';}
 function initRtaControls(){
  $('rtaStart').addEventListener('click',startRta);$('rtaStop').addEventListener('click',()=>stopRta(true));
- $('rtaCalibrate').addEventListener('click',async()=>{
-  if(!api()||typeof api().calibrate_rta_spl!=='function'){$('rtaStatus').textContent='Fiziksel kalibratörle SPL kalibrasyonu bu Windows masaüstü sürümünde kullanılabilir.';return;}
-  const button=$('rtaCalibrate');button.disabled=true;
-  try{
-   const result=await api().calibrate_rta_spl(Number($('rtaCalibratorLevel').value||94));
-   $('rtaStatus').textContent=result.message||'SPL kalibrasyonu tamamlandı.';
-   if(rtaRunning)tickRta(rtaGeneration);
-  }catch(error){$('rtaStatus').textContent='SPL kalibrasyonu yapılamadı: '+(error.message||String(error));}
-  finally{button.disabled=false;}
- });
+ $('rtaCalibrate')?.addEventListener('click',calibrateAndroidSpl);
+ $('rtaClearCalibration')?.addEventListener('click',clearAndroidSplCalibration);
+ initAndroidTfControls();
  $('rtaResetPeak').addEventListener('click',()=>{rtaPeak=null;if(rtaSmoothed)drawRta(rtaSmoothed);});
  $('rtaRefreshDevices').addEventListener('click',refreshRtaDevices);
  $('rtaDevice').addEventListener('change',()=>{if(rtaRunning)startRta();});
@@ -622,12 +534,40 @@ function initRtaControls(){
  $('rtaOptimizerTestSignalConfirm').addEventListener('change',()=>{rtaOptimizerHistory=[];$('rtaOptimizerOutput').textContent=$('rtaOptimizerTestSignalConfirm').checked?'Test sinyali onaylandı; 8 kararlı spektrum örneği bekleniyor.':'Test sinyali onayı kaldırıldı; EQ önerileri durduruldu.';});
  $('rtaPeakThreshold').addEventListener('change',()=>{rtaOptimizerHistory=[];$('rtaOptimizerOutput').textContent='Eşik değişti; yeni kararlı örnekler toplanıyor.';});
  $('rtaClearOptimize').addEventListener('click',()=>{rtaOptimizerHistory=[];$('rtaOptimizerOutput').textContent='Öneri geçmişi sıfırlandı; yeni örnekler bekleniyor.';});
- window.addEventListener('resize',()=>{if(activeRoute==='rta')drawRtaPlaceholder();});
+ const rtaCanvas=$('rtaCanvas');
+ const resizeRta=()=>{if(activeRoute==='rta')requestAnimationFrame(drawRtaPlaceholder);};
+ window.addEventListener('resize',resizeRta,{passive:true});
+ window.visualViewport?.addEventListener('resize',resizeRta,{passive:true});
+ if(rtaCanvas&&'ResizeObserver'in window){
+  const rtaObserver=new ResizeObserver(entries=>{
+   if(activeRoute==='rta'&&entries.some(entry=>entry.contentRect.width>32))resizeRta();
+  });
+  rtaObserver.observe(rtaCanvas);
+ }
  updateRtaRangeInfo();
 }
 async function refreshRtaDevices(){
  const select=$('rtaDevice');if(!select)return;
- if(!api()){select.innerHTML='<option value="">Mikrofon listesi için masaüstü uygulamasını aç</option>';return;}
+ if(!api()){
+ const current=select.value;
+ select.innerHTML='<option value="">Varsayılan Android mikrofonu</option>';
+ try{
+  const devices=await navigator.mediaDevices?.enumerateDevices?.()||[];
+  const inputs=devices.filter(d=>d.kind==='audioinput');
+  inputs.forEach((device,index)=>{
+   const option=document.createElement('option');option.value=device.deviceId;
+   option.textContent=device.label||('Android giriş '+(index+1));
+   select.appendChild(option);
+  });
+  if(inputs.some(d=>d.deviceId===current))select.value=current;
+  $('rtaCaptureInfo').textContent=inputs.length
+   ? inputs.length+' Android ses girişi bulundu. USB ses kartı takıldığında girişleri yenile.'
+   : 'Varsayılan Android mikrofonu kullanılacak. USB ses kartı takılıysa mikrofon izni verdikten sonra girişleri yenile.';
+ }catch(error){
+  $('rtaCaptureInfo').textContent='Android ses girişleri listelenemedi: '+(error.message||String(error));
+ }
+ return;
+}
  const current=select.value;select.innerHTML='<option value="">Varsayılan Windows giriş aygıtı</option>';
  try{
   const devices=await api().list_rta_devices();
@@ -638,8 +578,130 @@ async function refreshRtaDevices(){
  }catch(err){$('rtaCaptureInfo').textContent='Yerel giriş listesi alınamadı: '+(err.message||String(err))+'\nWindows mikrofon izinlerini, ses sürücüsünü ve uygulamanın yeniden derlenmiş olup olmadığını kontrol et.';}
 }
 function rtaMicError(err){const msg=String(err&&err.message||err||'Bilinmeyen hata');if(/permission|access denied|erişim engellendi|izin/i.test(msg))return msg+'\nWindows Ayarlar → Gizlilik → Mikrofon bölümünde masaüstü uygulamalarına izin ver.';if(/device|input|aygıt|PortAudio|no default/i.test(msg))return msg+'\nWindows Ayarlar → Sistem → Ses → Giriş bölümünde mikrofon seçildiğini doğrula.';if(/busy|unavailable|kullanılıyor|device unavailable/i.test(msg))return msg+'\nTeams/Zoom/kayıt uygulamalarını kapatıp tekrar dene.';return msg;}
+async function stopBrowserRta(){
+ if(browserRtaStream){try{browserRtaStream.getTracks().forEach(t=>t.stop());}catch(_){}browserRtaStream=null;}
+ if(browserRtaContext){const closingContext=browserRtaContext;browserRtaContext=null;try{const closing=closingContext.close();if(closing&&typeof closing.catch==='function')closing.catch(()=>{});}catch(_){}}
+ browserRtaAnalyser=null;browserRtaTimeData=null;browserRtaFrequencyData=null;
+}
+function browserRtaSnapshot(){
+ if(!browserRtaAnalyser||!browserRtaContext)return {ok:false,error:'Android mikrofon akışı kapalı.'};
+ const sampleRate=browserRtaContext.sampleRate,fftSize=browserRtaAnalyser.fftSize;
+ browserRtaAnalyser.getFloatFrequencyData(browserRtaFrequencyData);
+ browserRtaAnalyser.getFloatTimeDomainData(browserRtaTimeData);
+ let peak=0,sumSquares=0;
+ for(const v of browserRtaTimeData){const a=Math.abs(v);if(a>peak)peak=a;sumSquares+=v*v;}
+ const rms=Math.sqrt(sumSquares/Math.max(1,browserRtaTimeData.length));
+ const mode=$('rtaBands').value||'third',bounds=rtaBounds();
+ const centers=RtaMath.supportedCenters(sampleRate,mode,bounds[0],Math.min(bounds[1],sampleRate/2));
+ const ratio=RtaMath.ratio(mode),binHz=sampleRate/fftSize;
+ const bandDb=centers.map(center=>{
+  const lo=center/ratio,hi=center*ratio;
+  const first=Math.max(0,Math.ceil(lo/binHz)),last=Math.min(browserRtaFrequencyData.length-1,Math.floor(hi/binHz));
+  let power=0,count=0;
+  for(let i=first;i<=last;i++){const db=browserRtaFrequencyData[i];if(Number.isFinite(db)&&db>-200){power+=Math.pow(10,db/10);count++;}}
+  return count?10*Math.log10(power/count):-120;
+ });
+ const track=browserRtaStream?.getAudioTracks()[0],streamStale=!track||track.readyState!=='live'||track.muted===true;
+ return {ok:true,ready:!streamStale,sample_rate:sampleRate,fft_size:fftSize,centers,band_dbfs:bandDb,
+  peak_dbfs:peak>0?20*Math.log10(peak):-120,rms_dbfs:rms>0?20*Math.log10(rms):-120,
+  device:track?.label||rtaDeviceName,stream_stale:streamStale,
+  stream_status:streamStale?'Android ses girişi durdu veya susturuldu.':'Android WebAudio; dBFS tahmini',seconds_since_last_callback:streamStale?2.1:0};
+}
+let androidMicPermissionId=0;
+function requestAndroidRuntimePermission(permission){
+ const bridge=window.StagepulseAndroid;
+ if(!bridge||typeof bridge.requestRuntimePermission!=='function')return Promise.resolve(true);
+ const callbackId='media_'+(++androidMicPermissionId);
+ window.__stagepulseMediaPermissionPending=window.__stagepulseMediaPermissionPending||new Map();
+ window.__stagepulseResolveMediaPermission=(id,granted,message)=>{
+  const pending=window.__stagepulseMediaPermissionPending.get(id);
+  if(!pending)return;
+  window.__stagepulseMediaPermissionPending.delete(id);
+  if(granted)pending.resolve(true);
+  else pending.reject(new Error(message||'Android medya izni verilmedi.'));
+ };
+ return new Promise((resolve,reject)=>{
+  window.__stagepulseMediaPermissionPending.set(callbackId,{resolve,reject});
+  try{bridge.requestRuntimePermission(permission,callbackId);}
+  catch(error){window.__stagepulseMediaPermissionPending.delete(callbackId);reject(error);}
+ });
+}
+async function startBrowserRta(){
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){$('rtaStatus').textContent='Android WebView mikrofon yakalamayı desteklemiyor. WebView güncellemesini kontrol et.';return;}
+ const token=++rtaGeneration;
+ rtaSplOffsetDb=null;rtaSplReferenceDb=null;updateAndroidSplStatus();
+ if(rtaPollTimer)clearTimeout(rtaPollTimer);
+ rtaPollTimer=0;rtaRunning=false;rtaBusy=false;
+ $('rtaStart').disabled=true;$('rtaStop').disabled=false;
+ $('rtaStatus').textContent='Android mikrofon izni bekleniyor… Durdur düğmesi bekleyen izni iptal eder.';
+ $('rtaInputMeter').textContent='Giriş seviyesi: ölçüm bekleniyor.';
+ try{
+  // Eski AudioContext.close() Android WebView'de beklemede kalıp izin
+  // penceresinin açılmasını engelleyebiliyor. Kaynakları senkron temizle,
+  // AudioContext kapanışını beklemeden getUserMedia çağrısına ilerle.
+  if(browserRtaStream){try{browserRtaStream.getTracks().forEach(track=>track.stop());}catch(_){}browserRtaStream=null;}
+  if(browserRtaContext){const previousContext=browserRtaContext;browserRtaContext=null;try{previousContext.close().catch(()=>{});}catch(_){}}
+  browserRtaAnalyser=null;browserRtaTimeData=null;browserRtaFrequencyData=null;
+  if(token!==rtaGeneration){$('rtaStart').disabled=false;$('rtaStop').disabled=true;return;}
+  $('rtaStatus').textContent='Android WebView üzerinden mikrofon izni isteniyor…';
+  // getUserMedia, WebChromeClient.onPermissionRequest akışını tetikler.
+  // Android çalışma zamanı izni bu tek akışta istenir ve WebView'e verilir.
+  const deviceId=$('rtaDevice').value;
+  let reqAudio={echoCancellation:false,noiseSuppression:false,autoGainControl:false};
+  if(deviceId)reqAudio.deviceId={ideal:deviceId};
+  // Android çalışma zamanı iznini WebView getUserMedia çağrısından önce açıkça al.
+  // Böylece sistem izin penceresi görünür ve WebChromeClient izin verilmiş akışı onaylar.
+  await requestAndroidRuntimePermission('android.permission.RECORD_AUDIO');
+  if(token!==rtaGeneration){$('rtaStart').disabled=false;$('rtaStop').disabled=true;return;}
+  let acquiredStream;
+  try{
+   acquiredStream=await navigator.mediaDevices.getUserMedia({audio:reqAudio});
+  }catch(e){
+   if(e.name==='OverconstrainedError'||e.name==='NotFoundError'){
+    acquiredStream=await navigator.mediaDevices.getUserMedia({audio:true});
+   }else throw e;
+  }
+  if(token!==rtaGeneration){acquiredStream.getTracks().forEach(track=>track.stop());return;}
+  browserRtaStream=acquiredStream;
+  await refreshRtaDevices();
+  if(token!==rtaGeneration){await stopBrowserRta();return;}
+  browserRtaContext=new (window.AudioContext||window.webkitAudioContext)();
+  await browserRtaContext.resume();
+  if(token!==rtaGeneration){await stopBrowserRta();return;}
+  browserRtaAnalyser=browserRtaContext.createAnalyser();
+  rtaFftSize=Number($('rtaFftSize').value||16384);
+  browserRtaAnalyser.fftSize=rtaFftSize;
+  browserRtaAnalyser.smoothingTimeConstant=0.6;browserRtaAnalyser.minDecibels=-90;browserRtaAnalyser.maxDecibels=-30;
+  const browserRtaSource=browserRtaContext.createMediaStreamSource(browserRtaStream);
+  // Bazı Android WebView sürümleri, çıkışa bağlı olmayan AnalyserNode üzerinde
+  // gerçek zamanlı örnek üretmiyor. Sessiz bir sink analiz zincirini canlı tutar.
+  const browserRtaSilentSink=browserRtaContext.createGain();
+  browserRtaSilentSink.gain.value=0;
+  browserRtaSource.connect(browserRtaAnalyser);
+  browserRtaAnalyser.connect(browserRtaSilentSink);
+  browserRtaSilentSink.connect(browserRtaContext.destination);
+  browserRtaTimeData=new Float32Array(browserRtaAnalyser.fftSize);
+  browserRtaFrequencyData=new Float32Array(browserRtaAnalyser.frequencyBinCount);
+  rtaSampleRate=browserRtaContext.sampleRate;
+  rtaDeviceName=browserRtaStream.getAudioTracks()[0]?.label||'Android mikrofonu';
+  rtaRunning=true;resetRtaHistory();
+  if($('homeMicStatus'))$('homeMicStatus').textContent='Aktif';
+  $('rtaStart').disabled=true;$('rtaStop').disabled=false;
+  updateRtaRangeInfo();
+  $('rtaCaptureInfo').textContent='Android WebAudio mikrofon girişi. Bu grafik dBFS kestirimidir; kalibre edilmiş dB SPL, transfer-function veya standart akustik ölçüm değildir.';
+  $('rtaStatus').textContent='Android mikrofonu açıldı · '+rtaSampleRate.toLocaleString('tr-TR')+' Hz · FFT '+rtaFftSize+'.';
+  tickRta(token);
+ }catch(err){
+  if(token!==rtaGeneration){await stopBrowserRta();return;}
+  rtaRunning=false;rtaSampleRate=0;
+  await stopBrowserRta();
+  $('rtaStart').disabled=false;$('rtaStop').disabled=true;
+  if($('homeMicStatus'))$('homeMicStatus').textContent='Kapalı';
+  $('rtaStatus').textContent='Android RTA başlatılamadı: '+(err.message||String(err))+' Mikrofon iznini ver ve başka kayıt uygulamalarını kapat.';
+ }
+}
 async function startRta(){
- if(!api()){$('rtaStatus').textContent='Yerel mikrofon RTA için paketlenmiş Stagepulse uygulaması gerekir; tarayıcı önizlemesinde donanım yakalama başlatılmaz.';return;}
+ if(!api()){await startBrowserRta();return;}
  const token=++rtaGeneration; if(rtaPollTimer)clearTimeout(rtaPollTimer);rtaPollTimer=0;rtaRunning=false;rtaBusy=false;
  $('rtaStart').disabled=true;$('rtaStop').disabled=true;$('rtaStatus').textContent='Yerel ses sürücüsü açılıyor…';$('rtaInputMeter').textContent='Giriş seviyesi: ölçüm bekleniyor.';
  try{
@@ -659,9 +721,11 @@ async function startRta(){
  }catch(err){if(token!==rtaGeneration)return;rtaRunning=false;rtaSampleRate=0;$('rtaStart').disabled=false;$('rtaStop').disabled=true;if($('homeMicStatus'))$('homeMicStatus').textContent='Kapalı';$('rtaCaptureInfo').textContent='Sorun giderme: 1) Windows giriş aygıtını seç ve sistem testinde seviye hareketini doğrula. 2) Masaüstü uygulamalarının mikrofon erişimini aç. 3) Başka uygulamanın mikrofonu kullanmadığını kontrol et. 4) Girişleri yenile ve yeniden dene.';updateRtaRangeInfo();$('rtaStatus').textContent='RTA başlatılamadı: '+rtaMicError(err);}
 }
 async function stopRta(showStatus=true){
- rtaGeneration++;if(rtaPollTimer)clearTimeout(rtaPollTimer);rtaPollTimer=0;rtaRunning=false;rtaBusy=false;
+ rtaGeneration++;
+ if(rtaPollTimer)clearTimeout(rtaPollTimer);rtaPollTimer=0;rtaRunning=false;rtaBusy=false;
+ await stopBrowserRta();
  try{if(api())await enqueueRtaCommand(()=>api().stop_rta());}catch(_){}
- rtaSampleRate=0;rtaDeviceName='';resetRtaHistory();
+ rtaSampleRate=0;rtaDeviceName='';rtaSplOffsetDb=null;rtaSplReferenceDb=null;updateAndroidSplStatus();resetRtaHistory();
  if($('rtaStart'))$('rtaStart').disabled=false;if($('rtaStop'))$('rtaStop').disabled=true;
  if($('homeMicStatus'))$('homeMicStatus').textContent='Kapalı';
  if($('rtaInputMeter'))$('rtaInputMeter').textContent='Giriş seviyesi: ölçüm durduruldu.';
@@ -694,12 +758,13 @@ function updateRtaOptimizer(centers, values){
 }
 
 async function tickRta(token){
- if(!rtaRunning||activeRoute!=='rta'||token!==rtaGeneration)return;
+ if(!rtaRunning||token!==rtaGeneration)return;
+ if(activeRoute!=='rta'){stopRta(false);return;}
  if(rtaBusy){rtaPollTimer=setTimeout(()=>tickRta(token),120);return;}
  rtaBusy=true;
  try{
   const bounds=rtaBounds();rtaViewMin=bounds[0];rtaViewMax=bounds[1];
-  const snapshot=await api().get_rta_snapshot($('rtaBands').value,rtaViewMin,rtaViewMax);
+  const snapshot=api()?await api().get_rta_snapshot($('rtaBands').value,rtaViewMin,rtaViewMax):browserRtaSnapshot();
   if(!rtaRunning||token!==rtaGeneration||activeRoute!=='rta')return;
   if(!snapshot||!snapshot.ok){$('rtaStatus').textContent='RTA veri hatası: '+(snapshot&&snapshot.error||'bilinmeyen durum');}
   else{
@@ -707,18 +772,19 @@ async function tickRta(token){
    const centers=snapshot.centers||[],values=snapshot.band_dbfs||[];
    const changed=centers.length!==rtaFreqs.length||centers.some((f,i)=>f!==rtaFreqs[i]);
    if(changed){rtaFreqs=centers.slice();resetRtaHistory();}
-   if(snapshot.stream_stale){rtaSmoothed=null;rtaTraceHistory=[];drawRta([]);}
+   if(snapshot.stream_stale){rtaSmoothed=null;rtaPeak=null;rtaTraceHistory=[];drawRtaPlaceholder();}
    else if(snapshot.ready){const now=performance.now(),dt=rtaLastTime?Math.max(.001,(now-rtaLastTime)/1000):.1;rtaLastTime=now;const tau={fast:.12,medium:.18,slow:.5}[$('rtaSmooth').value]||.18;rtaSmoothed=RtaMath.smooth(rtaSmoothed,values,dt,tau);rtaPeak=rtaPeak&&rtaPeak.length===rtaSmoothed.length?rtaPeak.map((v,i)=>Math.max(v,rtaSmoothed[i])):rtaSmoothed.slice();rtaTraceHistory.push(rtaSmoothed.slice());if(rtaTraceHistory.length>4)rtaTraceHistory.shift();drawRta(rtaSmoothed);updateRtaOptimizer(centers,rtaSmoothed);}
-   const peak=Number(snapshot.peak_dbfs??-120),rms=Number(snapshot.rms_dbfs??-120),peakWarn=snapshot.stream_stale?' · AKIŞ DURDU; son örnek değerleri':peak>-1?' · Kırpılmaya çok yakın!':peak<-60?' · Çok düşük giriş; kazancı kontrol et.':' · Giriş alınıyor.';
-   const splNote=snapshot.calibrated_spl&&Number.isFinite(Number(snapshot.spl_db))?' · '+Number(snapshot.spl_db).toFixed(1)+' dB SPL Z (kalibre)':'';
-   $('rtaInputMeter').textContent=`Giriş peak: ${peak.toFixed(1)} dBFS · RMS: ${rms.toFixed(1)} dBFS${splNote}${peakWarn}`;updateRtaMeters(peak,rms);
+   const peak=Number(snapshot.peak_dbfs??-120),rms=Number(snapshot.rms_dbfs??-120),peakWarn=peak>-1?' · Kırpılmaya çok yakın!':peak<-60?' · Çok düşük giriş; kazancı kontrol et.':' · Giriş alınıyor.';
+   const splReadout=rtaSplOffsetDb===null?'':' · RMS '+(rms+rtaSplOffsetDb).toFixed(1)+' dB SPL (oturum kalibrasyonu)';
+   $('rtaInputMeter').textContent=`Giriş peak: ${peak.toFixed(1)} dBFS · RMS: ${rms.toFixed(1)} dBFS${splReadout}${peakWarn}`;updateRtaMeters(peak,rms);
    const bin=snapshot.sample_rate/snapshot.fft_size;
    const status=snapshot.stream_status?`\nSürücü uyarısı: ${snapshot.stream_status}`:'';
    const bandNote=rtaAvailableMax&&rtaViewMax>rtaAvailableMax?`\nTam bandın üst merkezi: ${rtaFormatHz(rtaAvailableMax)}; daha üst bantlar akış örnekleme hızında eksik kalır.`:'';
-   const splCalibrationNote=snapshot.calibrated_spl?`\nSPL kalibrasyonu: 1 kHz / ${Number(snapshot.spl_calibration_reference_db).toFixed(1)} dB SPL referansı · Z ağırlıksız · offset ${Number(snapshot.spl_calibration_offset_db).toFixed(1)} dB. Mikrofon frekans düzeltmesi/IEC sınıfı sağlamaz.`:'\nSPL kalibrasyonu yok; grafik dBFS RMS gösterir.';
-   $('rtaCaptureInfo').textContent=`Aygıt: ${snapshot.device||rtaDeviceName}\nYerel PortAudio akışı: ${Number(snapshot.sample_rate).toLocaleString('tr-TR')} Hz · FFT: ${snapshot.fft_size} · bin aralığı: ${bin.toFixed(2)} Hz · Nyquist: ${rtaFormatHz(snapshot.sample_rate/2)}\nBant grafiği dBFS RMS gösterir.${splCalibrationNote}${bandNote}${status}`;
-   if(snapshot.ready)$('rtaStatus').textContent=`${centers.length} bant · ${snapshot.sample_rate.toLocaleString('tr-TR')} Hz yerel giriş · FFT ${snapshot.fft_size}${snapshot.stream_status?' · sürücü uyarısını kontrol et.':''}`;
-   else if(snapshot.stream_stale||Number(snapshot.seconds_since_last_callback||0)>2)$('rtaStatus').textContent='Mikrofon akışından yeni örnek gelmiyor. Grafikteki son spektrum güncel değil; giriş aygıtını, izinleri ve sürücüyü kontrol et.';else $('rtaStatus').textContent='Mikrofondan örnekler alınıyor; ilk FFT penceresi hazırlanıyor…';
+   const splText=rtaSplOffsetDb===null?'SPL kalibrasyonu yok.':`Kalibre edilmiş ağırlıksız RMS gösterimi: ${(rms+rtaSplOffsetDb).toFixed(1)} dB SPL · referans ${rtaSplReferenceDb} dB SPL.`;
+   $('rtaCaptureInfo').textContent=`Aygıt: ${snapshot.device||rtaDeviceName}\n${api()?'Yerel PortAudio akışı':'Android WebAudio akışı'}: ${Number(snapshot.sample_rate).toLocaleString('tr-TR')} Hz · FFT: ${snapshot.fft_size} · bin aralığı: ${bin.toFixed(2)} Hz · Nyquist: ${rtaFormatHz(snapshot.sample_rate/2)}\nBant güçleri dBFS RMS olarak gösterilir. ${splText} Mikrofon frekans düzeltmesi veya IEC uygunluğu sağlanmaz.${bandNote}${status}`;
+   if($('rtaCalibrationStatus'))updateAndroidSplStatus();
+   if(snapshot.ready)$('rtaStatus').textContent=`${centers.length} bant · ${snapshot.sample_rate.toLocaleString('tr-TR')} Hz giriş · FFT ${snapshot.fft_size}${snapshot.stream_status?' · sürücü uyarısını kontrol et.':''}`;
+   else if(Number(snapshot.seconds_since_last_callback||0)>2)$('rtaStatus').textContent='Mikrofon akışı açıldı ancak örnek verisi gelmiyor. Windows giriş aygıtını, izinleri ve sürücü durumunu kontrol et.';else $('rtaStatus').textContent='Mikrofondan örnekler alınıyor; ilk FFT penceresi hazırlanıyor…';
   }
  }catch(err){$('rtaStatus').textContent='RTA okuması başarısız: '+(err.message||String(err));}
  finally{rtaBusy=false;if(rtaRunning&&activeRoute==='rta'&&token===rtaGeneration)rtaPollTimer=setTimeout(()=>tickRta(token),100);}
@@ -782,12 +848,368 @@ function updateRtaMeters(peak,rms){
  if($('rtaRmsMeterValue'))$('rtaRmsMeterValue').textContent=Number(rms).toFixed(1)+' dBFS';
 }
 
+
+function updateAndroidSplStatus(){
+ const out=$('rtaCalibrationStatus');if(!out)return;
+ out.textContent=rtaSplOffsetDb===null
+  ?'Kalibrasyon yapılmadı. dBFS gösterimi kullanılacak.'
+  :`Oturum kalibrasyonu etkin · ${rtaSplReferenceDb} dB SPL referans · düzeltme ${rtaSplOffsetDb.toFixed(1)} dB. Mikrofon ve giriş kazancı değişirse yeniden kalibre et.`;
+}
+function calibrateAndroidSpl(){
+ if(!rtaRunning||!browserRtaAnalyser){$('rtaCalibrationStatus').textContent='Önce mikrofonu başlat.';return;}
+ const reference=Number($('rtaCalibratorLevel')?.value||94);
+ const snapshot=browserRtaSnapshot();
+ if(!snapshot?.ready||snapshot.stream_stale){$('rtaCalibrationStatus').textContent='Ses girişi güncel değil. Kalibratör sinyali ve mikrofon bağlantısını kontrol et.';return;}
+ const measured=Number(snapshot?.rms_dbfs);
+ if(!Number.isFinite(measured)||measured < -70 || measured > -3){
+  $('rtaCalibrationStatus').textContent='Kalibrasyon yapılamadı. 1 kHz kalibratör açıkken sabit sinyal ver; giriş seviyesi -70 ile -3 dBFS arasında olmalı.';
+  return;
+ }
+ rtaSplReferenceDb=reference;rtaSplOffsetDb=reference-measured;
+ updateAndroidSplStatus();
+ $('rtaCalibrationStatus').textContent+=` Ölçülen RMS: ${measured.toFixed(1)} dBFS.`;
+}
+function clearAndroidSplCalibration(){
+ rtaSplOffsetDb=null;rtaSplReferenceDb=null;updateAndroidSplStatus();
+}
+
+/* Android live stereo H1 Transfer Function. One USB interface, two synchronized input channels. */
+let androidTfStream=null,androidTfContext=null,androidTfSource=null,androidTfProcessor=null,androidTfSink=null;
+let androidTfTimer=0,androidTfRunning=false,androidTfGeneration=0,androidTfError='',androidTfLastCallback=0;
+let androidTfFftSize=16384,androidTfAveragesTarget=8,androidTfAverageCount=0,androidTfSampleRate=0;
+let androidTfRefBuffer=null,androidTfMicBuffer=null,androidTfWritePos=0,androidTfFilled=0,androidTfFramesSince=0;
+let androidTfSxx=null,androidTfSyy=null,androidTfSyxRe=null,androidTfSyxIm=null;
+let androidTfPeakRef=-120,androidTfPeakMic=-120,androidTfDeviceName='',androidTfChannelVerified=false;
+function androidTfFft(real,imag){
+ const n=real.length;
+ for(let i=1,j=0;i<n;i++){
+  let bit=n>>1;
+  for(;j&bit;bit>>=1)j^=bit;
+  j^=bit;
+  if(i<j){let t=real[i];real[i]=real[j];real[j]=t;t=imag[i];imag[i]=imag[j];imag[j]=t;}
+ }
+ for(let len=2;len<=n;len<<=1){
+  const angle=-2*Math.PI/len,wlenR=Math.cos(angle),wlenI=Math.sin(angle),half=len>>1;
+  for(let i=0;i<n;i+=len){
+   let wr=1,wi=0;
+   for(let j=0;j<half;j++){
+    const uR=real[i+j],uI=imag[i+j],vR=real[i+j+half]*wr-imag[i+j+half]*wi,vI=real[i+j+half]*wi+imag[i+j+half]*wr;
+    real[i+j]=uR+vR;imag[i+j]=uI+vI;real[i+j+half]=uR-vR;imag[i+j+half]=uI-vI;
+    const next=wr*wlenR-wi*wlenI;wi=wr*wlenI+wi*wlenR;wr=next;
+   }
+  }
+ }
+}
+function androidTfProcessBlock(input){
+ if(!androidTfRunning||!androidTfRefBuffer)return;
+ if(input.numberOfChannels<2){androidTfError='Seçilen giriş yalnızca mono kanal sağlıyor. Stereo TF için aynı USB ses kartında iki bağımsız giriş gerekir.';return;}
+ const ref=input.getChannelData(0),mic=input.getChannelData(1),n=Math.min(ref.length,mic.length),size=androidTfFftSize;
+ if(!androidTfChannelVerified){let p0=0,p1=0,diff=0;for(let i=0;i<n;i++){p0+=ref[i]*ref[i];p1+=mic[i]*mic[i];const d=ref[i]-mic[i];diff+=d*d;}const r0=Math.sqrt(p0/Math.max(1,n)),r1=Math.sqrt(p1/Math.max(1,n)),rd=Math.sqrt(diff/Math.max(1,n));if(r0>.001&&r1>.001&&rd<Math.max(r0,r1)*.0001){androidTfError='Android iki kanalı aynı mono sinyal olarak sunuyor. Gerçek bağımsız CH0/CH1 girişleri olan USB ses kartı kullan.';return;}if(r0>.001&&r1>.001)androidTfChannelVerified=true;}
+ let peakR=0,peakM=0;
+ for(let i=0;i<n;i++){
+  const x=Number.isFinite(ref[i])?ref[i]:0,y=Number.isFinite(mic[i])?mic[i]:0;
+  androidTfRefBuffer[androidTfWritePos]=x;androidTfMicBuffer[androidTfWritePos]=y;
+  androidTfWritePos=(androidTfWritePos+1)%size;
+  if(androidTfFilled<size)androidTfFilled++;
+  peakR=Math.max(peakR,Math.abs(x));peakM=Math.max(peakM,Math.abs(y));
+ }
+ androidTfPeakRef=peakR>0?20*Math.log10(peakR):-120;androidTfPeakMic=peakM>0?20*Math.log10(peakM):-120;
+ androidTfFramesSince+=n;androidTfLastCallback=performance.now();
+ const hop=Math.max(512,Math.floor(size/4));
+ if(androidTfFilled<size||androidTfFramesSince<hop)return;
+ androidTfFramesSince=0;
+ const xr=new Float64Array(size),xi=new Float64Array(size),yr=new Float64Array(size),yi=new Float64Array(size);
+ let windowEnergy=0;
+ for(let i=0;i<size;i++){
+  const idx=(androidTfWritePos+i)%size,w=.5-.5*Math.cos(2*Math.PI*i/(size-1));
+  xr[i]=androidTfRefBuffer[idx]*w;yr[i]=androidTfMicBuffer[idx]*w;windowEnergy+=w*w;
+ }
+ androidTfFft(xr,xi);androidTfFft(yr,yi);
+ const bins=size/2+1,target=androidTfAveragesTarget;
+ for(let k=0;k<bins;k++){
+  const pxx=(xr[k]*xr[k]+xi[k]*xi[k])/windowEnergy;
+  const pyy=(yr[k]*yr[k]+yi[k]*yi[k])/windowEnergy;
+  const re=(xr[k]*yr[k]+xi[k]*yi[k])/windowEnergy;
+  const im=(xr[k]*yi[k]-xi[k]*yr[k])/windowEnergy;
+  if(androidTfAverageCount<target){
+   androidTfSxx[k]+=pxx;androidTfSyy[k]+=pyy;androidTfSyxRe[k]+=re;androidTfSyxIm[k]+=im;
+  }else{
+   androidTfSxx[k]+=(pxx-androidTfSxx[k]/target);
+   androidTfSyy[k]+=(pyy-androidTfSyy[k]/target);
+   androidTfSyxRe[k]+=(re-androidTfSyxRe[k]/target);
+   androidTfSyxIm[k]+=(im-androidTfSyxIm[k]/target);
+  }
+ }
+ if(androidTfAverageCount<target)androidTfAverageCount++;
+}
+function androidTfSnapshot(){
+ const sr=androidTfSampleRate,size=androidTfFftSize,target=androidTfAveragesTarget,count=androidTfAverageCount;
+ const ratio=Math.pow(10,1/20),base=[20,25,31.5,40,50,63,80,100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150,4000,5000,6300,8000,10000,12500,16000,20000];
+ const centers=base.filter(f=>f*ratio<=sr/2*.999),freqStep=sr/size,mag=[],phase=[],coherence=[];
+ const divisor=Math.max(1,Math.min(count,target));
+ for(const center of centers){
+  const low=center/ratio,high=center*ratio,first=Math.max(1,Math.ceil(low/freqStep)),last=Math.min(size/2,Math.floor(high/freqStep));
+  let weight=0,hRe=0,hIm=0,coh=0;
+  for(let k=first;k<=last;k++){
+   const sxx=androidTfSxx[k]/divisor,syy=androidTfSyy[k]/divisor,re=androidTfSyxRe[k]/divisor,im=androidTfSyxIm[k]/divisor;
+   if(sxx<=1e-24)continue;
+   weight+=sxx;hRe+=(re/sxx)*sxx;hIm+=(im/sxx)*sxx;
+   const den=sxx*syy;coh+=den>1e-24?Math.max(0,Math.min(1,(re*re+im*im)/(den)))*sxx:0;
+  }
+  if(weight<=1e-24){mag.push(-60);phase.push(0);coherence.push(0);}
+  else{const hr=hRe/weight,hi=hIm/weight;mag.push(Math.max(-60,Math.min(30,20*Math.log10(Math.max(1e-6,Math.hypot(hr,hi))))));phase.push(Math.atan2(hi,hr)*180/Math.PI);coherence.push(Math.max(0,Math.min(1,coh/weight)));}
+ }
+ const stale=!androidTfLastCallback||performance.now()-androidTfLastCallback>2000;
+ return {centers,mag,phase,coherence,ready:count>=target&&!stale,stale,averages:count,averagesTarget:target,sampleRate:sr,fftSize:size,peakRef:androidTfPeakRef,peakMic:androidTfPeakMic};
+}
+function drawAndroidTfChart(id,centers,values,min,max,suffix){
+ const canvas=$(id);if(!canvas)return;
+ const rect=canvas.getBoundingClientRect();if(rect.width<32)return;
+ const dpr=Math.min(2,Math.max(1,window.devicePixelRatio||1)),w=Math.max(280,rect.width),h=Math.max(170,rect.height||210);
+ canvas.width=Math.floor(w*dpr);canvas.height=Math.floor(h*dpr);
+ const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);
+ const pad={l:44,r:12,t:12,b:30},x=f=>pad.l+Math.log(Math.max(20,f)/20)/Math.log(20000/20)*(w-pad.l-pad.r),y=v=>pad.t+(max-Math.max(min,Math.min(max,v)))/(max-min)*(h-pad.t-pad.b);
+ ctx.fillStyle='#0b1423';ctx.fillRect(0,0,w,h);ctx.strokeStyle='rgba(130,160,195,.22)';ctx.fillStyle='#a9bad0';ctx.font='10px sans-serif';ctx.textAlign='right';
+ const step=suffix===''?0.25:suffix==='°'?60:12;
+ for(let v=min;v<=max+1e-6;v+=step){const yy=y(v);ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(w-pad.r,yy);ctx.stroke();ctx.fillText(String(Math.round(v*100)/100),pad.l-6,yy+3);}
+ ctx.textAlign='center';for(const f of [20,50,100,500,1000,5000,10000,20000]){const xx=x(f);ctx.beginPath();ctx.moveTo(xx,pad.t);ctx.lineTo(xx,h-pad.b);ctx.stroke();ctx.fillText(f>=1000?(f/1000)+'k':String(f),xx,h-9);}
+ const valid=centers.map((f,i)=>({f,v:values[i]})).filter(p=>Number.isFinite(p.v));
+ if(!valid.length)return;
+ ctx.strokeStyle='#f1d18a';ctx.lineWidth=2;ctx.beginPath();
+ valid.forEach((p,i)=>{if(i===0)ctx.moveTo(x(p.f),y(p.v));else ctx.lineTo(x(p.f),y(p.v));});ctx.stroke();
+}
+async function refreshAndroidTfDevices(){
+ const select=$('androidTfDevice');if(!select)return;
+ const current=select.value;select.innerHTML='<option value="">Varsayılan giriş</option>';
+ try{
+  const devices=await navigator.mediaDevices?.enumerateDevices?.()||[];
+  const inputs=devices.filter(d=>d.kind==='audioinput');
+  inputs.forEach((d,i)=>{const option=document.createElement('option');option.value=d.deviceId;option.textContent=d.label||('Android ses girişi '+(i+1));select.appendChild(option);});
+  if(inputs.some(d=>d.deviceId===current))select.value=current;
+  $('androidTfStatus').textContent=inputs.length+' ses girişi bulundu. İki kanallı USB ses kartını seç; giriş kanalı sayısı akış açılırken ayrıca doğrulanacak.';
+ }catch(error){$('androidTfStatus').textContent='Ses girişleri listelenemedi: '+(error.message||String(error));}
+}
+async function stopAndroidTf(showMessage=true){
+ androidTfGeneration++;androidTfRunning=false;if(androidTfTimer)clearTimeout(androidTfTimer);androidTfTimer=0;
+ if(androidTfProcessor){androidTfProcessor.onaudioprocess=null;try{androidTfProcessor.disconnect();}catch(_){}androidTfProcessor=null;}
+ try{androidTfSource?.disconnect();}catch(_){}androidTfSource=null;
+ try{androidTfSink?.disconnect();}catch(_){}androidTfSink=null;
+ if(androidTfStream){androidTfStream.getTracks().forEach(t=>{try{t.stop();}catch(_){}});androidTfStream=null;}
+ if(androidTfContext){const c=androidTfContext;androidTfContext=null;try{await c.close();}catch(_){}}
+ if($('androidTfStart'))$('androidTfStart').disabled=false;
+ if($('androidTfStop'))$('androidTfStop').disabled=true;
+ drawAndroidTfChart('androidTfMagnitude',[],[],-36,18,' dB');
+ drawAndroidTfChart('androidTfPhase',[],[],-180,180,'°');
+ drawAndroidTfChart('androidTfCoherence',[],[],0,1,'');
+ if(showMessage&&$('androidTfStatus'))$('androidTfStatus').textContent='Canlı TF durduruldu.';
+}
+async function startAndroidTf(){
+ await stopAndroidTf(false);
+ const token=++androidTfGeneration,select=$('androidTfDevice'),deviceId=select?.value||'';
+ androidTfError='';androidTfChannelVerified=false;androidTfAverageCount=0;androidTfLastCallback=0;androidTfFilled=0;androidTfWritePos=0;androidTfFramesSince=0;
+ androidTfFftSize=Number($('androidTfFft')?.value||16384);androidTfAveragesTarget=Number($('androidTfAverages')?.value||8);
+ $('androidTfStart').disabled=true;$('androidTfStop').disabled=false;
+ $('androidTfStatus').textContent='Mikrofon izni ve iki kanallı USB giriş bekleniyor…';
+ try{
+  await requestAndroidRuntimePermission('android.permission.RECORD_AUDIO');
+  if(token!==androidTfGeneration)return;
+  const audio={echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:{exact:2}};
+  if(deviceId)audio.deviceId={exact:deviceId};
+  androidTfStream=await navigator.mediaDevices.getUserMedia({audio});
+  if(token!==androidTfGeneration){androidTfStream.getTracks().forEach(t=>t.stop());androidTfStream=null;return;}
+  await refreshAndroidTfDevices();
+  if(token!==androidTfGeneration){await stopAndroidTf(false);return;}
+  const track=androidTfStream.getAudioTracks()[0],settings=track?.getSettings?.()||{};
+  if(Number(settings.channelCount)>0&&Number(settings.channelCount)<2)throw new Error('Seçilen aygıt Android tarafından mono olarak sunuldu. İki bağımsız giriş kanalı olan USB ses kartı gerekli.');
+  androidTfContext=new (window.AudioContext||window.webkitAudioContext)();
+  await androidTfContext.resume();
+  if(token!==androidTfGeneration){await stopAndroidTf(false);return;}
+  androidTfSampleRate=androidTfContext.sampleRate;
+  androidTfDeviceName=track?.label||'Android USB ses girişi';
+  const size=androidTfFftSize,bins=size/2+1;
+  androidTfRefBuffer=new Float32Array(size);androidTfMicBuffer=new Float32Array(size);
+  androidTfSxx=new Float64Array(bins);androidTfSyy=new Float64Array(bins);androidTfSyxRe=new Float64Array(bins);androidTfSyxIm=new Float64Array(bins);
+  androidTfSource=androidTfContext.createMediaStreamSource(androidTfStream);
+  androidTfProcessor=androidTfContext.createScriptProcessor(4096,2,2);
+  androidTfSink=androidTfContext.createGain();androidTfSink.gain.value=0;
+  androidTfProcessor.onaudioprocess=event=>androidTfProcessBlock(event.inputBuffer);
+  androidTfSource.connect(androidTfProcessor);androidTfProcessor.connect(androidTfSink);androidTfSink.connect(androidTfContext.destination);
+  androidTfRunning=true;
+  $('androidTfStatus').textContent='Canlı H1 başlatıldı · '+androidTfDeviceName+' · '+androidTfSampleRate.toLocaleString('tr-TR')+' Hz · CH0 referans / CH1 ölçüm.';
+  tickAndroidTf(token);
+ }catch(error){
+  if(token!==androidTfGeneration)return;
+  const message=error.message||String(error);await stopAndroidTf(false);
+  $('androidTfStatus').textContent='Canlı TF başlatılamadı: '+message;
+ }
+}
+function tickAndroidTf(token){
+ if(!androidTfRunning||token!==androidTfGeneration)return;
+ if(activeRoute!=='rta'){stopAndroidTf(false);return;}
+ if(androidTfError){$('androidTfStatus').textContent=androidTfError;stopAndroidTf(false);return;}
+ const snapshot=androidTfSnapshot();
+ if(snapshot.stale){
+  drawAndroidTfChart('androidTfMagnitude',[],[],-36,18,' dB');
+  drawAndroidTfChart('androidTfPhase',[],[],-180,180,'°');
+  drawAndroidTfChart('androidTfCoherence',[],[],0,1,'');
+ }else if(snapshot.averages>0){
+  drawAndroidTfChart('androidTfMagnitude',snapshot.centers,snapshot.mag,-36,18,' dB');
+  drawAndroidTfChart('androidTfPhase',snapshot.centers,snapshot.phase,-180,180,'°');
+  drawAndroidTfChart('androidTfCoherence',snapshot.centers,snapshot.coherence,0,1,'');
+ }
+ $('androidTfStatus').textContent='Canlı H1 · '+androidTfDeviceName+' · '+snapshot.sampleRate.toLocaleString('tr-TR')+' Hz · FFT '+snapshot.fftSize+' · Ortalama '+snapshot.averages+'/'+snapshot.averagesTarget+'\nCH0 '+snapshot.peakRef.toFixed(1)+' dBFS peak · CH1 '+snapshot.peakMic.toFixed(1)+' dBFS peak'+(snapshot.stale?' · UYARI: ses akışı kesildi.':snapshot.ready?' · ölçüm hazır.':' · ortalama hazırlanıyor.');
+ androidTfTimer=setTimeout(()=>tickAndroidTf(token),200);
+}
+function initAndroidTfControls(){
+ if(!$('androidTfStart'))return;
+ $('androidTfRefresh').addEventListener('click',async()=>{try{await requestAndroidRuntimePermission('android.permission.RECORD_AUDIO');await refreshAndroidTfDevices();}catch(error){$('androidTfStatus').textContent=error.message||String(error);}});
+ $('androidTfStart').addEventListener('click',startAndroidTf);
+ $('androidTfStop').addEventListener('click',()=>stopAndroidTf(true));
+ if(navigator.mediaDevices?.addEventListener)navigator.mediaDevices.addEventListener('devicechange',refreshAndroidTfDevices);
+ refreshAndroidTfDevices();
+ window.addEventListener('pagehide',()=>{if(androidTfRunning)stopAndroidTf(false);});
+}
+
 // --- WAV local native analysis ---
-function initWav(){$('wavChoose').addEventListener('click',async()=>{if(!api()){ $('wavReport').textContent='Bu düğme masaüstü EXE içinde çalışır. Tarayıcı önizlemesinde native dosya iletişim kutusu bulunmaz.';return;}try{const path=await api().pick_wav();if(!path)return;$('wavReport').textContent='Analiz ediliyor…';const r=await api().analyze_wav(path);lastWavReport=r;renderWavReport(r);$('wavSaveReport').disabled=false;setStatus('WAV analizi tamamlandı: '+r.file);}catch(err){$('wavReport').textContent='Analiz başarısız: '+(err.message||String(err));}});$('wavSaveReport').addEventListener('click',()=>{if(!lastWavReport)return;const text=Object.entries(lastWavReport).map(([k,v])=>`${k}: ${v===null?'ölçülmedi':typeof v==='number'?fmt(v,3):v}`).join('\n');downloadBlob(new Blob([text],{type:'text/plain;charset=utf-8'}),'WAV_Analiz_Raporu.txt');});}
-function renderWavReport(r){const rows=[['Dosya',r.file],['Kanal sayısı',r.channels],['Örnekleme',r.sample_rate_hz+' Hz'],['Bit derinliği',r.bits_per_sample+' bit PCM'],['Süre',fmt(r.duration_seconds,3)+' s'],['Sample peak',r.sample_peak_dbfs===null?'Sessiz':fmt(r.sample_peak_dbfs,2)+' dBFS'],['RMS',r.rms_dbfs===null?'Sessiz':fmt(r.rms_dbfs,2)+' dBFS'],['Crest factor',r.crest_factor_db===null?'Hesaplanmadı':fmt(r.crest_factor_db,2)+' dB'],['Tam ölçeğe yakın örnekler',`${r.near_full_sample_count} (${fmt(r.near_full_sample_percent,5)}%)`]];$('wavReport').innerHTML='<div class="report-table">'+rows.map(([a,b])=>`<div>${safeText(a)}</div><div>${safeText(b)}</div>`).join('')+'</div><p style="margin:14px 0 0;color:#8e9baa">'+safeText(r.scope_note)+'</p>';}
+async function analyzeWavBrowser(file){
+ if(!file)throw new Error('WAV dosyası seçilmedi.');
+ if(file.size<44)throw new Error('Dosya bir WAV başlığı içerecek kadar büyük değil.');
+ if(file.size>512*1024*1024)throw new Error('Dosya 512 MB sınırını aşıyor. Daha kısa bir WAV kullan.');
+ const buffer=await file.arrayBuffer(),view=new DataView(buffer),length=buffer.byteLength;
+ const chunkName=offset=>String.fromCharCode(view.getUint8(offset),view.getUint8(offset+1),view.getUint8(offset+2),view.getUint8(offset+3));
+ if(chunkName(0)!=='RIFF'||chunkName(8)!=='WAVE')throw new Error('Dosya RIFF/WAVE biçiminde değil.');
+ let fmt=null,dataOffset=-1,dataSize=0,offset=12;
+ while(offset+8<=length){
+  const id=chunkName(offset),size=view.getUint32(offset+4,true),body=offset+8;
+  if(size>length-body)throw new Error('WAV içindeki parça boyutu dosya sınırını aşıyor.');
+  if(id==='fmt '){
+   if(size<16)throw new Error('WAV format başlığı eksik.');
+   fmt={format:view.getUint16(body,true),channels:view.getUint16(body+2,true),sampleRate:view.getUint32(body+4,true),byteRate:view.getUint32(body+8,true),blockAlign:view.getUint16(body+12,true),bits:view.getUint16(body+14,true)};
+  }else if(id==='data'){dataOffset=body;dataSize=size;}
+  offset=body+size+(size%2);
+ }
+ if(!fmt||dataOffset<0||!fmt.channels||!fmt.sampleRate||!fmt.blockAlign)throw new Error('WAV format veya veri parçası bulunamadı.');
+ if(![1,3].includes(fmt.format))throw new Error('Yalnızca sıkıştırılmamış PCM veya IEEE Float WAV destekleniyor.');
+ if(fmt.format===1&&![8,16,24,32].includes(fmt.bits))throw new Error('Bu PCM bit derinliği desteklenmiyor.');
+ if(fmt.format===3&&fmt.bits!==32)throw new Error('Şimdilik yalnızca 32 bit IEEE Float WAV destekleniyor.');
+ const bytes=fmt.bits/8;
+ if(fmt.blockAlign<fmt.channels*bytes)throw new Error('WAV kanal hizalaması geçersiz.');
+ const frames=Math.floor(dataSize/fmt.blockAlign);
+ if(frames<=0)throw new Error('WAV içinde çözümlenebilir örnek bulunamadı.');
+ let peak=0,sumSquares=0,count=0,nearFull=0;
+ const nearThreshold=fmt.format===3?0.999:1-1/(2**(fmt.bits-1));
+ for(let frame=0;frame<frames;frame++){
+  const frameBase=dataOffset+frame*fmt.blockAlign;
+  for(let channel=0;channel<fmt.channels;channel++){
+   const p=frameBase+channel*bytes;let sample;
+   if(fmt.format===3)sample=view.getFloat32(p,true);
+   else if(fmt.bits===8)sample=(view.getUint8(p)-128)/128;
+   else if(fmt.bits===16)sample=view.getInt16(p,true)/32768;
+   else if(fmt.bits===24){let v=view.getUint8(p)|(view.getUint8(p+1)<<8)|(view.getUint8(p+2)<<16);if(v&0x800000)v-=0x1000000;sample=v/8388608;}
+   else sample=view.getInt32(p,true)/2147483648;
+   if(!Number.isFinite(sample))throw new Error('WAV içinde NaN veya sonsuz örnek var.');
+   const a=Math.abs(sample);if(a>peak)peak=a;if(a>=nearThreshold)nearFull++;
+   sumSquares+=sample*sample;count++;
+  }
+ }
+ const rms=Math.sqrt(sumSquares/count),peakDb=peak>0?20*Math.log10(peak):null,rmsDb=rms>0?20*Math.log10(rms):null;
+ return {file:file.name,channels:fmt.channels,sample_rate_hz:fmt.sampleRate,bits_per_sample:fmt.bits,format:fmt.format===3?'IEEE Float':'PCM',frames,duration_seconds:frames/fmt.sampleRate,sample_values:count,sample_peak_dbfs:peakDb,rms_dbfs:rmsDb,crest_factor_db:peakDb!==null&&rmsDb!==null?peakDb-rmsDb:null,near_full_sample_count:nearFull,near_full_sample_percent:100*nearFull/count,scope_note:'Yerel WAV dosyası çözümlendi. Sample peak/RMS ölçümüdür; LUFS, oversampled true-peak veya kalibreli dB SPL ölçümü değildir.'};
+}
+function chooseBrowserWav(){
+ const picker=document.createElement('input');picker.type='file';picker.accept='.wav,audio/wav,audio/x-wav';picker.style.position='fixed';picker.style.left='-10000px';
+ picker.addEventListener('change',async()=>{const file=picker.files&&picker.files[0];picker.remove();if(!file)return;$('wavReport').textContent='WAV analiz ediliyor…';try{const result=await analyzeWavBrowser(file);lastWavReport=result;renderWavReport(result);$('wavSaveReport').disabled=false;setStatus('WAV analizi tamamlandı: '+result.file);}catch(err){$('wavReport').textContent='Analiz başarısız: '+(err.message||String(err));}});
+ document.body.appendChild(picker);picker.click();
+}
+function initWav(){
+ $('wavChoose').addEventListener('click',async()=>{
+  if(!api()){chooseBrowserWav();return;}
+  try{const path=await api().pick_wav();if(!path)return;$('wavReport').textContent='Analiz ediliyor…';const r=await api().analyze_wav(path);lastWavReport=r;renderWavReport(r);$('wavSaveReport').disabled=false;setStatus('WAV analizi tamamlandı: '+r.file);}
+  catch(err){$('wavReport').textContent='Analiz başarısız: '+(err.message||String(err));}
+ });
+ $('wavSaveReport').addEventListener('click',()=>{
+  if(!lastWavReport)return;
+  const text=Object.entries(lastWavReport).map(([k,v])=>k+': '+(v===null?'ölçülmedi':typeof v==='number'?fmt(v,3):v)).join('\n');
+  downloadBlob(new Blob([text],{type:'text/plain;charset=utf-8'}),'WAV_Analiz_Raporu.txt');
+ });
+}
+function renderWavReport(r){const rows=[['Dosya',r.file],['Kanal sayısı',r.channels],['Örnekleme',r.sample_rate_hz+' Hz'],['Bit derinliği',r.bits_per_sample+' bit '+(r.format||'PCM')],['Süre',fmt(r.duration_seconds,3)+' s'],['Sample peak',r.sample_peak_dbfs===null?'Sessiz':fmt(r.sample_peak_dbfs,2)+' dBFS'],['RMS',r.rms_dbfs===null?'Sessiz':fmt(r.rms_dbfs,2)+' dBFS'],['Crest factor',r.crest_factor_db===null?'Hesaplanmadı':fmt(r.crest_factor_db,2)+' dB'],['Tam ölçeğe yakın örnekler',`${r.near_full_sample_count} (${fmt(r.near_full_sample_percent,5)}%)`]];$('wavReport').innerHTML='<div class="report-table">'+rows.map(([a,b])=>`<div>${safeText(a)}</div><div>${safeText(b)}</div>`).join('')+'</div><p style="margin:14px 0 0;color:#8e9baa">'+safeText(r.scope_note)+'</p>';}
 
 // --- Offline LUFS normalization via bundled Python DSP dependencies ---
-function initLufs(){$('runLufs').addEventListener('click',async()=>{if(!api()){ $('lufsReport').textContent='Bu özellik paketlenmiş masaüstü uygulamasının yerel API özelliğini gerektirir.';return;}const target=Number($('lufsTarget').value),tp=Number($('tpTarget').value);if(!Number.isFinite(target)||target< -70||target>0||!Number.isFinite(tp)||tp< -20||tp>0){$('lufsReport').textContent='Hedef LUFS -70..0, true-peak tavanı -20..0 aralığında olmalı.';return;}try{$('runLufs').disabled=true;$('lufsReport').textContent='Kaynak/çıktı seçimi ve loudness işlemi sürüyor…';const r=await api().normalize_lufs_dialog(target,tp);if(r.cancelled){$('lufsReport').textContent='İşlem iptal edildi.';return;}$('lufsReport').textContent=Object.entries(r).map(([k,v])=>`${k}: ${typeof v==='number'?fmt(v,3):typeof v==='object'?JSON.stringify(v):v}`).join('\n');setStatus('LUFS işlemi tamamlandı. Çıktıyı tekrar kontrol et.');}catch(err){$('lufsReport').textContent='Normalizasyon başarısız: '+(err.message||String(err));}finally{$('runLufs').disabled=false;}});}
+
+async function normalizeLoudnessBrowser(file,target,tp){
+ if(!file)throw new Error('Ses dosyası seçilmedi.');
+ if(file.size>256*1024*1024)throw new Error('Dosya 256 MB sınırını aşıyor; daha kısa bir kaynak seç.');
+ const AudioCtx=window.AudioContext||window.webkitAudioContext;
+ if(!AudioCtx)throw new Error('Web Audio API desteklenmiyor.');
+ const ctx=new AudioCtx();
+ try{
+  const decoded=await ctx.decodeAudioData(await file.arrayBuffer());
+  if(decoded.length>decoded.sampleRate*900)throw new Error('Bu araçta 15 dakikadan uzun dosyalar sınırlandırılmıştır.');
+  const channels=Math.min(2,decoded.numberOfChannels),rate=decoded.sampleRate,frames=decoded.length;
+  const source=Array.from({length:channels},(_,c)=>decoded.getChannelData(c));
+  const weighted=[];
+  for(let c=0;c<channels;c++){
+   const offline=new OfflineAudioContext(1,frames,rate),input=offline.createBuffer(1,frames,rate);
+   input.copyToChannel(source[c],0);
+   const src=offline.createBufferSource();src.buffer=input;
+   const hp=offline.createBiquadFilter();hp.type='highpass';hp.frequency.value=38;hp.Q.value=.5;
+   const shelf=offline.createBiquadFilter();shelf.type='highshelf';shelf.frequency.value=1500;shelf.gain.value=4;
+   src.connect(hp);hp.connect(shelf);shelf.connect(offline.destination);src.start();
+   const rendered=await offline.startRendering();weighted.push(rendered.getChannelData(0));
+  }
+  const block=Math.max(1,Math.round(rate*.4)),blocks=[];
+  for(let start=0;start<frames;start+=block){
+   const end=Math.min(frames,start+block);let sum=0;
+   for(let c=0;c<channels;c++)for(let i=start;i<end;i++)sum+=weighted[c][i]*weighted[c][i];
+   const mean=sum/Math.max(1,(end-start)*channels);
+   blocks.push({loudness:mean>0?-0.691+10*Math.log10(mean):-Infinity,energy:mean});
+  }
+  const absolute=blocks.filter(b=>b.loudness>-70);
+  if(!absolute.length)throw new Error('Kaynak sessiz veya ölçülebilir seviyenin altında.');
+  const meanEnergy=list=>list.reduce((s,b)=>s+b.energy,0)/Math.max(1,list.length);
+  const preliminary=-0.691+10*Math.log10(meanEnergy(absolute));
+  const gated=absolute.filter(b=>b.loudness>=preliminary-10);
+  const measured=-0.691+10*Math.log10(meanEnergy(gated));
+  let peak=0;
+  for(const channel of source)for(let i=0;i<channel.length;i++){
+   peak=Math.max(peak,Math.abs(channel[i]));
+   if(i>0)for(let k=1;k<4;k++)peak=Math.max(peak,Math.abs(channel[i-1]+(channel[i]-channel[i-1])*k/4));
+  }
+  const peakDb=peak>0?20*Math.log10(peak):-Infinity;
+  const desiredGain=target-measured,gainDb=Math.min(desiredGain,tp-peakDb),gain=Math.pow(10,gainDb/20);
+  const outChannels=channels===1?[source[0],source[0]]:[source[0],source[1]];
+  const bytes=44+frames*4,ab=new ArrayBuffer(bytes),view=new DataView(ab);
+  const write=(off,s)=>{for(let i=0;i<s.length;i++)view.setUint8(off+i,s.charCodeAt(i));};
+  write(0,'RIFF');view.setUint32(4,bytes-8,true);write(8,'WAVE');write(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,2,true);view.setUint32(24,rate,true);view.setUint32(28,rate*4,true);view.setUint16(32,4,true);view.setUint16(34,16,true);write(36,'data');view.setUint32(40,frames*4,true);
+  let offset=44,outPeak=0;
+  for(let i=0;i<frames;i++)for(let c=0;c<2;c++){
+   const v=Math.max(-1,Math.min(1,outChannels[c][i]*gain));outPeak=Math.max(outPeak,Math.abs(v));
+   view.setInt16(offset,v<0?Math.round(v*32768):Math.round(v*32767),true);offset+=2;
+  }
+  const outName=file.name.replace(/\.[^.]+$/,'')+'_Stagepulse_Loudness.wav';
+  const url=URL.createObjectURL(new Blob([ab],{type:'audio/wav'})),a=document.createElement('a');
+  a.href=url;a.download=outName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+  return {source:file.name,output:outName,duration_seconds:frames/rate,sample_rate_hz:rate,channels_in:decoded.numberOfChannels,measured_loudness_lufs_estimate:measured,target_lufs:target,applied_gain_db:gainDb,requested_gain_db:desiredGain,estimated_true_peak_before_dbtp:peakDb,estimated_sample_peak_after_dbfs:outPeak>0?20*Math.log10(outPeak):-Infinity,gate_blocks_used:gated.length,output_format:'Stereo 16-bit PCM WAV',notes:'Yaklaşık ölçüm: 400 ms blokları, yaklaşık K-weighting ve -70 LUFS / göreli -10 LU kapılama kullanıldı. True-peak 4x doğrusal ara örnekleme tahminidir; EBU/ITU uyumluluk sertifikalı ölçüm değildir. Limiter uygulanmadı; tepe tavanı nedeniyle hedef loudness tutmayabilir.'};
+ }finally{try{await ctx.close();}catch(_){}}
+}
+function chooseBrowserLufs(target,tp){
+ const picker=document.createElement('input');picker.type='file';picker.accept='audio/*,.wav,.mp3,.m4a,.flac,.ogg';picker.style.position='fixed';picker.style.left='-10000px';
+ picker.addEventListener('change',async()=>{const file=picker.files&&picker.files[0];picker.remove();if(!file)return;
+  $('runLufs').disabled=true;$('lufsReport').textContent='Ses çözümleniyor, yaklaşık loudness ölçülüyor ve WAV dışa aktarılıyor…';
+  try{const r=await normalizeLoudnessBrowser(file,target,tp);$('lufsReport').textContent=Object.entries(r).map(([k,v])=>k+': '+(typeof v==='number'?fmt(v,3):String(v))).join('\n');setStatus('Yaklaşık loudness işlemi tamamlandı; çıktıyı dinleyerek doğrula.');}
+  catch(err){$('lufsReport').textContent='Normalizasyon başarısız: '+(err.message||String(err));}
+  finally{$('runLufs').disabled=false;}
+ });
+ document.body.appendChild(picker);picker.click();
+}
+function initLufs(){
+ $('runLufs').addEventListener('click',async()=>{
+  const target=Number($('lufsTarget').value),tp=Number($('tpTarget').value);
+  if(!Number.isFinite(target)||target< -70||target>0||!Number.isFinite(tp)||tp< -20||tp>0){$('lufsReport').textContent='Hedef loudness -70..0, tepe tavanı -20..0 aralığında olmalı.';return;}
+  if(!api()){chooseBrowserLufs(target,tp);return;}
+  try{$('runLufs').disabled=true;$('lufsReport').textContent='Kaynak/çıktı seçimi ve loudness işlemi sürüyor…';const r=await api().normalize_lufs_dialog(target,tp);if(r.cancelled){$('lufsReport').textContent='İşlem iptal edildi.';return;}$('lufsReport').textContent=Object.entries(r).map(([k,v])=>k+': '+(typeof v==='number'?fmt(v,3):typeof v==='object'?JSON.stringify(v):v)).join('\n');setStatus('LUFS işlemi tamamlandı. Çıktıyı tekrar kontrol et.');}catch(err){$('lufsReport').textContent='Normalizasyon başarısız: '+(err.message||String(err));}finally{$('runLufs').disabled=false;}
+ });
+}
 
 // --- Multitrack mix lab ---
 function initMixer(){ $('trackFiles').addEventListener('change',e=>loadTrackFiles(e.target.files));$('mixPreview').addEventListener('click',previewMix);$('mixStop').addEventListener('click',stopMixerPreview);$('mixRender').addEventListener('click',renderAndDownloadMix);$('mixExportProject').addEventListener('click',exportMixProject);$('mixLoadProject').addEventListener('click',()=>$('mixProjectFile').click());$('mixProjectFile').addEventListener('change',loadMixProject);$('exportEvidenceReport').addEventListener('click',exportEvidenceReport);$('addCue').addEventListener('click',()=>addCue({time:0,type:'Efekt',text:'Yeni ses işareti'}));$('videoFile').addEventListener('change',loadLocalVideo);$('captureVideoFrame').addEventListener('click',captureFrame);$('addVideoCue').addEventListener('click',()=>addCue({time:$('localVideo').currentTime||0,type:'Video notu',text:'Video zamanındaki ses/görüntü notunu yaz.'}));$('analyzeVideoLocal').addEventListener('click',analyzeVideoLocal);$('stageSceneCues').addEventListener('click',stageSceneCues);$('buildAutonomousEdit').addEventListener('click',buildLocalSoundPlan);$('applyPlanCues').addEventListener('click',applyPlanCues);$('exportPlanJSON').addEventListener('click',exportPlanJSON);$('exportPlanCSV').addEventListener('click',exportPlanCSV);$('evidenceAudioFile').addEventListener('change',()=>{audioEvidenceData=null;$('audioEvidenceReport').textContent=$('evidenceAudioFile').files[0]?'Dosya seçildi. Ölçüm için düğmeye bas.':'Dosya seçilmedi.';});$('analyzeAudioEvidence').addEventListener('click',analyzeAudioEvidence);$('clearAudioEvidence').addEventListener('click',()=>{audioEvidenceData=null;$('evidenceAudioFile').value='';$('audioEvidenceReport').textContent='Temizlendi.';});$('soundLibraryFiles').addEventListener('change',()=>{$('soundLibraryResults').textContent=`${$('soundLibraryFiles').files.length} yerel dosya seçildi.`;});$('indexSoundLibrary').addEventListener('click',indexSoundLibrary);$('matchSoundCues').addEventListener('click',matchSoundCues);$('clearSoundLibrary').addEventListener('click',()=>{soundLibraryIndex=[];$('soundLibraryFiles').value='';renderSoundLibrary();});$('soundLibrarySearch').addEventListener('input',renderSoundLibrary);$('sceneMarkerList').addEventListener('click',async e=>{const b=e.target.closest('[data-seek-scene]');if(b){try{await seekLocalVideo(videoSceneMarkers[Number(b.dataset.seekScene)]||0);}catch(err){$('videoAnalysisReport').textContent=err.message;}}});$('trackList').addEventListener('input',onTrackControl);$('trackList').addEventListener('change',onTrackControl);renderTracks();renderMixerCues();}
@@ -798,21 +1220,15 @@ function renderTracks(){const list=$('trackList');if(!mixerTracks.length){list.i
 function onTrackControl(e){const el=e.target.closest('[data-prop],[data-action]');if(!el)return;const card=el.closest('[data-track]');if(!card)return;const t=mixerTracks.find(x=>x.id===Number(card.dataset.track));if(!t)return;if(el.dataset.prop){const prop=el.dataset.prop;if(prop==='category'){t.category=el.value;return;}if(el.type==='checkbox')t[prop]=el.checked;else{let n=Number(el.value);if(!Number.isFinite(n))return;if(prop==='trimIn')n=Math.max(0,Math.min(t.duration-.05,n));if(prop==='trimOut')n=Math.max(t.trimIn+.05,Math.min(t.duration,n));if(prop==='fadeIn'||prop==='fadeOut')n=Math.max(0,Math.min(t.duration,n));if(prop==='start')n=Math.max(0,n);if(prop==='gate')n=Math.max(-70,Math.min(0,n));if(prop==='compThreshold')n=Math.max(-60,Math.min(0,n));if(prop==='compRatio')n=Math.max(1,Math.min(20,n));if(prop==='compAttackMs'){t.compAttack=Math.max(0.0001,Math.min(0.1,n/1000));return;}if(prop==='compReleaseMs'){t.compRelease=Math.max(0.01,Math.min(1,n/1000));return;}t[prop]=n;}if(el.type==='range'&&el.dataset.prop==='gain')el.previousElementSibling.textContent=`Gain ${fmt(20*Math.log10(Math.max(t.gain,.00001)),1)} dB`;else if(el.type==='range'&&el.dataset.prop==='pan')el.previousElementSibling.textContent=`Pan ${fmt(t.pan,2)}`;if(e.type==='change'||el.type==='checkbox')renderTracks();return;}if(el.dataset.action==='preset'&&el.value){applyDialoguePreset(t,el.value);renderTracks();setStatus('Hazır konuşma ayarı uygulandı; kritik teslimden önce dinle.');return;}if(el.dataset.action==='mute'){t.muted=!t.muted;renderTracks();}if(el.dataset.action==='remove'){mixerTracks=mixerTracks.filter(x=>x.id!==t.id);renderTracks();}if(el.dataset.action==='up'||el.dataset.action==='down'){const index=mixerTracks.indexOf(t),target=el.dataset.action==='up'?index-1:index+1;if(target>=0&&target<mixerTracks.length){[mixerTracks[index],mixerTracks[target]]=[mixerTracks[target],mixerTracks[index]];renderTracks();}}}
 function validateTrack(t){const start=Math.max(0,Number(t.start)||0),trimIn=Math.max(0,Math.min(t.duration-.05,Number(t.trimIn)||0)),trimOut=Math.max(trimIn+.05,Math.min(t.duration,Number(t.trimOut)||t.duration));return {start,trimIn,trimOut,dur:trimOut-trimIn};}
 function gateBuffer(buffer,thresholdDb){if(thresholdDb<=-69.9)return buffer;const ctx=new OfflineAudioContext(buffer.numberOfChannels,buffer.length,buffer.sampleRate);const out=ctx.createBuffer(buffer.numberOfChannels,buffer.length,buffer.sampleRate);const win=Math.max(1,Math.round(buffer.sampleRate*.01));const attack=Math.exp(-1/(buffer.sampleRate*.008)),release=Math.exp(-1/(buffer.sampleRate*.08));const thr=Math.pow(10,thresholdDb/20);for(let ch=0;ch<buffer.numberOfChannels;ch++){const input=buffer.getChannelData(ch),dest=out.getChannelData(ch);let gain=0;for(let start=0;start<input.length;start+=win){const end=Math.min(input.length,start+win);let sum=0;for(let i=start;i<end;i++)sum+=input[i]*input[i];const rms=Math.sqrt(sum/Math.max(1,end-start));const goal=rms>=thr?1:.04;const coeff=goal>gain?attack:release;for(let i=start;i<end;i++){gain=goal+(gain-goal)*coeff;dest[i]=input[i]*gain;}}}return out;}
-
-const gateCache = new WeakMap();
-function gateBufferCached(track, buffer, thresholdDb){
- const key=`${thresholdDb}:${track.trimIn}:${track.trimOut}:${buffer.sampleRate}:${buffer.length}`;
- const cached=gateCache.get(track);
- if(cached&&cached.buffer===buffer&&cached.key===key)return cached.result;
- const result=gateBuffer(buffer,thresholdDb);
- gateCache.set(track,{buffer,key,result});
- return result;
-}
-async function renderMix(){if(!mixerTracks.length)throw new Error('Önce ses dosyası ekle.');const enabled=mixerTracks.filter(t=>!t.muted);if(!enabled.length)throw new Error('Tüm katmanlar sessize alınmış.');const specs=enabled.map(t=>({t,...validateTrack(t)}));const length=Math.max(...specs.map(x=>x.start+x.dur));if(length<=0||length>3600)throw new Error('Miks süresi 0-3600 saniye aralığında olmalı.');const rate=48000,frames=Math.ceil(length*rate),outputBytes=frames*2*4,wavBytes=frames*2*2+44,sourceBytes=decodedAudioBytes(),gateBytes=enabled.filter(t=>t.gate>-69.9).reduce((sum,t)=>sum+t.buffer.length*t.buffer.numberOfChannels*4,0);if(outputBytes>MAX_RENDER_AUDIO_BYTES||sourceBytes+gateBytes+outputBytes+wavBytes>MAX_AUDIO_WORK_BYTES)throw new Error('RAM koruması: bu miksin tahmini çalışma belleği sınırı aşıyor. Daha kısa bölüm, az katman veya gate kapalı ayarlarla dene.');const off=new OfflineAudioContext(2,frames,rate);for(const s of specs){const t=s.t;let buffer=t.gate>-69.9?gateBufferCached(t,t.buffer,t.gate):t.buffer;const src=off.createBufferSource();src.buffer=buffer;let node=src;const hp=off.createBiquadFilter();hp.type='highpass';hp.frequency.value=Math.max(20,Math.min(20000,t.hpf));node.connect(hp);node=hp;if(Math.abs(t.low)>.01){const f=off.createBiquadFilter();f.type='lowshelf';f.frequency.value=180;f.gain.value=t.low;node.connect(f);node=f;}if(Math.abs(t.high)>.01){const f=off.createBiquadFilter();f.type='highshelf';f.frequency.value=5000;f.gain.value=t.high;node.connect(f);node=f;}if(t.compress){const comp=off.createDynamicsCompressor();comp.threshold.value=t.compThreshold??-24;comp.knee.value=20;comp.ratio.value=t.compRatio??3;comp.attack.value=t.compAttack??.008;comp.release.value=t.compRelease??.18;node.connect(comp);node=comp;}const gain=off.createGain();const base=Math.max(0,Math.min(2,t.gain));const fs=Math.min(s.dur/2,Math.max(0,t.fadeIn)),fe=Math.min(s.dur/2,Math.max(0,t.fadeOut));gain.gain.setValueAtTime(fs>0?.0001:base,s.start);if(fs>0)gain.gain.linearRampToValueAtTime(base,s.start+fs);if(fe>0){gain.gain.setValueAtTime(base,s.start+s.dur-fe);gain.gain.linearRampToValueAtTime(.0001,s.start+s.dur);}node.connect(gain);node=gain;const pan=off.createStereoPanner();pan.pan.value=Math.max(-1,Math.min(1,t.pan));node.connect(pan).connect(off.destination);src.start(s.start,s.trimIn,s.dur);}const rendered=await off.startRendering();let peak=0;for(let ch=0;ch<rendered.numberOfChannels;ch++){const data=rendered.getChannelData(ch);for(let i=0;i<data.length;i++)peak=Math.max(peak,Math.abs(data[i]));}const ceiling=Math.pow(10,-1/20);lastMasterGainDb=peak>ceiling?20*Math.log10(ceiling/peak):0;if(lastMasterGainDb<0){const gain=Math.pow(10,lastMasterGainDb/20);for(let ch=0;ch<rendered.numberOfChannels;ch++){const data=rendered.getChannelData(ch);for(let i=0;i<data.length;i++)data[i]*=gain;}}return rendered;}
+async function renderMix(){if(!mixerTracks.length)throw new Error('Önce ses dosyası ekle.');const enabled=mixerTracks.filter(t=>!t.muted);if(!enabled.length)throw new Error('Tüm katmanlar sessize alınmış.');const specs=enabled.map(t=>({t,...validateTrack(t)}));const length=Math.max(...specs.map(x=>x.start+x.dur));if(length<=0||length>3600)throw new Error('Miks süresi 0-3600 saniye aralığında olmalı.');const rate=48000,frames=Math.ceil(length*rate),outputBytes=frames*2*4,wavBytes=frames*2*2+44,sourceBytes=decodedAudioBytes(),gateBytes=enabled.filter(t=>t.gate>-69.9).reduce((sum,t)=>sum+t.buffer.length*t.buffer.numberOfChannels*4,0);if(outputBytes>MAX_RENDER_AUDIO_BYTES||sourceBytes+gateBytes+outputBytes+wavBytes>MAX_AUDIO_WORK_BYTES)throw new Error('RAM koruması: bu miksin tahmini çalışma belleği sınırı aşıyor. Daha kısa bölüm, az katman veya gate kapalı ayarlarla dene.');const off=new OfflineAudioContext(2,frames,rate);for(const s of specs){const t=s.t;let buffer=t.gate>-69.9?gateBuffer(t.buffer,t.gate):t.buffer;const src=off.createBufferSource();src.buffer=buffer;let node=src;const hp=off.createBiquadFilter();hp.type='highpass';hp.frequency.value=Math.max(20,Math.min(20000,t.hpf));node.connect(hp);node=hp;if(Math.abs(t.low)>.01){const f=off.createBiquadFilter();f.type='lowshelf';f.frequency.value=180;f.gain.value=t.low;node.connect(f);node=f;}if(Math.abs(t.high)>.01){const f=off.createBiquadFilter();f.type='highshelf';f.frequency.value=5000;f.gain.value=t.high;node.connect(f);node=f;}if(t.compress){const comp=off.createDynamicsCompressor();comp.threshold.value=t.compThreshold??-24;comp.knee.value=20;comp.ratio.value=t.compRatio??3;comp.attack.value=t.compAttack??.008;comp.release.value=t.compRelease??.18;node.connect(comp);node=comp;}const gain=off.createGain();const base=Math.max(0,Math.min(2,t.gain));const fs=Math.min(s.dur/2,Math.max(0,t.fadeIn)),fe=Math.min(s.dur/2,Math.max(0,t.fadeOut));gain.gain.setValueAtTime(fs>0?.0001:base,s.start);if(fs>0)gain.gain.linearRampToValueAtTime(base,s.start+fs);if(fe>0){gain.gain.setValueAtTime(base,s.start+s.dur-fe);gain.gain.linearRampToValueAtTime(.0001,s.start+s.dur);}node.connect(gain);node=gain;const pan=off.createStereoPanner();pan.pan.value=Math.max(-1,Math.min(1,t.pan));node.connect(pan).connect(off.destination);src.start(s.start,s.trimIn,s.dur);}const rendered=await off.startRendering();let peak=0;for(let ch=0;ch<rendered.numberOfChannels;ch++){const data=rendered.getChannelData(ch);for(let i=0;i<data.length;i++)peak=Math.max(peak,Math.abs(data[i]));}const ceiling=Math.pow(10,-1/20);lastMasterGainDb=peak>ceiling?20*Math.log10(ceiling/peak):0;if(lastMasterGainDb<0){const gain=Math.pow(10,lastMasterGainDb/20);for(let ch=0;ch<rendered.numberOfChannels;ch++){const data=rendered.getChannelData(ch);for(let i=0;i<data.length;i++)data[i]*=gain;}}return rendered;}
 function audioBufferToWav(buffer){const channels=2,rate=buffer.sampleRate,len=buffer.length;const out=new ArrayBuffer(44+len*channels*2),view=new DataView(out);const writeString=(off,s)=>{for(let i=0;i<s.length;i++)view.setUint8(off+i,s.charCodeAt(i));};writeString(0,'RIFF');view.setUint32(4,36+len*channels*2,true);writeString(8,'WAVE');writeString(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,channels,true);view.setUint32(24,rate,true);view.setUint32(28,rate*channels*2,true);view.setUint16(32,channels*2,true);view.setUint16(34,16,true);writeString(36,'data');view.setUint32(40,len*channels*2,true);const left=buffer.getChannelData(0),right=buffer.getChannelData(1);let off=44;for(let i=0;i<len;i++){for(const v0 of [left[i],right[i]]){const v=Math.max(-1,Math.min(1,v0));view.setInt16(off,v<0?v*32768:v*32767,true);off+=2;}}return new Blob([out],{type:'audio/wav'});}
 async function previewMix(){try{stopMixerPreview();$('mixStatus').textContent='Miks hazırlanıyor…';const rendered=await renderMix();mixerAudioContext=mixerAudioContext||(new AudioContext());await mixerAudioContext.resume();mixerPreviewSource=mixerAudioContext.createBufferSource();mixerPreviewSource.buffer=rendered;mixerPreviewSource.connect(mixerAudioContext.destination);mixerPreviewSource.onended=()=>{$('mixStop').disabled=true;$('mixPreview').disabled=false;};mixerPreviewSource.start();$('mixStop').disabled=false;$('mixPreview').disabled=true;$('mixStatus').textContent=`Önizleme çalıyor · ${fmt(rendered.duration,2)} s · ${rendered.sampleRate} Hz · ana kazanç ${fmt(lastMasterGainDb,2)} dB`; }catch(err){$('mixStatus').textContent='Miks önizleme hatası: '+err.message;}}
 function stopMixerPreview(){if(mixerPreviewSource){try{mixerPreviewSource.stop();}catch(_){ }mixerPreviewSource.disconnect();mixerPreviewSource=null;}if($('mixStop'))$('mixStop').disabled=true;if($('mixPreview'))$('mixPreview').disabled=false;}
 async function renderAndDownloadMix(){try{$('mixRender').disabled=true;$('mixStatus').textContent='Stereo WAV render ediliyor…';const rendered=await renderMix();const blob=audioBufferToWav(rendered);downloadBlob(blob,'Stagepulse_Miks.wav');$('mixStatus').textContent=`WAV hazır · ${fmt(rendered.duration,2)} s · 48 kHz / 16-bit PCM · ana kazanç ${fmt(lastMasterGainDb,2)} dB · tepe güvenliği -1 dBFS`;setStatus('Yeni stereo WAV üretildi.');}catch(err){$('mixStatus').textContent='Render başarısız: '+err.message;}finally{$('mixRender').disabled=false;}}
+function exportMixProject(){const proj={app:'Stagepulse Ses Mühendisliği Merkezi',version:'3.9.7',created:new Date().toISOString(),tracks:mixerTracks.map(t=>({name:t.name,category:t.category,channels:t.channels,sampleRate:t.sampleRate,duration:t.duration,gain:t.gain,pan:t.pan,start:t.start,trimIn:t.trimIn,trimOut:t.trimOut,fadeIn:t.fadeIn,fadeOut:t.fadeOut,hpf:t.hpf,low:t.low,high:t.high,compress:t.compress,compThreshold:t.compThreshold??-24,compRatio:t.compRatio??3,compAttack:t.compAttack??.008,compRelease:t.compRelease??.18,gate:t.gate,muted:t.muted})),cues:cueRows,sceneMarkers:videoSceneMarkers,editDraft,notes:'Proje dosyası ses örneklerini içermez. Kaynak dosyaları ayrıca seçerek aynı isimli katmanları yeniden yükle.'};downloadBlob(new Blob([JSON.stringify(proj,null,2)],{type:'application/json'}),'Stagepulse_Ses_Projesi.json');}
+function guessAudioCategory(name){const n=String(name).toLocaleLowerCase('tr');if(/dialog|diyalog|voice|speech|konus|konuş|vox|mic|mikrofon/.test(n))return 'Diyalog';if(/music|muzik|müzik|song|track|score|tema/.test(n))return 'Müzik';if(/amb|room|wind|rain|crowd|roomtone|ortam|rüzgar|ruzg|kalabalık|kalabalik/.test(n))return 'Ambiyans';if(/sfx|fx|effect|efekt|impact|foley|adim|adım|kapı|kapi/.test(n))return 'Efekt';return 'Diğer';}
+function applyDialoguePreset(track,preset){track.category='Diyalog';if(preset==='natural'){Object.assign(track,{hpf:70,low:0,high:1,compress:false,gate:-70});}else if(preset==='rumble'){Object.assign(track,{hpf:110,low:-3,high:0,compress:false,gate:-70});}else if(preset==='clarity'){Object.assign(track,{hpf:80,low:-1,high:3,compress:true,gate:-70});}else if(preset==='dynamic'){Object.assign(track,{hpf:80,low:0,high:0,compress:true,gate:-55});}}
+function mixProjectPayload(){return {app:'Stagepulse Ses Mühendisliği Merkezi',version:'3.9.7',created:new Date().toISOString(),tracks:mixerTracks.map(t=>({name:t.name,category:t.category,channels:t.channels,sampleRate:t.sampleRate,duration:t.duration,gain:t.gain,pan:t.pan,start:t.start,trimIn:t.trimIn,trimOut:t.trimOut,fadeIn:t.fadeIn,fadeOut:t.fadeOut,hpf:t.hpf,low:t.low,high:t.high,compress:t.compress,compThreshold:t.compThreshold??-24,compRatio:t.compRatio??3,compAttack:t.compAttack??.008,compRelease:t.compRelease??.18,gate:t.gate,muted:t.muted})),cues:cueRows,sceneMarkers:videoSceneMarkers,editDraft,soundLibrary:soundLibraryIndex.map(({name,size,duration,sampleRate,channels,peakDbfs,rmsDbfs,category})=>({name,size,duration,sampleRate,channels,peakDbfs,rmsDbfs,category})),notes:'Proje ayarları, cue ve sahne işaretlerini saklar; ses/video dosyalarını içermez. Kaynak medyayı yeniden seçmek gerekir.'};}
 function exportMixProject(){downloadBlob(new Blob([JSON.stringify(mixProjectPayload(),null,2)],{type:'application/json'}),'Stagepulse_Ses_Projesi.json');$('projectStatus').textContent='Proje ayarları JSON olarak dışa aktarıldı. Medya dosyaları gömülmedi.';}
 async function loadMixProject(e){const f=e.target.files&&e.target.files[0];if(!f)return;try{const p=JSON.parse(await f.text());if(!p||typeof p!=='object'||!Array.isArray(p.tracks)||!Array.isArray(p.cues))throw new Error('Proje biçimi tanınmadı.');if(p.tracks.length>12||p.cues.length>10000)throw new Error('Proje sınırları aşıyor.');pendingMixProject=p;cueRows=p.cues.filter(c=>c&&Number.isFinite(Number(c.time))).map(c=>({id:c.id||Date.now()+Math.random(),time:Math.max(0,Number(c.time)),type:String(c.type||'Teknik not').slice(0,80),text:String(c.text||'').slice(0,2000)})).sort((a,b)=>a.time-b.time);videoSceneMarkers=Array.isArray(p.sceneMarkers)?p.sceneMarkers.map(Number).filter(n=>Number.isFinite(n)&&n>=0).slice(0,1000):[];editDraft=Array.isArray(p.editDraft)?p.editDraft:[];if(mixerTracks.length)applyPendingProject();renderCueRows();renderMixerCues();renderSceneMarkers();$('projectStatus').textContent=mixerTracks.length?'Proje ayarları yüklendi; eşleşen katmanlar güncellendi.':'Proje ayarları yüklendi. Şimdi aynı ses kaynaklarını seç; isimleri eşleşen kanallara ayarlar uygulanacak.';setStatus('Proje JSON yüklendi.');}catch(err){$('projectStatus').textContent='Proje yüklenemedi: '+err.message;}finally{$('mixProjectFile').value='';}}
 function applyPendingProject(){if(!pendingMixProject)return;const defs=Array.isArray(pendingMixProject.tracks)?pendingMixProject.tracks:[];let matched=0;for(const t of mixerTracks){const d=defs.find(x=>String(x.name).toLocaleLowerCase('tr')===String(t.name).toLocaleLowerCase('tr'));if(!d)continue;matched++;for(const key of ['gain','pan','start','trimIn','trimOut','fadeIn','fadeOut','hpf','low','high','gate','compThreshold','compRatio','compAttack','compRelease']){if(Number.isFinite(Number(d[key])))t[key]=Number(d[key]);}for(const key of ['compress','muted'])if(typeof d[key]==='boolean')t[key]=d[key];if(['Diyalog','Müzik','Efekt','Ambiyans','Diğer'].includes(d.category))t.category=d.category;t.trimIn=Math.max(0,Math.min(t.duration-.05,t.trimIn));t.trimOut=Math.max(t.trimIn+.05,Math.min(t.duration,t.trimOut));t.start=Math.max(0,t.start);t.fadeIn=Math.max(0,Math.min(t.duration,t.fadeIn));t.fadeOut=Math.max(0,Math.min(t.duration,t.fadeOut));}if(matched){pendingMixProject=null;$('projectStatus').textContent=`Proje ayarları ${matched} ses katmanına uygulandı. Kaynak dosyalar yerelde kaldı.`;}}
@@ -845,7 +1261,7 @@ function persistChecklistState(){const key=$('checklistType').value;studentData.
 function initStudent(){
  $('studentLoad').addEventListener('click',()=>{const name=$('studentSelect').value||$('studentName').value.trim();if(!name){alert('Kişisel çalışma profili seç veya ad gir.');return;}if(profiles[name]){activeStudent=name;loadStudentData(name);$('studentName').value=name;setStatus('Kişisel çalışma profili yüklendi: '+name);}else{activeStudent=name;studentData={completedModules:[],checklists:{},cues:[]};cueRows=[];refreshProfiles();renderStudentModules();renderChecklist();renderCueRows();renderMixerCues();updateHomeMetrics();setStatus('Yeni kişisel çalışma profili hazır.');}});
  $('studentSave').addEventListener('click',()=>saveStudentProfile(true));
- $('studentDelete').addEventListener('click',async()=>{const name=$('studentSelect').value||activeStudent;if(!name||!confirm(`${name} kişisel profili silinsin mi?`))return;if(api()){await api().delete_profile(name);profiles=(await api().load_profiles()).profiles||{};profilesLoaded=true;}else delete profiles[name];if(activeStudent===name){activeStudent='';studentData={completedModules:[],checklists:{},cues:[]};cueRows=[];}refreshProfiles();renderStudentModules();updateHomeMetrics();});
+ $('studentDelete').addEventListener('click',async()=>{const name=$('studentSelect').value||activeStudent;if(!name||!confirm(`${name} kişisel profili silinsin mi?`))return;if(api()){await api().delete_profile(name);profiles=(await api().load_profiles()).profiles||{};profilesLoaded=true;}else{delete profiles[name];try{localStorage.setItem('stagepulse.studentProfiles.v1',JSON.stringify(profiles));}catch(_){}}if(activeStudent===name){activeStudent='';studentData={completedModules:[],checklists:{},cues:[]};cueRows=[];}refreshProfiles();renderStudentModules();updateHomeMetrics();});
  $('studentExport').addEventListener('click',()=>downloadBlob(new Blob([JSON.stringify({name:activeStudent,profile:{...studentData,completedModules:[]}},null,2)],{type:'application/json'}),'Stagepulse_Yerel_Calisma_Notlari.json'));
  $('studentImport').addEventListener('click',()=>$('studentImportFile').click());
  $('studentImportFile').addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;try{const parsed=JSON.parse(await f.text());if(!parsed.profile||typeof parsed.profile!=='object')throw new Error('Profil şeması tanınmadı.');studentData={...parsed.profile,completedModules:[]};activeStudent=String(parsed.name||$('studentName').value||'İçe aktarılan çalışma').slice(0,80);cueRows=Array.isArray(studentData.cues)?studentData.cues:[];renderCueRows();renderMixerCues();renderChecklist();await saveStudentProfile(false);refreshProfiles();}catch(err){alert('İçe aktarma başarısız: '+err.message);}e.target.value='';});
@@ -856,7 +1272,7 @@ function initStudent(){
 async function ensureProfilesLoaded(){
  if(profilesLoaded)return profiles;
  if(profilesLoadPromise)return profilesLoadPromise;
- if(!api()){profilesLoaded=true;return profiles;}
+ if(!api()){try{const raw=localStorage.getItem('stagepulse.studentProfiles.v1');profiles=raw?JSON.parse(raw):{};if(!profiles||typeof profiles!=='object'||Array.isArray(profiles))profiles={};}catch(_){profiles={};}profilesLoaded=true;return profiles;}
  profilesLoadPromise=(async()=>{
   const result=await api().load_profiles();
   profiles=(result&&result.profiles&&typeof result.profiles==='object')?result.profiles:{};
@@ -877,10 +1293,11 @@ function refreshProfiles(){
 }
 function loadStudentData(name){activeStudent=name;studentData=JSON.parse(JSON.stringify(profiles[name]||{completedModules:[],checklists:{},cues:[]}));studentData.completedModules=[];studentData.checklists=studentData.checklists||{};cueRows=Array.isArray(studentData.cues)?studentData.cues:[];refreshProfiles();renderStudentModules();renderChecklist();renderCueRows();renderMixerCues();updateHomeMetrics();}
 function persistStudentLocal(){studentData.cues=cueRows;studentData.completedModules=[];updateHomeMetrics();}
-async function saveStudentProfile(showMessage=true){const name=String($('studentName').value||activeStudent).trim();if(!name){if(showMessage)alert('Çalışma profili adı gir.');return;}activeStudent=name;studentData.cues=cueRows;studentData.completedModules=[];try{if(api()){await api().save_profile(name,JSON.stringify(studentData));const r=await api().load_profiles();profiles=r.profiles||{};profilesLoaded=true;}else profiles[name]=JSON.parse(JSON.stringify(studentData));refreshProfiles();renderStudentModules();updateHomeMetrics();if(showMessage)setStatus('Kişisel çalışma notları şifreli olarak kaydedildi: '+name);}catch(err){if(showMessage)alert('Profil kaydedilemedi: '+err.message);}}
+async function saveStudentProfile(showMessage=true){const name=String($('studentName').value||activeStudent).trim();if(!name){if(showMessage)alert('Çalışma profili adı gir.');return;}activeStudent=name;studentData.cues=cueRows;studentData.completedModules=[];try{if(api()){await api().save_profile(name,JSON.stringify(studentData));const r=await api().load_profiles();profiles=r.profiles||{};profilesLoaded=true;}else{profiles[name]=JSON.parse(JSON.stringify(studentData));localStorage.setItem('stagepulse.studentProfiles.v1',JSON.stringify(profiles));}refreshProfiles();renderStudentModules();updateHomeMetrics();if(showMessage)setStatus('Kişisel çalışma notları şifreli olarak kaydedildi: '+name);}catch(err){if(showMessage)alert('Profil kaydedilemedi: '+err.message);}}
 async function refreshStudentProgress(studentUserId=''){
- if(!api()||!currentAccountContext||!appAuthorized){renderStudentModules();return;}
- try{const result=await api().student_progress(studentUserId||'');remoteProgress={};for(const row of (result.progress||[]))remoteProgress[row.module_id]=row;renderStudentModules();$('teacherProgressStatus').textContent=`${progressModules.filter(([id])=>remoteProgress[id]?.completed).length} / ${progressModules.length} aşama öğretmen tarafından onaylanmış.`;updateHomeMetrics();}
+ const account = accountApi();
+  if(!account||!currentAccountContext||!appAuthorized){renderStudentModules();return;}
+ try{const result=await account.student_progress(studentUserId||'');remoteProgress={};for(const row of (result.progress||[]))remoteProgress[row.module_id]=row;renderStudentModules();$('teacherProgressStatus').textContent=`${progressModules.filter(([id])=>remoteProgress[id]?.completed).length} / ${progressModules.length} aşama öğretmen tarafından onaylanmış.`;updateHomeMetrics();}
  catch(err){if($('teacherProgressStatus'))$('teacherProgressStatus').textContent='İlerleme okunamadı: '+err.message;renderStudentModules();}
 }
 function renderStudentModules(){
@@ -892,7 +1309,7 @@ function renderStudentModules(){
   const status=done?'Öğretmen onayladı':currentRole==='student'?'Onay bekliyor':'Hesaba giriş gerekli';
   return `<div class="student-module readonly-module"><span>${safeText(label)}</span><small>${status}${stamp?' · '+stamp:''}</small></div>`;
  }).join('');
- if(isTeacher){$('studentModules').querySelectorAll('[data-server-module]').forEach(inp=>inp.addEventListener('change',async()=>{const moduleId=inp.dataset.serverModule;inp.disabled=true;try{const result=await api().teacher_mark_progress(selectedTeacherStudentId,moduleId,inp.checked,$('teacherNote').value.trim());remoteProgress[moduleId]=result.progress;setStatus('Öğretmen onayı sunucuya kaydedildi.');await refreshTeacherStudents();}catch(err){alert('Aşama kaydedilemedi: '+err.message);await refreshStudentProgress(selectedTeacherStudentId);}finally{inp.disabled=false;}}));}
+ if(isTeacher){$('studentModules').querySelectorAll('[data-server-module]').forEach(inp=>inp.addEventListener('change',async()=>{const moduleId=inp.dataset.serverModule;inp.disabled=true;try{const result=await accountApi().teacher_mark_progress(selectedTeacherStudentId,moduleId,inp.checked,$('teacherNote').value.trim());remoteProgress[moduleId]=result.progress;setStatus('Öğretmen onayı sunucuya kaydedildi.');await refreshTeacherStudents();}catch(err){alert('Aşama kaydedilemedi: '+err.message);await refreshStudentProgress(selectedTeacherStudentId);}finally{inp.disabled=false;}}));}
  $('progressRoleBadge').textContent=currentRole==='owner'?'Öğretmen / yönetici':currentRole==='student'?'Öğrenci · salt okunur':'Hesap gerekli';
  $('courseProgressSubtitle').textContent=currentRole==='owner'?'Seçili öğrenci için öğretmen onayı':currentRole==='student'?'Resmî sunucu kayıtları · öğrenci değiştiremez':'Lisanslı hesaba giriş yapınca görünür';
  updateHomeMetrics();
@@ -918,7 +1335,7 @@ const fallbackStudentPdfs=[
 ];
 let studentPdfs=fallbackStudentPdfs,selectedStudentPdf=fallbackStudentPdfs[1].file;
 function initDocs(){
- $('pdfDownload').addEventListener('click',async()=>{const item=studentPdfs.find(x=>x.file===selectedStudentPdf)||studentPdfs[0];try{if(api()){const r=await api().save_student_pdf_dialog(item.file);if(r&&r.ok)setStatus('PDF kaydedildi: '+r.path);else if(!(r&&r.cancelled))setStatus((r&&r.error)||'PDF kaydedilemedi.');}else{const a=document.createElement('a');a.href='/egitim_paketleri/'+encodeURIComponent(item.file);a.download=item.file;document.body.appendChild(a);a.click();a.remove();}}catch(err){setStatus('PDF kaydedilemedi: '+err.message);}});
+ $('pdfDownload').addEventListener('click',async()=>{const item=studentPdfs.find(x=>x.file===selectedStudentPdf)||studentPdfs[0];try{if(window.StagepulseAndroid&&typeof window.StagepulseAndroid.openPdf==='function'){const ok=window.StagepulseAndroid.openPdf(item.file);if(!ok)throw new Error('PDF dosyası bulunamadı.');setStatus('PDF görüntüleyici açılıyor: '+item.title);return;}if(api()){const r=await api().save_student_pdf_dialog(item.file);if(r&&r.ok)setStatus('PDF kaydedildi: '+r.path);else if(!(r&&r.cancelled))setStatus((r&&r.error)||'PDF kaydedilemedi.');}else{const a=document.createElement('a');a.href='/assets/egitim_paketleri/'+encodeURIComponent(item.file);a.download=item.file;document.body.appendChild(a);a.click();a.remove();}}catch(err){setStatus('PDF kaydedilemedi: '+err.message);}});
 }
 async function loadStudentPdfs(){
  if(api()){try{const list=await api().list_student_pdfs();if(Array.isArray(list)&&list.length)studentPdfs=list;}catch(_){} }
@@ -928,8 +1345,8 @@ async function loadStudentPdfs(){
  if(!studentPdfs.some(x=>x.file===selectedStudentPdf))selectedStudentPdf=studentPdfs[0].file;
  openStudentPdf(selectedStudentPdf,false);
 }
-function openStudentPdf(filename,updateButtons=true){const item=studentPdfs.find(x=>x.file===filename);if(!item)return;selectedStudentPdf=item.file;$('studentPdfTitle').textContent=item.title;$('studentPdfDescription').textContent=item.description||'Öğrenci eğitim PDF dosyası.';$('pdfFrame').src='/egitim_paketleri/'+encodeURIComponent(item.file);if(updateButtons)document.querySelectorAll('[data-student-pdf]').forEach(b=>b.classList.toggle('active',b.dataset.studentPdf===item.file));setStatus('Açık eğitim PDF’si: '+item.title);}
-async function loadDocs(){if(!$('docSelect').options.length){let list=[];try{list=api()?await api().list_docs():await fetch('/ui/docs-list.json').then(r=>r.json());}catch(_){list=[];}if(!list.length)list=[{file:'00_BASLANGIC_TR.md',title:'Başlangıç ve güvenli kullanım'}];$('docSelect').innerHTML=list.map(d=>`<option value="${safeText(d.file)}">${safeText(d.title)}</option>`).join('');$('docListButtons').innerHTML=list.map(d=>`<button class="doc-select-btn" data-doc="${safeText(d.file)}">${safeText(d.title)}</button>`).join('');$('docSelect').addEventListener('change',()=>openDoc($('docSelect').value));$('docListButtons').querySelectorAll('[data-doc]').forEach(b=>b.addEventListener('click',()=>openDoc(b.dataset.doc)));}if($('docSelect').value)openDoc($('docSelect').value);}
+function openStudentPdf(filename,updateButtons=true){const item=studentPdfs.find(x=>x.file===filename);if(!item)return;selectedStudentPdf=item.file;$('studentPdfTitle').textContent=item.title;$('studentPdfDescription').textContent=item.description||'Öğrenci eğitim PDF dosyası.';$('pdfFrame').src='about:blank'+encodeURIComponent(item.file);if(updateButtons)document.querySelectorAll('[data-student-pdf]').forEach(b=>b.classList.toggle('active',b.dataset.studentPdf===item.file));$('studentPdfDescription').textContent=(item.description||'Öğrenci eğitim PDF dosyası.')+' Android PDF görüntüleyicisinde açmak için üstteki düğmeyi kullan.';setStatus('Seçili eğitim PDF dosyası: '+item.title);}
+async function loadDocs(){if(!$('docSelect').options.length){let list=[];try{list=api()?await api().list_docs():await fetch('/assets/ui/docs-list.json').then(r=>r.json());}catch(_){list=[];}if(!list.length)list=[{file:'00_BASLANGIC_TR.md',title:'Başlangıç ve güvenli kullanım'}];$('docSelect').innerHTML=list.map(d=>`<option value="${safeText(d.file)}">${safeText(d.title)}</option>`).join('');$('docListButtons').innerHTML=list.map(d=>`<button class="doc-select-btn" data-doc="${safeText(d.file)}">${safeText(d.title)}</button>`).join('');$('docSelect').addEventListener('change',()=>openDoc($('docSelect').value));$('docListButtons').querySelectorAll('[data-doc]').forEach(b=>b.addEventListener('click',()=>openDoc(b.dataset.doc)));}if($('docSelect').value)openDoc($('docSelect').value);}
 async function openDoc(filename){try{let d;if(api())d=await api().read_doc(filename);else{const response=await fetch('/assets/docs/'+encodeURIComponent(filename));d={title:filename,content:await response.text()};} const friendlyTitle=$('docSelect').selectedOptions?.[0]?.textContent;$('docTitle').textContent=friendlyTitle||d.title||'Ders kılavuzu';$('docBody').innerHTML=renderMarkdown(d.content||'');$('docSelect').value=filename;document.querySelectorAll('[data-doc]').forEach(b=>b.classList.toggle('active',b.dataset.doc===filename));}catch(err){$('docTitle').textContent='Belge açılamadı';$('docBody').textContent=err.message;}}
 function renderMarkdown(md){
  const esc=String(md).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -956,98 +1373,39 @@ function renderMarkdown(md){
 }
 function inlineMd(s){return s.replace(/`([^`]+)`/g,'<code>$1</code>').replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>').replace(/\[([^\]]+)\]\((https?:[^ )]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');}
 
-// --- AI providers: local Ollama auto-routing and optional Groq fallback ---
+// --- AI providers: endpoint presets, explicit consent, no key persistence ---
 const aiDefaults={
- auto:{endpoint:'http://127.0.0.1:11434/api/chat',model:'auto'},
  ollama:{endpoint:'http://127.0.0.1:11434/api/chat',model:'auto'},
  groq:{endpoint:'https://api.groq.com/openai/v1/chat/completions',model:'openai/gpt-oss-120b'}
 };
-function applyAiProviderDefaults(force=true){
- const id=$('aiProvider').value,config=aiDefaults[id]||aiDefaults.ollama;
- if(force||!$('aiEndpoint').value)$('aiEndpoint').value=config.endpoint;
- $('aiModel').value=config.model;
- $('aiModel').readOnly=true;
- $('aiKey').placeholder=id==='ollama'?'Ollama için API anahtarı gerekmez':id==='auto'?'İsteğe bağlı Groq yedek anahtarı':'Groq API anahtarı';
- $('aiStatus').textContent=id==='auto'?'Otomatik mod: önce yerel Ollama; yalnızca yerel hata ve etkin lisans varsa Groq yedeği.':id==='ollama'?'Yalnızca yerel Ollama seçildi. Yüklü modeller görev türüne göre otomatik yönlendirilir.':'Yalnızca GroqCloud seçildi. Etkin lisans ve Groq API anahtarı gerekir.';
-}
-async function refreshOllamaModels(){
- const status=$('ollamaModelStatus');
- if(!api()){status.textContent='Yerel model listesi masaüstü uygulama köprüsünü gerektirir.';return;}
- const button=$('refreshOllamaModels');
- button.disabled=true;status.textContent='127.0.0.1:11434 üzerindeki Ollama modelleri okunuyor…';
+function applyAiProviderDefaults(force=true){const id=$('aiProvider').value,config=aiDefaults[id]||aiDefaults.ollama;if(force||!$('aiEndpoint').value)$('aiEndpoint').value=config.endpoint;if(force||!$('aiModel').value)$('aiModel').value=config.model;$('aiModel').readOnly=id==='ollama';$('aiKey').placeholder=id==='ollama'?'Ollama için API anahtarı gerekmez':'Groq API anahtarı · yalnızca oturumluk';$('aiStatus').textContent=id==='ollama'?'Yerel Ollama seçildi. Göreve göre yüklü modeller otomatik yönlendirilir.':'Groq yedek sağlayıcısı seçildi. İnternet, etkin lisans ve Groq API anahtarı gerekir.';}
+async function refreshLocalOllamaStatus(){
+ const bridge=api();if(!bridge?.ai_list_models)return;
  try{
-  const result=await api().ai_list_models();
-  const models=result.models||[];
-  const routes=result.routes||{};
-  status.textContent='Ollama bağlantısı başarılı · '+models.length+' model bulundu\n'
-   +'Genel sohbet: '+(routes.general||'—')+'\n'
-   +'Kodlama: '+(routes.coding||'—')+'\n'
-   +'Kapsamlı analiz: '+(routes.analysis||'—')+'\n\n'
-   +models.map(x=>x.name).join('\n');
- }catch(err){
-  status.textContent='Ollama model listesi okunamadı: '+err.message+'\nOllama uygulamasının açık olduğunu ve ollama list komutunda modellerin göründüğünü doğrula.';
- }finally{button.disabled=false;}
+  const state=await bridge.ai_list_models();
+  const routes=state.routes||{};
+  const models=(state.models||[]).map(item=>item.name).join(', ');
+  $('aiStatus').textContent='Ollama hazır · '+state.host+'\\nYüklü modeller: '+models+'\\nOtomatik yönlendirme: Genel '+(routes.general||'—')+' · Kod '+(routes.coding||'—')+' · Analiz '+(routes.analysis||'—');
+ }catch(error){$('aiStatus').textContent='Ollama bağlantısı bekleniyor · http://127.0.0.1:11434\\n'+error.message+'\\nOllama uygulamasını açıp yerel servisi başlat.';}
 }
-function initAssistant(){
- $('buildPrompt').addEventListener('click',()=>{
-  const task=prompts[$('promptType').value]||'';
-  const context=$('promptContext').value.trim();
-  $('promptOutput').value=task+(context?'\n\nBağlam:\n'+context:'');
- });
- $('copyPrompt').addEventListener('click',async()=>{
-  try{await navigator.clipboard.writeText($('promptOutput').value);$('aiStatus').textContent='İstem panoya kopyalandı.';}
-  catch(_){$('promptOutput').select();document.execCommand('copy');}
- });
- $('aiProvider').addEventListener('change',()=>applyAiProviderDefaults(true));
- $('refreshOllamaModels').addEventListener('click',refreshOllamaModels);
- applyAiProviderDefaults(false);
- $('sendAI').addEventListener('click',sendAiText);
- $('testAIConnection').addEventListener('click',testAiConnection);
- refreshOllamaModels();
-}
-function isLocalAiEndpoint(provider, endpoint){
- try{const u=new URL(endpoint);return ['auto','ollama'].includes(provider)&&['localhost','127.0.0.1','[::1]','::1'].includes(u.hostname.toLowerCase())&&u.port==='11434';}
- catch(_){return false;}
-}
+function initAssistant(){if(window.StagepulseAndroid){const localOption=$('aiProvider').querySelector('option[value="ollama"]');if(localOption)localOption.remove();$('aiProvider').value='groq';applyAiProviderDefaults(true);}$('buildPrompt').addEventListener('click',()=>{const task=prompts[$('promptType').value]||'';const context=$('promptContext').value.trim();$('promptOutput').value=task+(context?'\n\nBağlam:\n'+context:'');});$('copyPrompt').addEventListener('click',async()=>{try{await navigator.clipboard.writeText($('promptOutput').value);$('aiStatus').textContent='İstem panoya kopyalandı.';}catch(_){$('promptOutput').select();document.execCommand('copy');}});$('aiProvider').addEventListener('change',()=>applyAiProviderDefaults(true));applyAiProviderDefaults(false);if(!window.StagepulseAndroid)refreshLocalOllamaStatus();$('sendAI').addEventListener('click',sendAiText);$('testAIConnection').addEventListener('click',testAiConnection);}
+function isLocalAiEndpoint(provider, endpoint){try{const u=new URL(endpoint);return provider==='ollama'&&['localhost','127.0.0.1','[::1]','::1'].includes(u.hostname.toLowerCase());}catch(_){return false;}}
 async function testAiConnection(){
- const button=$('testAIConnection');
- if(!api()){$('aiStatus').textContent='Bağlantı testi masaüstü uygulamasını gerektirir.';return;}
- const provider=$('aiProvider').value,endpoint=$('aiEndpoint').value.trim(),model=$('aiModel').value.trim(),key=$('aiKey').value;
+ const client=accountApi();if(!client?.ai_chat){$('aiStatus').textContent='AI bağlantısı için desteklenen uygulama köprüsü gerekli.';return;}
+ if(window.StagepulseAndroid&&$('aiProvider').value==='ollama'){$('aiStatus').textContent='Android cihazındaki 127.0.0.1 telefona aittir. Windows PC Ollama bağlantısı için aynı ağdaki PC adresi gerekir; bu sürümde yalnızca Windows yerel Ollama ve Android Groq desteklenir.';return;}
+ const provider=$('aiProvider').value,endpoint=$('aiEndpoint').value.trim(),model=provider==='ollama'?'auto':$('aiModel').value.trim(),key=$('aiKey').value;
  if(!appAuthorized){$('aiStatus').textContent='AI araçları için ödeme onaylı etkin Stagepulse lisansı gerekir.';return;}
  if(!$('aiConsent').checked){$('aiStatus').textContent='Önce seçili sağlayıcıya metin gönderme iznini işaretle.';return;}
- if(!endpoint||!model){$('aiStatus').textContent='Bağlantı adresi ve otomatik model yönlendirmesi gerekli.';return;}
- try{
-  button.disabled=true;$('aiStatus').textContent='Seçili sağlayıcı test ediliyor…';
-  const result=await api().ai_chat(provider,model,key,'Bu bir bağlantı testidir. Yalnızca STAGEPULSE_BAGLANTI_OK yaz.',endpoint);
-  $('aiStatus').textContent='Bağlantı başarılı · '+(result.provider_name||provider)+' · '+(result.model||model)+'\nYanıt: '+(result.content||'').slice(0,500);
- }catch(err){
-  $('aiStatus').textContent='Bağlantı testi başarısız: '+err.message+'\nOllama servisinin çalıştığını ve modelin yerel listede bulunduğunu kontrol et.';
- }finally{
-  $('aiKey').value='';
-  button.disabled=false;
- }
+ if(!endpoint||!model){$('aiStatus').textContent='Endpoint ve model adı gerekli.';return;}
+ try{$('testAIConnection').disabled=true;$('aiStatus').textContent='Sağlayıcıya kısa bağlantı testi gönderiliyor…';const r=await client.ai_chat(provider,model,key,'Bu bir bağlantı testidir. Yalnızca STAGEPULSE_BAGLANTI_OK yaz.',endpoint);$('aiStatus').textContent=`Bağlantı başarılı · ${r.provider_name||provider} · ${r.model||model}\nYanıt: ${(r.content||'').slice(0,500)}`;$('aiKey').value='';}
+ catch(err){$('aiStatus').textContent='Bağlantı testi başarısız: '+err.message+'\nİnternet, API anahtarı, model adı veya Ollama servis durumunu kontrol et.';}
+ finally{$('aiKey').value='';$('testAIConnection').disabled=false;}
 }
-async function sendAiText(){
- const button=$('sendAI');
- if(!api()){$('aiStatus').textContent='Yerel AI çağrısı masaüstü uygulama köprüsünü gerektirir.';return;}
- const provider=$('aiProvider').value,endpoint=$('aiEndpoint').value.trim(),model=$('aiModel').value.trim(),key=$('aiKey').value,prompt=$('promptOutput').value.trim()||$('promptContext').value.trim();
- if(!appAuthorized){$('aiStatus').textContent='AI araçları için ödeme onaylı etkin Stagepulse lisansı gerekir.';return;}
- if(!$('aiConsent').checked){$('aiStatus').textContent='Önce veri gönderim iznini işaretle.';return;}
- if(!endpoint||!model||!prompt){$('aiStatus').textContent='Bağlantı, otomatik model yönlendirmesi ve istem gerekli.';return;}
- try{
-  button.disabled=true;$('aiStatus').textContent='İstem seçili AI sağlayıcısına gönderiliyor…';
-  const result=await api().ai_chat(provider,model,key,prompt,endpoint);
-  $('aiStatus').textContent=(result.model||model)+' yanıtı:\n\n'+(result.content||JSON.stringify(result,null,2));
- }catch(err){
-  $('aiStatus').textContent='AI isteği başarısız: '+err.message+'\nOllama yüklü modellerinden otomatik seçim yapılır; Groq anahtarı kaydedilmez.';
- }finally{
-  $('aiKey').value='';
-  button.disabled=false;
- }
-}
+async function sendAiText(){const client=accountApi();if(!client?.ai_chat){$('aiStatus').textContent='AI isteği için desteklenen uygulama köprüsü gerekli.';return;}if(window.StagepulseAndroid&&$('aiProvider').value==='ollama'){$('aiStatus').textContent='Ollama yalnızca Windows Ses Merkezi üzerinde yerel çalışır; Android için bulut sağlayıcısı seç.';return;}const provider=$('aiProvider').value,endpoint=$('aiEndpoint').value.trim(),model=provider==='ollama'?'auto':$('aiModel').value.trim(),key=$('aiKey').value,prompt=$('promptOutput').value.trim()||$('promptContext').value.trim();if(!appAuthorized){$('aiStatus').textContent='AI araçları için ödeme onaylı etkin Stagepulse lisansı gerekir.';return;}if(!$('aiConsent').checked){$('aiStatus').textContent='Önce veri gönderim iznini işaretle.';return;}if(!endpoint||!model||!prompt){$('aiStatus').textContent='Endpoint, model ve istem gerekli.';return;}if(provider!=='ollama'&&!/^https:\/\//i.test(endpoint)){$('aiStatus').textContent='Çevrimiçi sağlayıcı HTTPS kullanmalı.';return;}try{$('sendAI').disabled=true;$('aiStatus').textContent='İstem yalnızca seçilen AI sağlayıcısına gönderiliyor…';const r=await client.ai_chat(provider,model,key,prompt,endpoint);$('aiStatus').textContent=`${r.model||model} yanıtı:\n\n${r.content||JSON.stringify(r,null,2)}`;$('aiKey').value='';}catch(err){$('aiStatus').textContent='AI isteği başarısız: '+err.message+'\nAPI anahtarı kaydedilmez; yerel şablonlar çevrimdışı çalışır.';}finally{$('aiKey').value='';$('sendAI').disabled=false;}}
 
 // --- Commercial account, license and teacher progress ---
-function commerceApi(){return api();}
+
+function commerceApi(){return accountApi();}
 function applyAccountContext(context){
  currentAccountContext=context||null;currentRole=context?.role||'guest';
  const license=context?.licensed||{},trial=context?.trial||{};appAuthorized=currentRole==='owner'||license.active===true||trial.active===true;
@@ -1057,20 +1415,21 @@ function applyAccountContext(context){
  if($('progressRoleBadge'))$('progressRoleBadge').textContent=currentRole==='owner'?'Öğretmen / yönetici':currentRole==='student'?'Öğrenci · salt okunur':'Hesap gerekli';
  const admin=currentRole==='owner';$('teacherLicensePanel').classList.toggle('hidden',!admin);$('teacherProgressPanel').classList.toggle('hidden',!admin);$('fullPackageAdminPanel')?.classList.toggle('hidden',!admin);$('fullPackagePurchasePanel')?.classList.toggle('hidden',!context?.user?.id);
  $('licenseActivate').disabled=currentRole==='owner';$('licenseActivate').textContent=currentRole==='owner'?'Sahip hesabı lisans gerektirmez':'Bu cihazı etkinleştir';
+
  if(trial.active){const seconds=Math.max(0,Number(trial.remaining_seconds||0)),days=Math.floor(seconds/86400),hours=Math.ceil((seconds%86400)/3600);$('licenseStatusText').textContent=`7 günlük demo açık · ${days>0?days+' gün ':''}${Math.max(1,hours)} saat kaldı`;appAuthorized=true;}
  else if(license.active){$('licenseStatusText').textContent=`Lisans etkin · FULL PAKET${license.expires_at?' · son tarih '+new Date(license.expires_at).toLocaleDateString('tr-TR'):''}`;appAuthorized=true;}
  else $('licenseStatusText').textContent=currentRole==='owner'?'Stagepulse sahibi hesabı doğrulandı.':'Ödeme onaylı etkin lisans veya süresi dolmamış demo gerekli.';
  $('accountStatus').textContent=`Hesap: ${context?.user?.email||context?.user?.phone||'—'}\nYetki: ${currentRole}\nLisans: ${license.active?'etkin':'etkin değil'}\nWeb: https://stagepulse.com.tr`;
- if(context?.user?.email&&!$('accountEmail').value)$('accountEmail').value=context.user.email;if(context?.user?.name&&!$('purchaseCustomerName').value)$('purchaseCustomerName').value=context.user.name;
+ if((context?.user?.email||context?.user?.phone)&&!$('accountEmail').value)$('accountEmail').value=context.user.email||context.user.phone;if(context?.user?.name&&!$('purchaseCustomerName').value)$('purchaseCustomerName').value=context.user.name;
  refreshProfiles();renderStudentModules();
  if(currentRole==='student')refreshStudentProgress().catch(err=>{$('accountStatus').textContent+='\nİlerleme: '+err.message;});
  if(admin){refreshTeacherStudents().catch(err=>{$('teacherProgressStatus').textContent='Öğrenci listesi alınamadı: '+err.message;});refreshLicenseList();}if(context?.user?.id)refreshFullPackageStore();
  if(appAuthorized&&activeRoute==='account')setStatus('Stagepulse hesabı doğrulandı.');
 }
 function refreshAccountUi(){
- if(!api()){$('accountStatus').textContent='Masaüstü çalışma köprüsü bulunamadı. Kaynak önizlemesinde hesap/lisans işlemleri devre dışıdır.';return;}
+ if(!accountApi()){$('accountStatus').textContent='Android lisans bağlantısı kullanılamıyor. Uygulama lisans doğrulanana kadar kilitli.';return;}
  if(currentAccountContext){applyAccountContext(currentAccountContext);return;}
- api().app_info().then(info=>{
+ accountApi().app_info().then(info=>{
   const cached=info?.cached_license;
   if(cached?.active){
    appAuthorized=true;
@@ -1084,28 +1443,35 @@ function refreshAccountUi(){
   if(licenseGatePending){licenseGatePending=false;setPage(appAuthorized?'home':'account');}
  }).catch(()=>{});
 }
-async function checkForUpdates(silent=false){const bridge=api()||(typeof accountApi==='function'?accountApi():null);if(!bridge||typeof bridge.check_updates!=='function'||updateCheckInProgress)return null;updateCheckInProgress=true;const check=$('checkUpdates'),status=$('updateStatus'),install=$('installUpdate');if(!silent&&check){check.disabled=true;if(status)status.textContent='Stagepulse güncellemeleri denetleniyor…';}try{const result=api()?await api().check_updates():await bridge.check_updates();if(!result||result.offline||result.ok===false){if(!silent&&status)status.textContent=result?.message||'Güncelleme servisine şu anda ulaşılamıyor.';return null;}latestUpdateManifest=result;const available=result.published===true&&result.available===true;if(install)install.classList.toggle('hidden',!available);if(available){const version=result.version||result.versionName||'Yeni sürüm';const message=`Yeni sürüm mevcut: ${version}.\n${result.message||'Güncelleme indirilmeye hazır.'}${result.notes?'\n\nSürüm notları: '+result.notes:''}`;if(status)status.textContent=message;if(silent)setStatus(`Yeni Stagepulse sürümü mevcut: ${version}. Hesap / güncellemeler bölümünden indirebilirsin.`);}else if(!silent&&status){status.textContent=result.message||(result.published?'Uygulama güncel.':'Henüz yayımlanmış kararlı güncelleme yok.');}return result;}catch(error){if(!silent&&status)status.textContent='Güncelleme denetlenemedi: '+String(error.message||error);return null;}finally{updateCheckInProgress=false;if(!silent&&check)check.disabled=false;}}
+async function checkForUpdates(silent=false){const bridge=api()||(typeof accountApi==='function'?accountApi():null);if(!bridge||typeof bridge.check_updates!=='function'||updateCheckInProgress)return null;updateCheckInProgress=true;const check=$('checkUpdates'),status=$('updateStatus'),install=$('installUpdate');if(!silent&&check){check.disabled=true;if(status)status.textContent='Stagepulse güncellemeleri denetleniyor…';}try{const result=await bridge.check_updates();if(!result||result.offline||result.ok===false){if(!silent&&status)status.textContent=result?.message||'Güncelleme servisine şu anda ulaşılamıyor.';return null;}latestUpdateManifest=result;const available=result.published===true&&result.available===true;if(install)install.classList.toggle('hidden',!available);if(available){const version=result.version||result.versionName||'Yeni sürüm';const message=`Yeni sürüm mevcut: ${version}.\n${result.message||'Güncelleme indirilmeye hazır.'}${result.notes?'\n\nSürüm notları: '+result.notes:''}`;if(status)status.textContent=message;if(silent)setStatus(`Yeni Stagepulse sürümü mevcut: ${version}. Hesap / güncellemeler bölümünden indirebilirsin.`);}else if(!silent&&status){status.textContent=result.message||(result.published?'Uygulama güncel.':'Henüz yayımlanmış kararlı güncelleme yok.');}return result;}catch(error){if(!silent&&status)status.textContent='Güncelleme denetlenemedi: '+String(error.message||error);return null;}finally{updateCheckInProgress=false;if(!silent&&check)check.disabled=false;}}
 async function openWhatsAppSupport(){const url='https://wa.me/905320683012?text='+encodeURIComponent('Merhaba Stagepulse, uygulama desteği almak istiyorum.');try{if(window.StagepulseAndroid&&typeof window.StagepulseAndroid.openWhatsApp==='function'){window.StagepulseAndroid.openWhatsApp();return;}}catch(_){}try{if(window.pywebview&&window.pywebview.api&&typeof window.pywebview.api.open_whatsapp==='function'){window.pywebview.api.open_whatsapp();return;}}catch(_){}window.open(url,'_blank','noopener');}
 function initAccount(){
  initFullPackageCommerce();
- $('accountLogin').addEventListener('click',async()=>{try{$('accountLogin').disabled=true;$('accountStatus').textContent='Hesap doğrulanıyor…';const result=await api().auth_login($('accountEmail').value,$('accountPassword').value);applyAccountContext(result.context);$('accountPassword').value='';setStatus('Stagepulse hesabına giriş yapıldı.');}catch(err){$('accountStatus').textContent='Giriş başarısız: '+err.message;}finally{$('accountLogin').disabled=false;}});
- $('accountSignup').addEventListener('click',async()=>{try{if(!$('accountEmail').value.trim())throw new Error('E-posta veya telefon numarası gerekli.');$('accountSignup').disabled=true;$('accountStatus').textContent='Öğrenci hesabı oluşturuluyor…';const result=await api().auth_signup($('accountEmail').value,$('accountPassword').value,$('accountDisplayName').value);$('accountStatus').textContent=result.message;if(result.session_created){const context=await api().auth_context();applyAccountContext(context);}else $('accountPassword').value='';}catch(err){$('accountStatus').textContent='Hesap oluşturulamadı: '+err.message;}finally{$('accountSignup').disabled=false;}});
- $('licenseActivate').addEventListener('click',async()=>{try{if(!api())throw new Error('Masaüstü köprüsü yok.');$('licenseActivate').disabled=true;$('accountStatus').textContent='Lisans anahtarı sunucuda doğrulanıyor…';const r=await api().license_activate($('licenseKeyInput').value);$('licenseKeyInput').value='';applyAccountContext(r.context);$('accountStatus').textContent='Lisans etkinleştirildi.\n'+JSON.stringify(r.activation.result||{},null,2);}catch(err){$('accountStatus').textContent='Lisans etkinleştirilemedi: '+err.message;}finally{$('licenseActivate').disabled=false;}});
- $('accountLogout').addEventListener('click',async()=>{try{if(api())await api().auth_logout();}catch(_){}currentAccountContext=null;currentRole='guest';appAuthorized=false;remoteProgress={};selectedTeacherStudentId='';latestUpdateManifest=null;$('teacherLicensePanel').classList.add('hidden');$('teacherProgressPanel').classList.add('hidden');$('fullPackageAdminPanel')?.classList.add('hidden');$('fullPackagePurchasePanel')?.classList.add('hidden');$('accountPassword').value='';$('accountStatus').textContent='Oturum kapatıldı. Yerel lisans önbelleği de temizlendi.';setPage('account');renderStudentModules();});
+ if(!accountApi()){
+  ['accountLogin','accountSignup','licenseActivate','checkUpdates','installUpdate'].forEach(id=>{const el=$(id);if(el)el.disabled=true;});
+  if($('accountStatus'))$('accountStatus').textContent='Android sürümünde hesap, lisans aktivasyonu ve otomatik güncelleme sunucu bağlantısı henüz etkin değil. Yerel eğitim, WAV analizi, RTA, miks atölyesi ve dışa aktarma kullanılabilir. Hesap/lisans işlemi için Windows masaüstü sürümünü kullan.';
+  if($('licenseStatusText'))$('licenseStatusText').textContent='Android lisans bağlantısı bekliyor.';
+ }
+ if(window.StagepulseAndroid && $('updateStatus')){
+  $('updateStatus').textContent='Android güncelleme servisi hazır. Yeni sürümü denetleyebilirsin.';
+ }
+ $('accountLogin').addEventListener('click',async()=>{try{$('accountLogin').disabled=true;$('accountStatus').textContent='Hesap doğrulanıyor…';const result=await accountApi().auth_login($('accountEmail').value,$('accountPassword').value);applyAccountContext(result.context);$('accountPassword').value='';setStatus('Stagepulse hesabına giriş yapıldı.');}catch(err){$('accountStatus').textContent='Giriş başarısız: '+err.message;}finally{$('accountLogin').disabled=false;}});
+ $('accountSignup').addEventListener('click',async()=>{try{$('accountSignup').disabled=true;$('accountStatus').textContent='Öğrenci hesabı oluşturuluyor…';const result=await accountApi().auth_signup($('accountEmail').value,$('accountPassword').value,$('accountDisplayName').value);$('accountStatus').textContent=result.message;if(result.session_created){const context=await accountApi().auth_context();applyAccountContext(context);}else $('accountPassword').value='';}catch(err){$('accountStatus').textContent='Hesap oluşturulamadı: '+err.message;}finally{$('accountSignup').disabled=false;}});
+ $('licenseActivate').addEventListener('click',async()=>{try{if(!accountApi())throw new Error('Masaüstü köprüsü yok.');$('licenseActivate').disabled=true;$('accountStatus').textContent='Lisans anahtarı sunucuda doğrulanıyor…';const r=await accountApi().license_activate($('licenseKeyInput').value);$('licenseKeyInput').value='';applyAccountContext(r.context);$('accountStatus').textContent='Lisans etkinleştirildi.\n'+JSON.stringify(r.activation.result||{},null,2);}catch(err){$('accountStatus').textContent='Lisans etkinleştirilemedi: '+err.message;}finally{$('licenseActivate').disabled=false;}});
+ $('accountLogout').addEventListener('click',async()=>{try{if(accountApi())await accountApi().auth_logout();}catch(_){}currentAccountContext=null;currentRole='guest';appAuthorized=false;remoteProgress={};selectedTeacherStudentId='';latestUpdateManifest=null;$('teacherLicensePanel').classList.add('hidden');$('teacherProgressPanel').classList.add('hidden');$('fullPackageAdminPanel')?.classList.add('hidden');$('fullPackagePurchasePanel')?.classList.add('hidden');$('accountPassword').value='';$('accountStatus').textContent='Oturum kapatıldı. Yerel lisans önbelleği de temizlendi.';setPage('account');renderStudentModules();});
 
  $('refreshLicenseList')?.addEventListener('click',refreshLicenseList);
  $('checkUpdates').addEventListener('click',()=>checkForUpdates(false));
- $('installUpdate').addEventListener('click',async()=>{if(!latestUpdateManifest)return;try{$('installUpdate').disabled=true;$('updateStatus').textContent='Kurulum paketi indiriliyor ve SHA-256 doğrulanıyor…';const r=await api().install_update(JSON.stringify(latestUpdateManifest));$('updateStatus').textContent=r.message||'Güncelleme başlatıldı.';}catch(err){$('updateStatus').textContent='Güncelleme kurulamadı: '+err.message;}finally{$('installUpdate').disabled=false;}});
- $('openStagepulseSite').addEventListener('click',()=>api()?.open_website('home'));$('openSupportSite').addEventListener('click',()=>openWhatsAppSupport());$('studentPurchaseCta')?.addEventListener('click',()=>{setPage('account');$('accountEmail')?.focus();});$('studentWhatsAppCta')?.addEventListener('click',openWhatsAppSupport);
+ $('installUpdate').addEventListener('click',async()=>{if(!latestUpdateManifest)return;try{$('installUpdate').disabled=true;$('updateStatus').textContent='Kurulum paketi indiriliyor ve SHA-256 doğrulanıyor…';const r=await accountApi().install_update(JSON.stringify(latestUpdateManifest));$('updateStatus').textContent=r.message||'Güncelleme başlatıldı.';}catch(err){$('updateStatus').textContent='Güncelleme kurulamadı: '+err.message;}finally{$('installUpdate').disabled=false;}});
+ $('openStagepulseSite').addEventListener('click',()=>accountApi()?.open_website('home'));$('openSupportSite').addEventListener('click',()=>openWhatsAppSupport());$('studentPurchaseCta')?.addEventListener('click',()=>{setPage('account');$('accountEmail')?.focus();});$('studentWhatsAppCta')?.addEventListener('click',openWhatsAppSupport);
  // Updates are checked only when the user opens this panel and clicks the button.
 }
 async function refreshLicenseList(){
- const host=$('licenseList'),status=$('licenseListStatus');if(!host||!status)return;if(currentRole!=='owner'||!api()){host.innerHTML='';status.textContent='Bu liste yalnızca Stagepulse sahibine açıktır.';return;}
+ const host=$('licenseList'),status=$('licenseListStatus');if(!host||!status)return;if(currentRole!=='owner'||!accountApi()){host.innerHTML='';status.textContent='Bu liste yalnızca Stagepulse sahibine açıktır.';return;}
  const refresh=$('refreshLicenseList');if(refresh)refresh.disabled=true;status.textContent='Lisans kayıtları sunucudan alınıyor…';
- try{const result=await api().license_list();const items=result.licenses||[];if(!items.length){host.innerHTML='';status.textContent='Henüz lisans oluşturulmadı.';return;}
+ try{const result=await accountApi().license_list();const items=result.licenses||[];if(!items.length){host.innerHTML='';status.textContent='Henüz lisans oluşturulmadı.';return;}
  host.innerHTML=items.map(x=>{const active=x.is_active===true,paid=x.payment_status==='paid',expiry=x.expires_at?new Date(x.expires_at).toLocaleDateString('tr-TR'):'Süresiz';const count=Number(x.active_activations||0),max=Number(x.max_activations||1),paymentLabel={paid:'Ödendi',unpaid:'Ödeme bekliyor',refunded:'İade edildi'}[x.payment_status||'paid']||'Durum bilinmiyor',methodLabel={cash:'Elden / nakit',bank_transfer:'Havale / EFT',card:'Kart',other:'Diğer',legacy:'Eski kayıt'}[x.payment_method||'legacy']||x.payment_method||'—',customer=x.customer_name||'FULL PAKET',amount=`${Number(x.amount||0).toLocaleString('tr-TR',{minimumFractionDigits:2,maximumFractionDigits:2})} ${safeText(x.currency||'TRY')}`;return `<article class="license-row"><div class="license-row-main"><strong>${safeText(customer)}</strong><span class="license-status ${active&&paid?'is-active':'is-revoked'}">${!active?'Lisans kapalı':paid?'Lisans etkin':'Aktivasyon bekliyor'} · ${paymentLabel}</span><small>FULL PAKET · ${count}/${max} cihaz · ${safeText(expiry)} · ${amount} · ${safeText(methodLabel)}</small><small>${safeText(x.customer_email||'')} ${x.payment_reference?'· Referans: '+safeText(x.payment_reference):''} · ${safeText(new Date(x.created_at).toLocaleDateString('tr-TR'))}</small></div>${active?`<button class="btn btn-danger btn-small" data-revoke-license="${safeText(x.id)}">Lisansı iptal et</button>`:''}</article>`;}).join('');
- 
- host.querySelectorAll('[data-revoke-license]').forEach(btn=>btn.addEventListener('click',async()=>{const id=btn.dataset.revokeLicense;if(!id||!confirm('Bu lisansın tüm etkin cihazlarını ve öğrencinin resmî erişimini iptal etmek istiyor musun?'))return;btn.disabled=true;try{await api().license_revoke(id);status.textContent='Lisans iptal edildi ve bağlı öğrenci erişimleri kapatıldı.';await refreshLicenseList();}catch(err){status.textContent='Lisans iptal edilemedi: '+err.message;btn.disabled=false;}}));
+ host.querySelectorAll('[data-revoke-license]').forEach(btn=>btn.addEventListener('click',async()=>{const id=btn.dataset.revokeLicense;if(!id||!confirm('Bu lisansın tüm etkin cihazlarını ve öğrencinin resmî erişimini iptal etmek istiyor musun?'))return;btn.disabled=true;try{await accountApi().license_revoke(id);status.textContent='Lisans iptal edildi ve bağlı öğrenci erişimleri kapatıldı.';await refreshLicenseList();}catch(err){status.textContent='Lisans iptal edilemedi: '+err.message;btn.disabled=false;}}));
  status.textContent=`${items.length} lisans kaydı. Ödeme durumu bu listede izlenir; anahtarlar güvenlik nedeniyle yeniden gösterilmez.`;
  }catch(err){host.innerHTML='';status.textContent='Lisans listesi alınamadı: '+err.message;}finally{if(refresh)refresh.disabled=false;}
 }
@@ -1162,11 +1528,11 @@ function initFullPackageCommerce(){
  $("copyFullPackageIssuedKey")?.addEventListener("click",async()=>{const key=$("fullPackageIssuedKey").value;if(!key)return;try{await navigator.clipboard.writeText(key);$("fullPackageAdminStatus").textContent="Lisans anahtarı panoya kopyalandı.";}catch(_){$("fullPackageIssuedKey").select();document.execCommand("copy");}});
 }
 
-async function refreshTeacherStudents(){if(currentRole!=='owner'||!api())return;try{const result=await api().teacher_students();teacherStudents=result.students||[];const sel=$('teacherStudentSelect'),old=sel.value;sel.innerHTML='<option value="">Öğrenci seç</option>'+teacherStudents.map(st=>`<option value="${safeText(st.user_id)}">${safeText(st.display_name||st.email||st.user_id)} · ${safeText(st.email||'')}</option>`).join('');if(old&&teacherStudents.some(st=>st.user_id===old))sel.value=old;else selectedTeacherStudentId='';if(sel.value){selectedTeacherStudentId=sel.value;await refreshStudentProgress(selectedTeacherStudentId);}else{remoteProgress={};renderStudentModules();$('teacherProgressStatus').textContent=`Kayıtlı öğrenci: ${teacherStudents.length}. Öğrenciyi seçerek aşama durumunu aç.`;}}catch(err){$('teacherProgressStatus').textContent='Öğrenci listesi okunamadı: '+err.message;}}
+async function refreshTeacherStudents(){if(currentRole!=='owner'||!accountApi())return;try{const result=await accountApi().teacher_students();teacherStudents=result.students||[];const sel=$('teacherStudentSelect'),old=sel.value;sel.innerHTML='<option value="">Öğrenci seç</option>'+teacherStudents.map(st=>`<option value="${safeText(st.user_id)}">${safeText(st.display_name||st.email||st.user_id)} · ${safeText(st.email||'')}</option>`).join('');if(old&&teacherStudents.some(st=>st.user_id===old))sel.value=old;else selectedTeacherStudentId='';if(sel.value){selectedTeacherStudentId=sel.value;await refreshStudentProgress(selectedTeacherStudentId);}else{remoteProgress={};renderStudentModules();$('teacherProgressStatus').textContent=`Kayıtlı öğrenci: ${teacherStudents.length}. Öğrenciyi seçerek aşama durumunu aç.`;}}catch(err){$('teacherProgressStatus').textContent='Öğrenci listesi okunamadı: '+err.message;}}
 
 // --- Settings ---
 function initSettings(){$('checkOffline').addEventListener('click',()=>{$('settingsInfo').textContent=`Tarayıcı bağlantı işareti: ${navigator.onLine?'ağ bağlantısı var':'çevrimdışı'}\nYerel araçlar: hazır\nMikrofon: yalnızca RTA başlatılınca istenir\nÖğrenci deposu: ${apiReady?'bağlı':'önizleme modu'}`;});$('exportAllData').addEventListener('click',()=>downloadBlob(new Blob([JSON.stringify({profiles},null,2)],{type:'application/json'}),'Stagepulse_Tum_Ogrenci_Verileri.json'));}
-async function loadAppInfo(){if(!api())return;try{const info=await api().app_info();const platform=info.platform==='android'?'Android':info.runtime==='WebView2'?'Windows masaüstü':'Masaüstü';$('settingsInfo').textContent=[`Sürüm: ${info.version||'Bilinmiyor'}`,`Platform: ${platform}`,`Bağlantı: ${navigator.onLine?'İnternet erişimi var':'Çevrimdışı'}`,'Yerel araçlar: Hazır'].join('\n');if(!currentAccountContext&&info.cached_license?.active){appAuthorized=true;if(activeRoute==='account')refreshAccountUi();}}catch(err){$('settingsInfo').textContent='Uygulama durumu şu anda okunamıyor.';}}
+async function loadAppInfo(){if(!accountApi())return;try{const info=await accountApi().app_info();const platform=info.platform==='android'?'Android':info.runtime==='WebView2'?'Windows masaüstü':'Masaüstü';$('settingsInfo').textContent=[`Sürüm: ${info.version||'Bilinmiyor'}`,`Platform: ${platform}`,`Bağlantı: ${navigator.onLine?'İnternet erişimi var':'Çevrimdışı'}`,'Yerel araçlar: Hazır'].join('\n');if(!currentAccountContext&&info.cached_license?.active){appAuthorized=true;if(activeRoute==='account')refreshAccountUi();}}catch(err){$('settingsInfo').textContent='Uygulama durumu şu anda okunamıyor.';}}
 
 // Keyboard shortcut: Ctrl+K focuses current module (future-proof, no network calls).
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();const route=prompt('Araç adı gir: '+Object.values(routes).join(', '));if(!route)return;const entry=Object.entries(routes).find(([,label])=>label.toLocaleLowerCase('tr').includes(route.toLocaleLowerCase('tr')));if(entry)setPage(entry[0]);}});
