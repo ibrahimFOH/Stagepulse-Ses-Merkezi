@@ -27,6 +27,9 @@ for p in (HTML, UI / "app.js", UI / "style.css", UI / "rta_math.js", UI / "acous
 
 if HTML.is_file():
     source = HTML.read_text(encoding="utf-8")
+    for control in DYNAMICS_CONTROLS:
+        if f'id="{control}"' not in source:
+            errors.append("Kulak eğitimi dinamik işlemci kontrolü eksik: " + control)
     refs = re.findall(r"""(?i)\b(?:href|src)\s*=\s*["']([^"']+)["']""", source)
     for ref in refs:
         value = ref.strip()
@@ -49,6 +52,7 @@ if HTML.is_file():
             errors.append("HTML kaynağı APK içinde bulunamadı: " + value + " -> " + str(target.relative_to(ASSETS)))
 
 ENGINEERING_PAGES = ("systemplan", "patch", "rf", "distribution", "roommap", "speaker", "wavelab")
+DYNAMICS_CONTROLS = ("compThreshold", "compRatio", "compPlayA", "compPlayB", "gateThreshold", "gateRange", "gatePlayA", "gatePlayB")
 if HTML.is_file():
     page_source = HTML.read_text(encoding="utf-8")
     page_names = re.findall(r"""data-page\s*=\s*["']([^"']+)["']""", page_source)

@@ -507,6 +507,42 @@
     </div>
     <article class="panel"><h3>Referans ve örnekler (Reference values)</h3><div class="wave-spl-reference"><button class="btn btn-secondary btn-small" type="button" data-wave-spl="0.00002">20 µPa · 0 dB SPL</button><button class="btn btn-secondary btn-small" type="button" data-wave-spl="0.001">1 mPa</button><button class="btn btn-secondary btn-small" type="button" data-wave-spl="1">1 Pa · 94 dB SPL</button><button class="btn btn-secondary btn-small" type="button" data-wave-spl="20">20 Pa · 120 dB SPL</button></div><p class="wave-lab-note" id="waveSplNote">Referans basınç 20 µPa'dır. Bu araç basınç ile dB SPL arasında matematiksel dönüşüm yapar; mikrofon kalibrasyonu veya akustik ölçüm yapmaz.</p></article>
   </section>
+      <div class="section-heading dynamics-heading"><div><span class="eyebrow">DİNAMİK İŞLEMCİLER</span><h3>Kompresör ve gürültü kapısı (Noise Gate) kulak eğitimi</h3></div><span class="muted">Ses yalnızca oynat düğmesine bastığında üretilir.</span></div>
+      <div class="dynamics-grid">
+        <article class="panel dynamics-panel">
+          <div class="panel-head"><div><span class="eyebrow">ALIŞTIRMA 03</span><h3>Kompresör etkisini tanı</h3></div><span class="chip">A / B</span></div>
+          <p class="muted">A ham sinyaldir. B eşik, oran, diz, atak, bırakma ve çıkış kazancı ayarları uygulanmış sinyaldir.</p>
+          <div class="field-row"><label for="compSignalType">Test sinyali</label><select id="compSignalType"><option value="voice">Konuşma benzeri sinyal</option><option value="drums">Vurmalı sinyal</option><option value="bass">Bas sinyali</option></select></div>
+          <div class="field-row"><label for="compThreshold">Eşik <span id="compThresholdValue">−20 dB</span></label><input id="compThreshold" type="range" min="-36" max="-6" step="1" value="-20"></div>
+          <div class="field-row"><label for="compRatio">Oran <span id="compRatioValue">4:1</span></label><input id="compRatio" type="range" min="1" max="12" step="0.5" value="4"></div>
+          <div class="field-row"><label for="compKnee">Diz (Knee) <span id="compKneeValue">6 dB</span></label><input id="compKnee" type="range" min="0" max="24" step="1" value="6"></div>
+          <div class="field-row"><label for="compAttack">Atak <span id="compAttackValue">10 ms</span></label><input id="compAttack" type="range" min="1" max="100" step="1" value="10"></div>
+          <div class="field-row"><label for="compRelease">Bırakma <span id="compReleaseValue">120 ms</span></label><input id="compRelease" type="range" min="20" max="500" step="5" value="120"></div>
+          <div class="field-row"><label for="compMakeup">Çıkış kazancı <span id="compMakeupValue">0 dB</span></label><input id="compMakeup" type="range" min="0" max="12" step="0.5" value="0"></div>
+          <label class="check-row"><input id="compLevelMatch" type="checkbox" checked> A/B ses düzeyini eşitle</label>
+          <div class="row-actions"><button class="btn btn-secondary" id="compPlayA">A · Ham sinyal</button><button class="btn btn-gold" id="compPlayB">B · Kompresörlü</button><button class="btn btn-secondary" id="compNew">Ayarları uygula</button></div>
+          <div class="quiz-block"><strong>Rastgele dinleme sınavı</strong><p class="muted">A ve B örneklerinin sırası değişir. Kompresörün hangi örneğe uygulandığını tahmin et.</p><div class="row-actions"><button class="btn btn-secondary" id="compQuizNew">Yeni rastgele tur</button><button class="btn btn-secondary" id="compQuizPlayA">Tur A'yı dinle</button><button class="btn btn-secondary" id="compQuizPlayB">Tur B'yi dinle</button></div><div class="row-actions"><button class="btn btn-secondary" id="compQuizAnswerA">İşlem A'da</button><button class="btn btn-secondary" id="compQuizAnswerB">İşlem B'de</button></div><div id="compQuizFeedback" class="feedback" aria-live="polite">Yeni tur oluşturup A ve B örneklerini dinle.</div></div>
+          <div class="meter-track"><span id="compMeter" class="meter-fill"></span></div>
+          <div id="compReduction" class="result-line">Kazanç azaltımı hesaplanıyor.</div><div id="compMatchInfo" class="muted"></div>
+          <div id="compFeedback" class="feedback" aria-live="polite">A ve B örneklerini karşılaştır.</div>
+        </article>
+        <article class="panel dynamics-panel">
+          <div class="panel-head"><div><span class="eyebrow">ALIŞTIRMA 04</span><h3>Gürültü kapısının etkisini tanı</h3></div><span class="chip">A / B</span></div>
+          <p class="muted">Eşik altındaki düşük seviyeli sinyali bastır. Atak, bekletme ve bırakma sürelerinin kuyruklara etkisini dinle.</p>
+          <div class="field-row"><label for="gateSignalType">Test sinyali</label><select id="gateSignalType"><option value="voice">Konuşma benzeri sinyal</option><option value="drums">Vurmalı sinyal</option><option value="bass">Bas sinyali</option></select></div>
+          <div class="field-row"><label for="gateThreshold">Eşik <span id="gateThresholdValue">−38 dB</span></label><input id="gateThreshold" type="range" min="-60" max="-18" step="1" value="-38"></div>
+          <div class="field-row"><label for="gateRange">Kısma aralığı <span id="gateRangeValue">−60 dB</span></label><input id="gateRange" type="range" min="-80" max="-6" step="1" value="-60"></div>
+          <div class="field-row"><label for="gateAttack">Atak <span id="gateAttackValue">5 ms</span></label><input id="gateAttack" type="range" min="1" max="100" step="1" value="5"></div>
+          <div class="field-row"><label for="gateHold">Bekletme <span id="gateHoldValue">80 ms</span></label><input id="gateHold" type="range" min="0" max="300" step="5" value="80"></div>
+          <div class="field-row"><label for="gateRelease">Bırakma <span id="gateReleaseValue">180 ms</span></label><input id="gateRelease" type="range" min="20" max="1000" step="10" value="180"></div>
+          <div class="row-actions"><button class="btn btn-secondary" id="gatePlayA">A · Ham sinyal</button><button class="btn btn-gold" id="gatePlayB">B · Gürültü kapısı uygulanmış</button><button class="btn btn-secondary" id="gateNew">Ayarları uygula</button></div>
+          <div class="quiz-block"><strong>Rastgele dinleme sınavı</strong><p class="muted">A ve B örneklerinin sırası değişir. Gürültü kapısının hangi örneğe uygulandığını tahmin et.</p><div class="row-actions"><button class="btn btn-secondary" id="gateQuizNew">Yeni rastgele tur</button><button class="btn btn-secondary" id="gateQuizPlayA">Tur A'yı dinle</button><button class="btn btn-secondary" id="gateQuizPlayB">Tur B'yi dinle</button></div><div class="row-actions"><button class="btn btn-secondary" id="gateQuizAnswerA">İşlem A'da</button><button class="btn btn-secondary" id="gateQuizAnswerB">İşlem B'de</button></div><div id="gateQuizFeedback" class="feedback" aria-live="polite">Yeni tur oluşturup A ve B örneklerini dinle.</div></div>
+          <div class="meter-track"><span id="gateMeter" class="meter-fill"></span></div>
+          <div id="gateReduction" class="result-line">Sinyal kısma değeri hesaplanıyor.</div><div id="gateOpenInfo" class="muted"></div>
+          <div id="gateFeedback" class="feedback" aria-live="polite">A ve B örneklerini karşılaştır.</div>
+        </article>
+      </div>
+      <div class="notice"><strong>İşitme güvenliği</strong><span>Ses çıkışı düşük düzeyde başlar. Hoparlör veya kulaklık sesini önce azalt. Bu alıştırmalar ölçüm cihazı yerine geçmez; işlemci davranışını işiterek öğrenmek içindir.</span></div>
 </section>
 
 
