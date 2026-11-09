@@ -396,6 +396,38 @@ class AppApi(AcousticAnalysisApi):
         """Eski arayüz çağrıları için ana öğrenci ders kitabını kaydeder."""
         return self.save_student_pdf_dialog(STUDENT_PDFS[1]["file"])
 
+
+    def save_generated_pdf_dialog(self, filename: str, encoded: str) -> dict[str, Any]:
+        """Kullanıcının ürettiği PDF'yi güvenli dosya seçiciyle dışa aktarır."""
+        import base64
+        import binascii
+        import webview
+
+        safe_name = Path(str(filename)).name
+        if not safe_name.lower().endswith(".pdf"):
+            safe_name = "Stagepulse_Katilim_Belgesi.pdf"
+        if not encoded or len(encoded) > 24 * 1024 * 1024:
+            raise ValueError("PDF verisi boş veya izin verilen boyutu aşıyor.")
+        try:
+            data = base64.b64decode(encoded, validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise ValueError("PDF verisi geçerli Base64 değil.") from exc
+        if len(data) > 18 * 1024 * 1024 or not data.startswith(b"%PDF-"):
+            raise ValueError("Yalnızca geçerli PDF dosyası dışa aktarılabilir.")
+        destination = _dialog_path(self.window.create_file_dialog(
+            webview.SAVE_DIALOG,
+            save_filename=safe_name,
+            file_types=("PDF dosyası (*.pdf)",),
+        ))
+        if not destination:
+            return {"ok": False, "cancelled": True}
+        target = Path(destination)
+        if target.suffix.lower() != ".pdf":
+            target = target.with_suffix(".pdf")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+        return {"ok": True, "path": str(target), "filename": target.name}
+
     def pick_wav(self) -> str | None:
         import webview
         chosen = _dialog_path(self.window.create_file_dialog(

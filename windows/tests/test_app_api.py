@@ -746,3 +746,26 @@ def test_offline_lease_rejects_clock_rollback_expiry_and_overlong_trial():
     trial = _signed_offline_lease(_offline_claims(now, "trial", 8 * 24 * 60 * 60 * 1000))
     with pytest.raises(ValueError, match="Deneme offline lisans sınırı"):
         verify_offline_lease(trial["envelope"], now_ms=now + 60_000, **{**common, "public_key_pem": trial["public_key"]})
+
+def test_generated_pdf_export_uses_safe_save_dialog_and_validates_pdf(tmp_path, monkeypatch):
+    import base64
+    import sys
+    import types
+
+    target = tmp_path / "exports" / "Stagepulse_Katilim_Belgesi.pdf"
+
+    class FakeWindow:
+        def create_file_dialog(self, *args, **kwargs):
+            assert kwargs["save_filename"] == "Stagepulse_Katilim_Belgesi.pdf"
+            return str(target)
+
+    monkeypatch.setitem(sys.modules, "webview", types.SimpleNamespace(SAVE_DIALOG="save"))
+    api = Merkez.AppApi()
+    api.window = FakeWindow()
+    encoded = base64.b64encode(b"%PDF-1.4\\n% test document").decode("ascii")
+    result = api.save_generated_pdf_dialog("../../Stagepulse_Katilim_Belgesi.pdf", encoded)
+    assert result["ok"] is True
+    assert target.read_bytes().startswith(b"%PDF-1.4")
+    with pytest.raises(ValueError, match="geçerli PDF"):
+        api.save_generated_pdf_dialog("bad.pdf", base64.b64encode(b"not a PDF").decode("ascii"))
+
