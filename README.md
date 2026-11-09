@@ -2,6 +2,14 @@
 
 Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasından oluşan Türkçe ses mühendisliği platformudur. Yönetici hesabı ve yetkileri ana uygulama içindeki giriş/oturum akışıyla yönetilir. Son kullanıcı paketleri ayrı Stagepulse-Releases deposunda üretilir.
 
+## 3.9.5 arayüz ve SPL iyileştirmeleri
+
+- Öğrenci ekranında görünür FULL PAKET satın alma/lisans kısayolu.
+- Destek ve iletişim düğmeleri doğrudan Stagepulse WhatsApp hattını açar.
+- SPL 2D/3D haritası seçilen PA, sub ve monitör kaynaklarının konum/seviye/yön bilgisiyle canlı güncellenir.
+- SPL ekipmanları kategoriye göre listelenir; eklenebilir, seçilebilir, düzenlenebilir ve 2D haritada sürüklenebilir.
+- Compressor ve Gate kulak eğitimi A/B dinleme ve rastgele sınavları korunmuştur.
+
 ## Platform sürümleri
 
 | Bileşen | Kaynak sürümü | Sürümün yönetildiği yer |
