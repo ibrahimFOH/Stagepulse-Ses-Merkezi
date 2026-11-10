@@ -94,18 +94,16 @@ Windows EXE üretim adımları windows/README_TR.md ve windows/EXE_OLUSTUR.ps1 i
 - Android: yalnızca Groq. Android cihazının kendi 127.0.0.1 adresi bilgisayardaki Ollama servisi değildir.
 - Bulut istekleri için açık veri gönderme onayı ve sunucu tarafındaki lisans denetimi uygulanır. API anahtarları kalıcı uygulama depolarına yazılmaz.
 
-## GitHub Actions ve CI sorumluluğu
+## CI ve yayın süreci
 
-Özel kaynak deposundaki GitHub-hosted runner koşuları bazı commitlerde runner tahsis edilmeden sona eriyordu: ilgili job kayıtlarında runner_id=0, boş runner adı ve hiç başlamamış adımlar görülüyordu. Bu sonuçlar kaynak kodunun test edilip başarısız olduğu anlamına gelmez.
+Android kalite iş akışı `main` dalına gelen Android kaynak değişikliklerinde ve pull request'lerde varlık, JavaScript sözdizimi, sürüm eşleşmesi ve Gradle birim testlerini çalıştırır. Windows kaynak doğrulaması ve dağıtılabilir paket üretimi ayrı iş akışlarıyla yönetilir. Bir CI koşusu runner tahsis edilmeden başlarsa bu, testlerin başarılı veya başarısız olduğu anlamına gelmez.
 
-Bu nedenle kaynak deposundaki üç platform iş akışı workflow_dispatch ile kontrollü başlatılır; PR başına runner alamayan kırmızı iş üretmez. Tam Windows ve Android doğrulamasının yetkili hattı, ibrahimFOH/Stagepulse-Releases deposundaki Stagepulse Ses Merkezi sürüm yayın iş akışıdır. Bu hat özel kaynak deposunu salt okunur token ile alır ve sürüm eşitliğini, Python güvenlik denetimini, Windows pytest/Node testlerini, Windows kurulum EXE derlemesini, Android varlık ve JavaScript testlerini, Gradle birim testini ve kalıcı imzalı APK üretimini çalıştırır.
+Kararlı Windows EXE ve imzalı Android APK, `Stagepulse-Releases` deposunun yayın hattından üretilir. Kaynak depoya push yapılması tek başına GitHub Release etiketi, indirme manifesti veya Stagepulse web sitesini güncellemez.
 
-Bir koşuda runner_id=0 ve steps=[] varsa bu koşu CI başarısı veya kaynak test hatası olarak yorumlanmamalıdır. Özel repo için GitHub Settings > Actions > General ve hesap Billing & licensing > Actions ayarlarında Actions erişimi ile kullanılabilir hosted-runner kotası/yetkisi ayrıca kontrol edilmelidir. Bu hesap ayarları depo kodundan değiştirilemez.
+## 3.9.8 SPL/RTA ölçüm motoru
 
-Stagepulse-Releases iş akışının push kaynak CI koşusu paket artifact'larını üretir; publish işi push olayında çalışmaz. GitHub Release etiketi, indirme manifesti veya Stagepulse web sitesi ancak açık yayın akışı ile güncellenir.
+Windows canlı RTA motoru ve Android WebAudio PCM yakalama zinciri 1/1, 1/3, 1/6, 1/12, 1/24 ve 1/48 oktav çözünürlüklerini destekler. Android tarafında PCM örnekleri Hann pencereli FFT ile analiz edilir; bant seviyeleri dBFS RMS olarak gösterilir. Ölçüm mikrofonu CSV düzeltmesi RTA bant grafiğine uygulanabilir.
 
-## 3.9.8 araştırma dalı: SPL/RTA ölçüm motoru temeli
+Windows stereo WAV analiz ekranı A/C/Z ağırlıklı Leq, Fast/Slow maksimum, Peak ve 1 saniyelik L10/L50/L90 sonuçlarını gösterir. Kalibrasyon offset'i olmadan değerler dBFS olarak etiketlenir. Yönetici panelinden gelişmiş RTA ve mikrofon düzeltme özellikleri Supabase üzerinde merkezi olarak yönetilir. Mikrofon, kalibratör ve saha kontrol bilgileri yerel saha kaydı olarak dışa aktarılabilir.
 
-Bu dalda Windows akustik çekirdeğine 1/1, 1/3, 1/6, 1/12, 1/24 ve 1/48 oktav çözünürlüklerinde FFT bant analizi eklendi. Yeni analiz dBFS RMS üretir; fiziksel kalibrasyon olmadan dB SPL olarak yorumlanamaz. A/C/Z ağırlıklandırmalı Leq, Fast/Slow maksimum, peak ve 1 saniyelik L10/L50/L90 istatistikleri için ölçüm fonksiyonları eklendi. WebView köprüsüne örnek dizisi analiz çağrıları açıldı.
-
-Bu işlevler ilk DSP altyapısıdır; kullanıcı arayüzüne ve Android ses yakalama zincirine tam entegrasyon, gerçek ses kartı/mikrofon doğrulaması, IEC referans eğrisi testleri ve saha kabulü tamamlanmadan üretim ölçüm aracı olarak ilan edilmez. Ölçüm planı windows/docs/AR_GE_SPL_RTA_SAHA_DOGRULAMA_TR.md dosyasındadır.
+Gerçek mikrofon/ses kartı saha testi, izlenebilir kalibrasyon, ölçüm mikrofonu üretici correction dosyasının doğrulanması ve IEC 61672 / IEC 61260 uygunluk testleri laboratuvar veya yetkin saha ekipmanıyla ayrıca yapılmalıdır. Uygulama bu standartlara uygunluk sertifikası iddia etmez.
