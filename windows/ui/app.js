@@ -611,13 +611,8 @@ function updateRtaMicCorrectionStatus(){
  el.textContent=rtaMicCorrection.length>=2? rtaMicCorrection.length+' noktalı mikrofon düzeltmesi etkin. Yalnızca RTA bant grafiğine uygulanır; SPL kalibrasyonu veya IEC uygunluğu değildir.':'Correction profili yok. Ham mikrofon spektrumu gösterilir.';
 }
 function applyRtaMicCorrection(centers,values){
- if(measurementFeatureSettings.microphone_correction_enabled===false||rtaMicCorrection.length<2||!Array.isArray(centers)||!Array.isArray(values))return values.slice();
- return values.map((value,index)=>{
-  const f=Number(centers[index]);if(!Number.isFinite(f)||f<rtaMicCorrection[0].frequency_hz||f>rtaMicCorrection[rtaMicCorrection.length-1].frequency_hz)return value;
-  let hi=rtaMicCorrection.findIndex(p=>p.frequency_hz>=f);if(hi<=0)return value+rtaMicCorrection[0].correction_db;
-  const a=rtaMicCorrection[hi-1],b=rtaMicCorrection[hi],t=(Math.log(f)-Math.log(a.frequency_hz))/(Math.log(b.frequency_hz)-Math.log(a.frequency_hz));
-  return value+a.correction_db+(b.correction_db-a.correction_db)*t;
- });
+ if(measurementFeatureSettings.microphone_correction_enabled===false||!RtaMath)return values.slice();
+ return RtaMath.applyMicCorrection(centers,values,rtaMicCorrection);
 }
 function initRtaMicCorrection(){
  loadRtaMicCorrection();
