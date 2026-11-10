@@ -599,6 +599,50 @@ function initAcousticAnalyzer(){
 }
 
 // --- RTA: yerel PortAudio mikrofonu + test edilmiş FFT güç bantları ---
+let rtaMicCorrection=[];
+function loadRtaMicCorrection(){
+ try{const saved=JSON.parse(localStorage.getItem('stagepulse.rta.mic-correction.v1')||'[]');rtaMicCorrection=Array.isArray(saved)?saved.filter(p=>Number.isFinite(p.frequency_hz)&&Number.isFinite(p.correction_db)):[];}catch(_){rtaMicCorrection=[];}
+ updateRtaMicCorrectionStatus();
+}
+function updateRtaMicCorrectionStatus(){
+ const el=$('rtaMicCorrectionStatus');if(!el)return;
+ el.textContent=rtaMicCorrection.length>=2? rtaMicCorrection.length+' noktalı mikrofon düzeltmesi etkin. Yalnızca RTA bant grafiğine uygulanır; SPL kalibrasyonu veya IEC uygunluğu değildir.':'Correction profili yok. Ham mikrofon spektrumu gösterilir.';
+}
+function applyRtaMicCorrection(centers,values){
+ if(rtaMicCorrection.length<2||!Array.isArray(centers)||!Array.isArray(values))return values.slice();
+ return values.map((value,index)=>{
+  const f=Number(centers[index]);if(!Number.isFinite(f)||f<rtaMicCorrection[0].frequency_hz||f>rtaMicCorrection[rtaMicCorrection.length-1].frequency_hz)return value;
+  let hi=rtaMicCorrection.findIndex(p=>p.frequency_hz>=f);if(hi<=0)return value+rtaMicCorrection[0].correction_db;
+  const a=rtaMicCorrection[hi-1],b=rtaMicCorrection[hi],t=(Math.log(f)-Math.log(a.frequency_hz))/(Math.log(b.frequency_hz)-Math.log(a.frequency_hz));
+  return value+a.correction_db+(b.correction_db-a.correction_db)*t;
+ });
+}
+function initRtaMicCorrection(){
+ loadRtaMicCorrection();
+ $('rtaMicCorrectionFile')?.addEventListener('change',async event=>{
+  const file=event.target.files?.[0];if(!file)return;
+  try{
+   if(file.size>256*1024)throw new Error('Correction CSV dosyası 256 KB sınırını aşamaz.');
+   const lines=(await file.text()).split(/\r?\n/).map(line=>line.trim()).filter(Boolean),points=[];
+   for(const line of lines){
+    const delimiter=line.includes(';')?';':line.includes('\t')?'\t':',';
+    const parts=line.split(delimiter);if(parts.length<2)continue;
+    const parse=(v)=>Number(delimiter===';'?v.trim().replace(',','.'):v.trim());
+    const frequency=parse(parts[0]),correction=parse(parts[1]);
+    if(!Number.isFinite(frequency)||!Number.isFinite(correction))continue;
+    if(frequency<20||frequency>20000||correction<-24||correction>24)throw new Error('Frekans 20–20.000 Hz, düzeltme -24 ile +24 dB aralığında olmalı.');
+    points.push({frequency_hz:frequency,correction_db:correction});
+   }
+   points.sort((a,b)=>a.frequency_hz-b.frequency_hz);
+   if(points.length<2||points.length>500)throw new Error('CSV en az 2, en fazla 500 geçerli frekans noktası içermeli.');
+   if(points.some((p,i)=>i&&p.frequency_hz===points[i-1].frequency_hz))throw new Error('CSV içinde yinelenen frekans var.');
+   localStorage.setItem('stagepulse.rta.mic-correction.v1',JSON.stringify(points));rtaMicCorrection=points;resetRtaHistory();updateRtaMicCorrectionStatus();
+  }catch(error){$('rtaMicCorrectionStatus').textContent='Correction yüklenemedi: '+error.message;}
+  finally{event.target.value='';}
+ });
+ $('rtaMicCorrectionClear')?.addEventListener('click',()=>{rtaMicCorrection=[];try{localStorage.removeItem('stagepulse.rta.mic-correction.v1');}catch(_){}resetRtaHistory();updateRtaMicCorrectionStatus();});
+}
+
 const RtaMath=window.StagepulseRtaMath;
 const rtaTicks=[20,25,31.5,40,50,63,80,100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150,4000,5000,6300,8000,10000,12500,16000,20000];
 let rtaViewMin=20, rtaViewMax=20000, rtaAvailableMax=20000;
@@ -610,6 +654,7 @@ function rtaBounds(){const opts={'20-20000':[20,20000],'31.5-16000':[31.5,16000]
 function rtaFormatHz(f){return f>=1000?(f/1000).toLocaleString('tr-TR',{maximumFractionDigits:1})+' kHz':f.toLocaleString('tr-TR',{maximumFractionDigits:1})+' Hz';}
 function resetRtaHistory(){rtaSmoothed=null;rtaPeak=null;rtaTraceHistory=[];rtaLastTime=0;rtaOptimizerHistory=[];if($('rtaOptimizerOutput'))$('rtaOptimizerOutput').textContent='Kararlı spektrum örneği bekleniyor.';}
 function initRtaControls(){
+ initRtaMicCorrection();
  $('rtaStart').addEventListener('click',startRta);$('rtaStop').addEventListener('click',()=>stopRta(true));
  $('rtaCalibrate').addEventListener('click',async()=>{
   if(!api()||typeof api().calibrate_rta_spl!=='function'){$('rtaStatus').textContent='Fiziksel kalibratörle SPL kalibrasyonu bu Windows masaüstü sürümünde kullanılabilir.';return;}
@@ -716,7 +761,7 @@ async function tickRta(token){
   if(!snapshot||!snapshot.ok){$('rtaStatus').textContent='RTA veri hatası: '+(snapshot&&snapshot.error||'bilinmeyen durum');}
   else{
    rtaSampleRate=Number(snapshot.sample_rate)||rtaSampleRate;rtaFftSize=Number(snapshot.fft_size)||rtaFftSize;
-   const centers=snapshot.centers||[],values=snapshot.band_dbfs||[];
+   const centers=snapshot.centers||[],rawValues=snapshot.band_dbfs||[],values=applyRtaMicCorrection(centers,rawValues);
    const changed=centers.length!==rtaFreqs.length||centers.some((f,i)=>f!==rtaFreqs[i]);
    if(changed){rtaFreqs=centers.slice();resetRtaHistory();}
    if(snapshot.stream_stale){rtaSmoothed=null;rtaTraceHistory=[];drawRta([]);}
