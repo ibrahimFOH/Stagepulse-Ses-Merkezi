@@ -83,3 +83,11 @@ def test_live_rta_math_supports_all_fractional_octave_resolutions():
         assert 1000 in centers
     assert len(run_js("m.centers('6')")) > len(run_js("m.centers('3')"))
     assert len(run_js("m.centers('12')")) > len(run_js("m.centers('6')"))
+
+def test_microphone_correction_interpolates_log_frequency_and_leaves_outside_bands_unchanged():
+    result = run_js("m.applyMicCorrection([250,500,1000,2000,4000],[-10,-10,-10,-10,-10],[{frequency_hz:500,correction_db:-2},{frequency_hz:2000,correction_db:2}])")
+    assert result[0] == -10
+    assert result[1] == pytest.approx(-12)
+    assert result[2] == pytest.approx(-10)
+    assert result[3] == pytest.approx(-8)
+    assert result[4] == -10
