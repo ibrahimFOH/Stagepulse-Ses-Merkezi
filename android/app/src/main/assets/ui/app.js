@@ -594,7 +594,7 @@ function browserPcmFractionalBands(samples,sampleRate,bandsPerOctave,minHz,maxHz
  const binHz=sampleRate/n,nyquist=sampleRate/2,power=new Float64Array(half+1);
  for(let k=0;k<=half;k++){let p=(real[k]*real[k]+imag[k]*imag[k])/(n*Math.max(windowEnergy,1e-12));if(k>0&&k<half)p*=2;power[k]=p;}
  const ratio=RtaMath.ratio(bandsPerOctave),centers=RtaMath.supportedCenters(sampleRate,bandsPerOctave,minHz,maxHz);
- const levels=centers.map(center=>{const low=center/ratio,high=center*ratio;if(high>nyquist*.999)return -120;const first=Math.max(1,Math.floor(low/binHz)-1),last=Math.min(half,Math.ceil(high/binHz)+1);let sum=0,used=0;for(let k=first;k<=last;k++){const left=Math.max(0,k*binHz-binHz/2),right=Math.min(nyquist,k*binHz+binHz/2),width=right-left,overlap=Math.min(high,right)-Math.max(low,left);if(width>0&&overlap>0){sum+=power[k]*(overlap/width);used++;}}return !used||sum<=0?-120:Math.max(-120,Math.min(6,10*Math.log10(sum));});
+ const levels=centers.map(center=>{const low=center/ratio,high=center*ratio;if(high>nyquist*.999)return -120;const first=Math.max(1,Math.floor(low/binHz)-1),last=Math.min(half,Math.ceil(high/binHz)+1);let sum=0,used=0;for(let k=first;k<=last;k++){const left=Math.max(0,k*binHz-binHz/2),right=Math.min(nyquist,k*binHz+binHz/2),width=right-left,overlap=Math.min(high,right)-Math.max(low,left);if(width>0&&overlap>0){sum+=power[k]*(overlap/width);used++;}}return !used||sum<=0?-120:Math.max(-120,Math.min(6,10*Math.log10(sum)));});
  return {centers,band_dbfs:levels};
 }
 function browserRtaSnapshot(){
