@@ -3,15 +3,28 @@
 (function (root) {
   const THIRD_CENTERS = Object.freeze([20,25,31.5,40,50,63,80,100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150,4000,5000,6300,8000,10000,12500,16000,20000]);
   const OCTAVE_CENTERS = Object.freeze([31.5,63,125,250,500,1000,2000,4000,8000,16000]);
+  function normalizeBands(mode) {
+    if (mode === 'third') return 3;
+    if (mode === 'octave') return 1;
+    const bands = Number(mode);
+    if (![1,3,6,12,24,48].includes(bands)) throw new Error('Bant çözünürlüğü 1, 3, 6, 12, 24 veya 48 olmalı.');
+    return bands;
+  }
   function ratio(mode) {
-    if (mode === 'third') return Math.pow(10, 1/20);
-    if (mode === 'octave') return Math.pow(10, 3/20);
-    throw new Error("Bant modu 'third' veya 'octave' olmalı.");
+    const bands = normalizeBands(mode);
+    if (bands === 3) return Math.pow(10, 1/20);
+    if (bands === 1) return Math.pow(10, 3/20);
+    return Math.pow(2, 1/(2*bands));
   }
   function centers(mode) {
-    if (mode === 'third') return THIRD_CENTERS.slice();
-    if (mode === 'octave') return OCTAVE_CENTERS.slice();
-    throw new Error("Bant modu 'third' veya 'octave' olmalı.");
+    const bands = normalizeBands(mode);
+    if (bands === 3) return THIRD_CENTERS.slice();
+    if (bands === 1) return OCTAVE_CENTERS.slice();
+    const first = Math.ceil(bands*Math.log2(20/1000)-1e-12);
+    const last = Math.floor(bands*Math.log2(20000/1000)+1e-12);
+    const result = [];
+    for(let k=first;k<=last;k++) result.push(1000*Math.pow(2,k/bands));
+    return result;
   }
   function supportedCenters(sampleRate, mode, minHz=20, maxHz=20000) {
     if (!(Number.isFinite(sampleRate) && sampleRate > 0)) return [];
@@ -48,7 +61,7 @@
     }
     return result;
   }
-  const api={ratio,centers,supportedCenters,clampRangeToSupported,smooth,fractionalCenters};
+  const api={ratio,centers,supportedCenters,clampRangeToSupported,smooth,fractionalCenters,normalizeBands};
   root.StagepulseRtaMath=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
