@@ -606,10 +606,11 @@ function loadRtaMicCorrection(){
 }
 function updateRtaMicCorrectionStatus(){
  const el=$('rtaMicCorrectionStatus');if(!el)return;
+ if(measurementFeatureSettings.microphone_correction_enabled===false){el.textContent='Ölçüm mikrofonu correction özelliği yönetici tarafından kapatıldı.';return;}
  el.textContent=rtaMicCorrection.length>=2? rtaMicCorrection.length+' noktalı mikrofon düzeltmesi etkin. Yalnızca RTA bant grafiğine uygulanır; SPL kalibrasyonu veya IEC uygunluğu değildir.':'Correction profili yok. Ham mikrofon spektrumu gösterilir.';
 }
 function applyRtaMicCorrection(centers,values){
- if(rtaMicCorrection.length<2||!Array.isArray(centers)||!Array.isArray(values))return values.slice();
+ if(measurementFeatureSettings.microphone_correction_enabled===false||rtaMicCorrection.length<2||!Array.isArray(centers)||!Array.isArray(values))return values.slice();
  return values.map((value,index)=>{
   const f=Number(centers[index]);if(!Number.isFinite(f)||f<rtaMicCorrection[0].frequency_hz||f>rtaMicCorrection[rtaMicCorrection.length-1].frequency_hz)return value;
   let hi=rtaMicCorrection.findIndex(p=>p.frequency_hz>=f);if(hi<=0)return value+rtaMicCorrection[0].correction_db;
@@ -1104,40 +1105,45 @@ async function sendAiText(){
 }
 
 // --- Commercial account, license and teacher progress ---
+let measurementFeatureSettings={advanced_rta_enabled:true,microphone_correction_enabled:true};
+function applyMeasurementFeatureSettings(settings){
+ const next={advanced_rta_enabled:settings?.advanced_rta_enabled!==false,microphone_correction_enabled:settings?.microphone_correction_enabled!==false};
+ measurementFeatureSettings=next;
+ const advanced=$('measurementAdvancedRtaEnabled'),correction=$('measurementMicCorrectionEnabled');
+ if(advanced)advanced.checked=next.advanced_rta_enabled;if(correction)correction.checked=next.microphone_correction_enabled;
+ document.querySelectorAll('#rtaBands option[data-advanced="true"]').forEach(option=>{option.hidden=!next.advanced_rta_enabled;option.disabled=!next.advanced_rta_enabled;});
+ if(!next.advanced_rta_enabled&&['6','12','24','48'].includes($('rtaBands')?.value||'')){$('rtaBands').value='3';$('rtaBands').dispatchEvent(new Event('change'));}
+ const correctionFile=$('rtaMicCorrectionFile'),correctionClear=$('rtaMicCorrectionClear');
+ if(correctionFile)correctionFile.disabled=!next.microphone_correction_enabled;if(correctionClear)correctionClear.disabled=!next.microphone_correction_enabled;
+ if(typeof updateRtaMicCorrectionStatus==='function')updateRtaMicCorrectionStatus();
+}
 function initMeasurementAdminPanel(){
  const key='stagepulse.measurement.admin.v1';
  const ids=['measurementMicModel','measurementMicSerial','measurementCalibratorModel','measurementCalibratorSerial','measurementCalibrationDate','measurementReferenceLevel','measurementFieldNotes'];
  const checks=['measurementCheckLoopback','measurementCheckCalibrator','measurementCheckPinkNoise','measurementCheckRepeatability','measurementCheckChannels'];
- const advancedValues=new Set(['6','12','24','48']);
- const status=$('measurementAdminStatus'),flag=$('measurementAdvancedRtaEnabled');
- const applyFlag=enabled=>{
-  document.querySelectorAll('#rtaBands option[data-advanced="true"]').forEach(option=>{option.hidden=!enabled;option.disabled=!enabled;});
-  if(!enabled&&advancedValues.has($('rtaBands')?.value||'')){ $('rtaBands').value='3';$('rtaBands').dispatchEvent(new Event('change')); }
- };
- let saved={};
- try{saved=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch(_){saved={};}
+ const status=$('measurementAdminStatus'),flag=$('measurementAdvancedRtaEnabled'),correctionFlag=$('measurementMicCorrectionEnabled');
+ let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch(_){saved={};}
  ids.forEach(id=>{const el=$(id);if(el&&saved[id]!==undefined)el.value=String(saved[id]);});
  checks.forEach(id=>{const el=$(id);if(el)el.checked=saved[id]===true;});
- if(flag)flag.checked=saved.advancedRtaEnabled!==false;
- applyFlag(flag?.checked!==false);
- flag?.addEventListener('change',()=>applyFlag(flag.checked));
- $('saveMeasurementAdmin')?.addEventListener('click',()=>{
+ applyMeasurementFeatureSettings({advanced_rta_enabled:saved.advancedRtaEnabled!==false,microphone_correction_enabled:saved.microphoneCorrectionEnabled!==false});
+ flag?.addEventListener('change',()=>applyMeasurementFeatureSettings({...measurementFeatureSettings,advanced_rta_enabled:flag.checked}));
+ correctionFlag?.addEventListener('change',()=>applyMeasurementFeatureSettings({...measurementFeatureSettings,microphone_correction_enabled:correctionFlag.checked}));
+ $('saveMeasurementAdmin')?.addEventListener('click',async()=>{
   if(currentRole!=='owner'){if(status)status.textContent='Bu ayarı yalnızca yönetici kaydedebilir.';return;}
-  const record={schema:1,saved_at:new Date().toISOString(),advancedRtaEnabled:flag?.checked!==false};
-  ids.forEach(id=>{const el=$(id);if(el)record[id]=el.value.trim();});
-  checks.forEach(id=>{const el=$(id);record[id]=Boolean(el?.checked);});
+  const record={schema:1,saved_at:new Date().toISOString(),advancedRtaEnabled:flag?.checked!==false,microphoneCorrectionEnabled:correctionFlag?.checked!==false};
+  ids.forEach(id=>{const el=$(id);if(el)record[id]=el.value.trim();});checks.forEach(id=>{const el=$(id);record[id]=Boolean(el?.checked);});
+  const measurement_settings={advanced_rta_enabled:record.advancedRtaEnabled,microphone_correction_enabled:record.microphoneCorrectionEnabled};
+  const button=$('saveMeasurementAdmin');if(button)button.disabled=true;
   try{
-   localStorage.setItem(key,JSON.stringify(record));
+   const response=await commerceApi().store_update({price:Number($('fullPackageAdminPrice')?.value||2500),bank_name:$('fullPackageBankName')?.value||'',account_holder:$('fullPackageAccountHolder')?.value||'',iban:$('fullPackageIban')?.value||'',payment_instructions:$('fullPackagePaymentInstructions')?.value||'',contact_phone:$('fullPackageContactPhone')?.value||'',measurement_settings});
+   applyMeasurementFeatureSettings(response?.settings?.measurement_settings||measurement_settings);localStorage.setItem(key,JSON.stringify(record));
    const completed=checks.every(id=>record[id]===true)&&record.measurementMicModel&&record.measurementCalibratorModel&&record.measurementCalibrationDate;
-   if(status)status.textContent=completed?'Saha kontrol listesi kaydedildi. Bu kayıt operatör beyanıdır; cihazın IEC uygunluğunu doğrulamaz.':'Ölçüm ayarları kaydedildi. Saha doğrulaması için mikrofon/kalibratör bilgilerini ve beş kontrol maddesini tamamla.';
-   applyFlag(record.advancedRtaEnabled);
-  }catch(error){if(status)status.textContent='Kayıt bu cihazda saklanamadı: '+error.message;}
+   if(status)status.textContent=(completed?'Saha kontrol listesi kaydedildi. ':'Ölçüm ayarları sunucuya kaydedildi. ')+(completed?'Bu kayıt operatör beyanıdır; cihazın IEC uygunluğunu doğrulamaz.':'Saha doğrulaması için mikrofon/kalibratör bilgilerini ve beş kontrol maddesini tamamla.');
+  }catch(error){if(status)status.textContent='Ölçüm ayarları sunucuya kaydedilemedi: '+error.message;}
+  finally{if(button)button.disabled=false;}
  });
- $('exportMeasurementAdmin')?.addEventListener('click',()=>{
-  try{const record=JSON.parse(localStorage.getItem(key)||'{}');downloadBlob(new Blob([JSON.stringify(record,null,2)],{type:'application/json'}),'Stagepulse_SPL_RTA_Saha_Dogrulama.json');if(status)status.textContent='Saha doğrulama kaydı JSON olarak dışa aktarıldı.';}
-  catch(error){if(status)status.textContent='Kayıt dışa aktarılamadı: '+error.message;}
- });
- if(status&&saved.saved_at)status.textContent='Son yerel kayıt: '+new Date(saved.saved_at).toLocaleString('tr-TR')+'. Kayıt yalnızca bu cihazdadır.';
+ $('exportMeasurementAdmin')?.addEventListener('click',()=>{try{const record=JSON.parse(localStorage.getItem(key)||'{}');downloadBlob(new Blob([JSON.stringify({...record,measurementFeatureSettings},null,2)],{type:'application/json'}),'Stagepulse_SPL_RTA_Saha_Dogrulama.json');if(status)status.textContent='Saha doğrulama kaydı JSON olarak dışa aktarıldı.';}catch(error){if(status)status.textContent='Kayıt dışa aktarılamadı: '+error.message;}});
+ if(status&&saved.saved_at)status.textContent='Son saha kaydı: '+new Date(saved.saved_at).toLocaleString('tr-TR')+'. Merkezi özellik bayrakları sunucudan yüklenir.';
 }
 
 function commerceApi(){return api();}
@@ -1207,7 +1213,7 @@ async function refreshLicenseList(){
 function commerceApi(){return accountApi();}
 async function refreshFullPackageStore(){
  const apiClient=commerceApi();if(!apiClient)return;
- try{const result=await apiClient.store_get(),s=result.settings||{};
+ try{const result=await apiClient.store_get(),s=result.settings||{};applyMeasurementFeatureSettings(s.measurement_settings||{advanced_rta_enabled:true,microphone_correction_enabled:true});
   $("fullPackagePrice").textContent=Number(s.price||0).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})+" TL";
   $("fullPackageBankInfo").innerHTML=s.iban?`<strong>${safeText(s.bank_name||"Banka")}</strong><br>Hesap sahibi: ${safeText(s.account_holder||"")}<br>IBAN: <strong>${safeText(s.iban)}</strong>${s.payment_instructions?`<br>${safeText(s.payment_instructions)}`:""}${s.contact_phone?`<br>İletişim: ${safeText(s.contact_phone)}`:""}`:"<strong>Havale/EFT hesabı henüz tanımlanmadı.</strong><br>Satın alma bildirimleri hesap bilgileri girilene kadar kapalıdır.";
   $("submitFullPackagePurchase").disabled=!s.iban||!s.account_holder;
