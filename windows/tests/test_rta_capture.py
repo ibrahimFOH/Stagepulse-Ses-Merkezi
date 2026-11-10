@@ -33,6 +33,13 @@ def test_fractional_octave_live_bands_resolve_more_detail_than_third_octave():
     assert len(sixth) > len(third)
     assert len(twelfth) > len(sixth)
 
+@pytest.mark.parametrize("bands", ["1", "3", "6", "12", "24", "48"])
+def test_live_fractional_band_aggregator_returns_valid_power(bands):
+    sr, size = 48000, 32768
+    frequencies, spectrum_db = spectrum_power_db(sine(1000, sr, size), sr)
+    level = aggregate_band_db(frequencies, spectrum_db, sr, 1000, bands)
+    assert -20 < level < 0
+
 
 def test_invalid_live_fractional_octave_resolution_is_rejected():
     with pytest.raises(ValueError, match="Bant çözünürlüğü"):
