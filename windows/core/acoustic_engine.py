@@ -212,3 +212,149 @@ def impulse_response(reference: Any, measurement: Any, sample_rate: Any,
         "impulse_peak": peak,
     })
     return result
+
+def fractional_octave_spectrum(samples: Any, sample_rate: Any, bands_per_octave: int = 3,
+                                fft_size: int | None = None, min_hz: float = 20.0,
+                                max_hz: float = 20000.0) -> dict[str, Any]:
+    """Fractional-octave FFT band powers in dBFS RMS; not an IEC filter-class claim."""
+    x = _audio_vector(samples, "Ölçüm")
+    rate = _validate_rate(sample_rate)
+    try:
+        bands, low_limit, high_limit = int(bands_per_octave), float(min_hz), float(max_hz)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Bant çözünürlüğü ve frekans sınırları sayısal olmalı.") from exc
+    if bands not in (1, 3, 6, 12, 24, 48):
+        raise ValueError("Bant çözünürlüğü 1, 3, 6, 12, 24 veya 48 olmalı.")
+    if not math.isfinite(low_limit) or not math.isfinite(high_limit) or low_limit <= 0 or high_limit <= low_limit:
+        raise ValueError("Frekans aralığı pozitif ve artan olmalı.")
+    if fft_size is None:
+        fft_size = 1 << (min(x.size, 65536).bit_length() - 1)
+    try:
+        size = int(fft_size)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("FFT boyutu tam sayı olmalı.") from exc
+    if size < 256 or size & (size - 1) or size > x.size or size > 262144:
+        raise ValueError("FFT boyutu 256–262144 aralığında, ikinin kuvveti ve kayıt uzunluğundan küçük olmalı.")
+    frame = x[-size:]
+    window = np.hanning(size)
+    window_energy = float(np.sum(window * window))
+    if window_energy <= 0:
+        raise ValueError("FFT penceresi oluşturulamadı.")
+    spectrum = np.fft.rfft(frame * window)
+    power = (np.abs(spectrum) ** 2) / (size * window_energy)
+    if size % 2 == 0:
+        if power.size > 2:
+            power[1:-1] *= 2.0
+    elif power.size > 1:
+        power[1:] *= 2.0
+    frequencies = np.fft.rfftfreq(size, d=1.0 / rate)
+    nyquist, bin_width = rate / 2.0, rate / size
+    half_band_ratio = 2.0 ** (1.0 / (2.0 * bands))
+    first = math.ceil(bands * math.log2(low_limit / 1000.0) - 1e-12)
+    last = math.floor(bands * math.log2(high_limit / 1000.0) + 1e-12)
+    centers, levels = [], []
+    for band_index in range(first, last + 1):
+        center = 1000.0 * (2.0 ** (band_index / bands))
+        lower, upper = center / half_band_ratio, center * half_band_ratio
+        if center < low_limit or center > high_limit or upper > nyquist * 0.999:
+            continue
+        total, used = 0.0, 0
+        for bin_index, frequency in enumerate(frequencies):
+            left = 0.0 if bin_index == 0 else max(0.0, float(frequency) - bin_width / 2.0)
+            right = min(nyquist, float(frequency) + bin_width / 2.0)
+            width = right - left
+            if width <= 0:
+                continue
+            overlap = min(upper, right) - max(lower, left)
+            if overlap > 0:
+                total += float(power[bin_index]) * min(1.0, overlap / width)
+                used += 1
+        level = 10.0 * math.log10(total) if used and total > 0 else -120.0
+        centers.append(center)
+        levels.append(max(-120.0, min(6.0, level)))
+    return {"ok": True, "method": "Hann FFT / fractional-bin power integration",
+            "sample_rate": rate, "fft_size": size, "bands_per_octave": bands,
+            "centers_hz": centers, "levels_dbfs": levels, "units": "dBFS RMS",
+            "band_definition": "base-2 exact geometric centers anchored at 1 kHz",
+            "standard_compliance": False}
+
+
+def _weighting_filter(samples: np.ndarray, sample_rate: float, weighting: str) -> np.ndarray:
+    """A/C frequency weighting with bilinear prewarping; Z is unweighted."""
+    mode = str(weighting).upper()
+    if mode == "Z":
+        return samples.copy()
+    if mode not in ("A", "C"):
+        raise ValueError("Frekans ağırlıklandırması A, C veya Z olmalı.")
+    if sample_rate < 32000:
+        raise ValueError("A/C ağırlıklandırması için örnekleme hızı en az 32 kHz olmalı.")
+    from scipy.signal import bilinear, lfilter, zpk2tf
+    f1, f2, f3, f4 = 20.598997, 107.65265, 737.86223, 12194.217
+    def prewarp(frequency: float) -> float:
+        return 2.0 * sample_rate * math.tan(math.pi * frequency / sample_rate)
+    w1, w2, w3, w4 = (prewarp(v) for v in (f1, f2, f3, f4))
+    if mode == "A":
+        zeros = [0j] * 4
+        poles = [-w1 + 0j] * 2 + [-w2 + 0j, -w3 + 0j] + [-w4 + 0j] * 2
+    else:
+        zeros = [0j] * 2
+        poles = [-w1 + 0j] * 2 + [-w4 + 0j] * 2
+    numerator, denominator = zpk2tf(zeros, poles, 1.0)
+    ref = prewarp(1000.0)
+    gain = abs(np.polyval(numerator, 1j * ref) / np.polyval(denominator, 1j * ref))
+    if not math.isfinite(float(gain)) or gain <= 0:
+        raise RuntimeError("A/C ağırlıklandırma filtresi normalize edilemedi.")
+    digital_b, digital_a = bilinear(numerator / gain, denominator, fs=sample_rate)
+    return lfilter(digital_b, digital_a, samples)
+
+
+def measure_spl(samples: Any, sample_rate: Any,
+                calibration_offset_db: float | None = None) -> dict[str, Any]:
+    """A/C/Z Leq, Fast/Slow maxima, peak and 1-second L10/L50/L90.
+
+    Without a physical calibrator offset, levels remain explicitly labelled dBFS.
+    """
+    x = _audio_vector(samples, "Ölçüm")
+    rate = _validate_rate(sample_rate)
+    offset = None if calibration_offset_db is None else float(calibration_offset_db)
+    if offset is not None and not math.isfinite(offset):
+        raise ValueError("Kalibrasyon düzeltmesi sonlu bir sayı olmalı.")
+    from scipy.signal import lfilter
+    block_size = max(1, int(round(rate)))
+    results: dict[str, Any] = {}
+    for weighting in ("A", "C", "Z"):
+        weighted = _weighting_filter(x, rate, weighting)
+        squared = weighted * weighted
+        fast_alpha = 1.0 - math.exp(-1.0 / (rate * 0.125))
+        slow_alpha = 1.0 - math.exp(-1.0 / rate)
+        fast_power = lfilter([fast_alpha], [1.0, -(1.0 - fast_alpha)], squared)
+        slow_power = lfilter([slow_alpha], [1.0, -(1.0 - slow_alpha)], squared)
+        correction = offset if offset is not None else 0.0
+        def power_db(value: float) -> float:
+            return 10.0 * math.log10(max(float(value), 1e-20)) + correction
+        blocks = []
+        for start in range(0, squared.size, block_size):
+            block = squared[start:start + block_size]
+            if block.size:
+                blocks.append(power_db(float(np.mean(block))))
+        results[weighting] = {
+            "leq_db": power_db(float(np.mean(squared))),
+            "lmax_fast_db": power_db(float(np.max(fast_power))),
+            "lmax_slow_db": power_db(float(np.max(slow_power))),
+            "lpeak_db": 20.0 * math.log10(max(float(np.max(np.abs(weighted))), 1e-10)) + correction,
+            "percentiles_1s_db": {
+                "L10": float(np.percentile(blocks, 90)),
+                "L50": float(np.percentile(blocks, 50)),
+                "L90": float(np.percentile(blocks, 10)),
+            },
+        }
+    return {
+        "ok": True, "sample_rate": rate, "frames": int(x.size),
+        "duration_seconds": float(x.size / rate),
+        "calibrated_spl": offset is not None,
+        "units": "dB SPL" if offset is not None else "dBFS",
+        "calibration_offset_db": offset,
+        "peak_dbfs": 20.0 * math.log10(max(float(np.max(np.abs(x))), 1e-10)),
+        "clipping_percent": float(np.mean(np.abs(x) >= 0.999) * 100.0),
+        "percentile_window_seconds": 1.0, "weightings": results,
+    }

@@ -91,3 +91,20 @@ class AcousticAnalysisApi:
         measurement = self._parse_audio_json(measurement_json, "Ölçüm")
         from core.acoustic_engine import impulse_response
         return impulse_response(reference, measurement, sample_rate, int(segment_size), float(overlap))
+
+    def analyze_rta_samples_json(self, samples_json: str, sample_rate: Any,
+                                 bands_per_octave: Any = 3, fft_size: Any = None,
+                                 min_hz: Any = 20.0, max_hz: Any = 20000.0) -> dict[str, Any]:
+        """Analyze a mono sample buffer using fractional-octave FFT bands."""
+        samples = self._parse_audio_json(samples_json, "RTA")
+        from core.acoustic_engine import fractional_octave_spectrum
+        return fractional_octave_spectrum(samples, sample_rate, int(bands_per_octave),
+            None if fft_size in (None, "") else int(fft_size), float(min_hz), float(max_hz))
+
+    def analyze_spl_samples_json(self, samples_json: str, sample_rate: Any,
+                                 calibration_offset_db: Any = None) -> dict[str, Any]:
+        """Analyze mono samples; calibrated SPL requires an explicit calibrator offset."""
+        samples = self._parse_audio_json(samples_json, "SPL")
+        from core.acoustic_engine import measure_spl
+        offset = None if calibration_offset_db in (None, "") else float(calibration_offset_db)
+        return measure_spl(samples, sample_rate, offset)

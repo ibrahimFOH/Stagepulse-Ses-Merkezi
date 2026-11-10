@@ -94,3 +94,9 @@ Bu nedenle kaynak deposundaki üç platform iş akışı workflow_dispatch ile k
 Bir koşuda runner_id=0 ve steps=[] varsa bu koşu CI başarısı veya kaynak test hatası olarak yorumlanmamalıdır. Özel repo için GitHub Settings > Actions > General ve hesap Billing & licensing > Actions ayarlarında Actions erişimi ile kullanılabilir hosted-runner kotası/yetkisi ayrıca kontrol edilmelidir. Bu hesap ayarları depo kodundan değiştirilemez.
 
 Stagepulse-Releases iş akışının push kaynak CI koşusu paket artifact'larını üretir; publish işi push olayında çalışmaz. GitHub Release etiketi, indirme manifesti veya Stagepulse web sitesi ancak açık yayın akışı ile güncellenir.
+
+## 3.9.8 araştırma dalı: SPL/RTA ölçüm motoru temeli
+
+Bu dalda Windows akustik çekirdeğine 1/1, 1/3, 1/6, 1/12, 1/24 ve 1/48 oktav çözünürlüklerinde FFT bant analizi eklendi. Yeni analiz dBFS RMS üretir; fiziksel kalibrasyon olmadan dB SPL olarak yorumlanamaz. A/C/Z ağırlıklandırmalı Leq, Fast/Slow maksimum, peak ve 1 saniyelik L10/L50/L90 istatistikleri için ölçüm fonksiyonları eklendi. WebView köprüsüne örnek dizisi analiz çağrıları açıldı.
+
+Bu işlevler ilk DSP altyapısıdır; kullanıcı arayüzüne ve Android ses yakalama zincirine tam entegrasyon, gerçek ses kartı/mikrofon doğrulaması, IEC referans eğrisi testleri ve saha kabulü tamamlanmadan üretim ölçüm aracı olarak ilan edilmez. Ölçüm planı windows/docs/AR_GE_SPL_RTA_SAHA_DOGRULAMA_TR.md dosyasındadır.
