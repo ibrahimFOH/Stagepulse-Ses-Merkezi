@@ -75,3 +75,11 @@ def test_fractional_octave_centers_respect_nyquist_and_range():
 def test_fractional_octave_centers_reject_unsupported_resolution():
     with pytest.raises(subprocess.CalledProcessError):
         run_js("m.fractionalCenters(48000, 5, 20, 20000)")
+
+def test_live_rta_math_supports_all_fractional_octave_resolutions():
+    for bands in (1, 3, 6, 12, 24, 48):
+        centers = run_js(f"m.supportedCenters(48000, {json.dumps(str(bands))}, 20, 20000)")
+        assert centers == sorted(centers)
+        assert 1000 in centers
+    assert len(run_js("m.centers('6')")) > len(run_js("m.centers('3')"))
+    assert len(run_js("m.centers('12')")) > len(run_js("m.centers('6')"))
