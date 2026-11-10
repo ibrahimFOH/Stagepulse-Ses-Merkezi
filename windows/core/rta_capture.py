@@ -22,24 +22,50 @@ SUPPORTED_FFT_SIZES = (8192, 16384, 32768)
 FLOOR_POWER = 1e-30  # Numerical floor; displayed band level is clamped to -120 dBFS
 
 
-def band_ratio(mode: str) -> float:
+def bands_per_octave(mode: str | int) -> int:
     if mode == "third":
-        return 10 ** (1 / 20)
+        return 3
     if mode == "octave":
+        return 1
+    try:
+        bands = int(mode)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Bant çözünürlüğü 1, 3, 6, 12, 24 veya 48 olmalı.") from exc
+    if bands not in (1, 3, 6, 12, 24, 48):
+        raise ValueError("Bant çözünürlüğü 1, 3, 6, 12, 24 veya 48 olmalı.")
+    return bands
+
+
+def band_ratio(mode: str | int) -> float:
+    bands = bands_per_octave(mode)
+    if bands == 3:
+        return 10 ** (1 / 20)
+    if bands == 1:
         return 10 ** (3 / 20)
-    raise ValueError("Bant modu 'third' veya 'octave' olmalı.")
+    return 2 ** (1 / (2 * bands))
 
 
-def supported_centers(sample_rate: float, mode: str, min_hz: float = 20,
+def supported_centers(sample_rate: float, mode: str | int, min_hz: float = 20,
                       max_hz: float = 20000) -> list[float]:
-    """Return nominal band centers whose complete upper edge fits below Nyquist."""
+    """Return complete fractional-octave band centers below Nyquist."""
     if not math.isfinite(float(sample_rate)) or float(sample_rate) <= 0:
         return []
-    ratio = band_ratio(mode)
+    bands = bands_per_octave(mode)
+    ratio = band_ratio(bands)
     nyquist = float(sample_rate) / 2
-    centers = THIRD_CENTERS if mode == "third" else OCTAVE_CENTERS
-    return [float(f) for f in centers
-            if float(min_hz) <= f <= float(max_hz) and f * ratio <= nyquist * 0.999]
+    low, high = float(min_hz), float(max_hz)
+    if not math.isfinite(low) or not math.isfinite(high) or low <= 0 or high <= low:
+        raise ValueError("Frekans aralığı pozitif ve artan olmalı.")
+    if bands == 3:
+        centers = THIRD_CENTERS
+    elif bands == 1:
+        centers = OCTAVE_CENTERS
+    else:
+        first = math.ceil(bands * math.log2(low / 1000.0) - 1e-12)
+        last = math.floor(bands * math.log2(high / 1000.0) + 1e-12)
+        centers = (1000.0 * (2.0 ** (index / bands)) for index in range(first, last + 1))
+    return [float(center) for center in centers
+            if low <= float(center) <= high and float(center) * ratio <= nyquist * 0.999]
 
 
 def spectrum_power_db(samples: np.ndarray, sample_rate: float) -> tuple[np.ndarray, np.ndarray]:
@@ -75,7 +101,7 @@ def spectrum_power_db(samples: np.ndarray, sample_rate: float) -> tuple[np.ndarr
 
 
 def aggregate_band_db(frequencies: np.ndarray, bin_power_db: np.ndarray,
-                      sample_rate: float, center_hz: float, mode: str) -> float:
+                      sample_rate: float, center_hz: float, mode: str | int) -> float:
     """Integrate bin power in an octave/fractional-octave band with edge overlap.
 
     Each FFT bin contributes according to the fraction of its width inside the band.
@@ -369,7 +395,7 @@ class RTACapture:
                 "message": f"1 kHz kalibratör ile {reference:.1f} dB SPL referansı kaydedildi. Kalibrasyon bu oturum ve giriş aygıtı içindir.",
             }
 
-    def snapshot(self, mode: str = "third", min_hz: float = 20,
+    def snapshot(self, mode: str | int = "3", min_hz: float = 20,
                  max_hz: float = 20000) -> dict[str, Any]:
         with self._lock:
             running = self._running
