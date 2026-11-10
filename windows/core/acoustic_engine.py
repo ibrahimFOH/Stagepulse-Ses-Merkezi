@@ -259,7 +259,10 @@ def fractional_octave_spectrum(samples: Any, sample_rate: Any, bands_per_octave:
         if center < low_limit or center > high_limit or upper > nyquist * 0.999:
             continue
         total, used = 0.0, 0
-        for bin_index, frequency in enumerate(frequencies):
+        first_bin = max(0, int(math.floor(lower / bin_width)) - 1)
+        last_bin = min(len(frequencies) - 1, int(math.ceil(upper / bin_width)) + 1)
+        for bin_index in range(first_bin, last_bin + 1):
+            frequency = frequencies[bin_index]
             left = 0.0 if bin_index == 0 else max(0.0, float(frequency) - bin_width / 2.0)
             right = min(nyquist, float(frequency) + bin_width / 2.0)
             width = right - left
