@@ -574,6 +574,18 @@ function initAcousticAnalyzer(){
    const result=await api().analyze_stereo_wav(path,size,overlap);
    if(!result||!result.ok)throw new Error(result?.error||'Analiz sonucu alınamadı.');
    const tf=result.transfer_function,delay=result.delay,ir=result.impulse_response;
+   const spl=result.spl_analysis;
+   if(spl?.weightings){
+    const lines=['SPL / A-C-Z ANALİZİ · '+spl.units+' · '+Number(spl.duration_seconds).toFixed(2)+' s'];
+    for(const weighting of ['A','C','Z']){
+     const w=spl.weightings[weighting];if(!w)continue;
+     const p=w.percentiles_1s_db||{};
+     lines.push(weighting+' ağırlık: Leq '+Number(w.leq_db).toFixed(1)+' · Lmax Fast '+Number(w.lmax_fast_db).toFixed(1)+' · Lmax Slow '+Number(w.lmax_slow_db).toFixed(1)+' · Peak '+Number(w.lpeak_db).toFixed(1));
+     lines.push('  L10 '+Number(p.L10).toFixed(1)+' · L50 '+Number(p.L50).toFixed(1)+' · L90 '+Number(p.L90).toFixed(1));
+    }
+    lines.push('Kırpılma: '+Number(spl.clipping_percent).toFixed(3)+'% · Kalibrasyon: '+(spl.calibrated_spl?'uygulandı':'yok; dBFS gösterimi'));
+    $('acousticSplResult').textContent=lines.join('\\n');
+   }else $('acousticSplResult').textContent='SPL istatistikleri bu WAV dosyasında üretilemedi.';
    drawAcousticChart('acousticMagnitudeChart',tf.frequency_hz,tf.magnitude_db,-36,18,' dB');
    drawAcousticChart('acousticPhaseChart',tf.frequency_hz,tf.phase_deg,-180,180,'°');
    drawAcousticChart('acousticCoherenceChart',tf.frequency_hz,tf.coherence,0,1,'');
