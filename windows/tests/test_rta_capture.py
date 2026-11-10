@@ -17,6 +17,27 @@ def test_supported_bands_obey_nyquist_upper_band_edge():
     assert supported_centers(48000, 'third', 20, 20000)[-1] == 20000
     assert supported_centers(16000, 'octave', 20, 20000)[-1] == 4000
 
+@pytest.mark.parametrize("bands", [1, 3, 6, 12, 24, 48])
+def test_fractional_octave_live_centers_are_ordered_and_respect_nyquist(bands):
+    centers = supported_centers(48000, str(bands), 20, 20000)
+    assert centers == sorted(centers)
+    assert 1000.0 in centers
+    ratio = 10 ** (3 / 20) if bands == 1 else 10 ** (1 / 20) if bands == 3 else 2 ** (1 / (2 * bands))
+    assert all(center * ratio <= 24000 * 0.999 for center in centers)
+
+
+def test_fractional_octave_live_bands_resolve_more_detail_than_third_octave():
+    third = supported_centers(48000, "3", 20, 20000)
+    sixth = supported_centers(48000, "6", 20, 20000)
+    twelfth = supported_centers(48000, "12", 20, 20000)
+    assert len(sixth) > len(third)
+    assert len(twelfth) > len(sixth)
+
+
+def test_invalid_live_fractional_octave_resolution_is_rejected():
+    with pytest.raises(ValueError, match="Bant çözünürlüğü"):
+        supported_centers(48000, "5", 20, 20000)
+
 
 @pytest.mark.parametrize('fft_size', SUPPORTED_FFT_SIZES)
 def test_low_frequency_band_uses_fractional_edge_bins_instead_of_becoming_empty(fft_size):
