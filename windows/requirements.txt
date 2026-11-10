@@ -9,7 +9,7 @@ pyloudnorm>=0.1.1,<1
 pythonnet>=3.0.5,<4
 clr_loader>=0.2.7,<1
 pytest>=9.2,<10
-beautifulsoup4>=4.12,<5
+beautifulsoup4>=4.15.0,<5
 
 # Test tooling: test_visual_assets.py inspects rendered PDF structure/text.
 PyMuPDF>=1.24,<2
