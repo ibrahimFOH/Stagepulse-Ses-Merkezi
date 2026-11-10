@@ -1106,9 +1106,10 @@ async function sendAiText(){
 
 // --- Commercial account, license and teacher progress ---
 let measurementFeatureSettings={advanced_rta_enabled:true,microphone_correction_enabled:true};
-function applyMeasurementFeatureSettings(settings){
+function applyMeasurementFeatureSettings(settings,persist=true){
  const next={advanced_rta_enabled:settings?.advanced_rta_enabled!==false,microphone_correction_enabled:settings?.microphone_correction_enabled!==false};
  measurementFeatureSettings=next;
+ if(persist){try{localStorage.setItem('stagepulse.measurement.feature-settings.v1',JSON.stringify(next));}catch(_){}}
  const advanced=$('measurementAdvancedRtaEnabled'),correction=$('measurementMicCorrectionEnabled');
  if(advanced)advanced.checked=next.advanced_rta_enabled;if(correction)correction.checked=next.microphone_correction_enabled;
  document.querySelectorAll('#rtaBands option[data-advanced="true"]').forEach(option=>{option.hidden=!next.advanced_rta_enabled;option.disabled=!next.advanced_rta_enabled;});
@@ -1122,12 +1123,12 @@ function initMeasurementAdminPanel(){
  const ids=['measurementMicModel','measurementMicSerial','measurementCalibratorModel','measurementCalibratorSerial','measurementCalibrationDate','measurementReferenceLevel','measurementFieldNotes'];
  const checks=['measurementCheckLoopback','measurementCheckCalibrator','measurementCheckPinkNoise','measurementCheckRepeatability','measurementCheckChannels'];
  const status=$('measurementAdminStatus'),flag=$('measurementAdvancedRtaEnabled'),correctionFlag=$('measurementMicCorrectionEnabled');
- let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch(_){saved={};}
+ let saved={},cachedFlags=null;try{saved=JSON.parse(localStorage.getItem(key)||'{}')||{};cachedFlags=JSON.parse(localStorage.getItem('stagepulse.measurement.feature-settings.v1')||'null');}catch(_){}
  ids.forEach(id=>{const el=$(id);if(el&&saved[id]!==undefined)el.value=String(saved[id]);});
  checks.forEach(id=>{const el=$(id);if(el)el.checked=saved[id]===true;});
- applyMeasurementFeatureSettings({advanced_rta_enabled:saved.advancedRtaEnabled!==false,microphone_correction_enabled:saved.microphoneCorrectionEnabled!==false});
- flag?.addEventListener('change',()=>applyMeasurementFeatureSettings({...measurementFeatureSettings,advanced_rta_enabled:flag.checked}));
- correctionFlag?.addEventListener('change',()=>applyMeasurementFeatureSettings({...measurementFeatureSettings,microphone_correction_enabled:correctionFlag.checked}));
+ applyMeasurementFeatureSettings(cachedFlags||{advanced_rta_enabled:saved.advancedRtaEnabled!==false,microphone_correction_enabled:saved.microphoneCorrectionEnabled!==false},false);
+ flag?.addEventListener('change',()=>applyMeasurementFeatureSettings({...measurementFeatureSettings,advanced_rta_enabled:flag.checked},false));
+ correctionFlag?.addEventListener('change',()=>applyMeasurementFeatureSettings({...measurementFeatureSettings,microphone_correction_enabled:correctionFlag.checked},false));
  $('saveMeasurementAdmin')?.addEventListener('click',async()=>{
   if(currentRole!=='owner'){if(status)status.textContent='Bu ayarı yalnızca yönetici kaydedebilir.';return;}
   const record={schema:1,saved_at:new Date().toISOString(),advancedRtaEnabled:flag?.checked!==false,microphoneCorrectionEnabled:correctionFlag?.checked!==false};
