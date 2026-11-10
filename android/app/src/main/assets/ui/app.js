@@ -583,29 +583,34 @@ async function stopBrowserRta(){
  if(browserRtaContext){const closingContext=browserRtaContext;browserRtaContext=null;try{const closing=closingContext.close();if(closing&&typeof closing.catch==='function')closing.catch(()=>{});}catch(_){}}
  browserRtaAnalyser=null;browserRtaTimeData=null;browserRtaFrequencyData=null;
 }
+function browserPcmFractionalBands(samples,sampleRate,bandsPerOctave,minHz,maxHz){
+ const n=samples.length,half=n>>1;
+ if(!n||(n&(n-1))!==0)throw new Error('PCM FFT boyutu ikinin kuvveti olmalı.');
+ const real=new Float64Array(n),imag=new Float64Array(n);
+ let windowEnergy=0;
+ for(let i=0;i<n;i++){const w=.5-.5*Math.cos(2*Math.PI*i/(n-1));real[i]=Number(samples[i]||0)*w;windowEnergy+=w*w;}
+ for(let i=1,j=0;i<n;i++){let bit=n>>1;for(;j&bit;bit>>=1)j^=bit;j^=bit;if(i<j){let t=real[i];real[i]=real[j];real[j]=t;}}
+ for(let len=2;len<=n;len<<=1){const angle=-2*Math.PI/len,wlenR=Math.cos(angle),wlenI=Math.sin(angle);for(let base=0;base<n;base+=len){let wr=1,wi=0;for(let j=0;j<(len>>1);j++){const even=base+j,odd=even+(len>>1),or=real[odd]*wr-imag[odd]*wi,oi=real[odd]*wi+imag[odd]*wr;real[odd]=real[even]-or;imag[odd]=imag[even]-oi;real[even]+=or;imag[even]+=oi;const next=wr*wlenR-wi*wlenI;wi=wr*wlenI+wi*wlenR;wr=next;}}}
+ const binHz=sampleRate/n,nyquist=sampleRate/2,power=new Float64Array(half+1);
+ for(let k=0;k<=half;k++){let p=(real[k]*real[k]+imag[k]*imag[k])/(n*Math.max(windowEnergy,1e-12));if(k>0&&k<half)p*=2;power[k]=p;}
+ const ratio=RtaMath.ratio(bandsPerOctave),centers=RtaMath.supportedCenters(sampleRate,bandsPerOctave,minHz,maxHz);
+ const levels=centers.map(center=>{const low=center/ratio,high=center*ratio;if(high>nyquist*.999)return -120;const first=Math.max(1,Math.floor(low/binHz)-1),last=Math.min(half,Math.ceil(high/binHz)+1);let sum=0,used=0;for(let k=first;k<=last;k++){const left=Math.max(0,k*binHz-binHz/2),right=Math.min(nyquist,k*binHz+binHz/2),width=right-left,overlap=Math.min(high,right)-Math.max(low,left);if(width>0&&overlap>0){sum+=power[k]*(overlap/width);used++;}}return !used||sum<=0?-120:Math.max(-120,Math.min(6,10*Math.log10(sum));});
+ return {centers,band_dbfs:levels};
+}
 function browserRtaSnapshot(){
  if(!browserRtaAnalyser||!browserRtaContext)return {ok:false,error:'Android mikrofon akışı kapalı.'};
  const sampleRate=browserRtaContext.sampleRate,fftSize=browserRtaAnalyser.fftSize;
- browserRtaAnalyser.getFloatFrequencyData(browserRtaFrequencyData);
  browserRtaAnalyser.getFloatTimeDomainData(browserRtaTimeData);
  let peak=0,sumSquares=0;
  for(const v of browserRtaTimeData){const a=Math.abs(v);if(a>peak)peak=a;sumSquares+=v*v;}
  const rms=Math.sqrt(sumSquares/Math.max(1,browserRtaTimeData.length));
- const mode=$('rtaBands').value||'third',bounds=rtaBounds();
- const centers=RtaMath.supportedCenters(sampleRate,mode,bounds[0],Math.min(bounds[1],sampleRate/2));
- const ratio=RtaMath.ratio(mode),binHz=sampleRate/fftSize;
- const bandDb=centers.map(center=>{
-  const lo=center/ratio,hi=center*ratio;
-  const first=Math.max(0,Math.ceil(lo/binHz)),last=Math.min(browserRtaFrequencyData.length-1,Math.floor(hi/binHz));
-  let power=0,count=0;
-  for(let i=first;i<=last;i++){const db=browserRtaFrequencyData[i];if(Number.isFinite(db)&&db>-200){power+=Math.pow(10,db/10);count++;}}
-  return count?10*Math.log10(power/count):-120;
- });
+ const mode=$('rtaBands').value||'3',bounds=rtaBounds();
+ const spectrum=browserPcmFractionalBands(browserRtaTimeData,sampleRate,mode,bounds[0],Math.min(bounds[1],sampleRate/2));
  const track=browserRtaStream?.getAudioTracks()[0],streamStale=!track||track.readyState!=='live'||track.muted===true;
- return {ok:true,ready:!streamStale,sample_rate:sampleRate,fft_size:fftSize,centers,band_dbfs:bandDb,
+ return {ok:true,ready:!streamStale,sample_rate:sampleRate,fft_size:fftSize,centers:spectrum.centers,band_dbfs:spectrum.band_dbfs,
   peak_dbfs:peak>0?20*Math.log10(peak):-120,rms_dbfs:rms>0?20*Math.log10(rms):-120,
   device:track?.label||rtaDeviceName,stream_stale:streamStale,
-  stream_status:streamStale?'Android ses girişi durdu veya susturuldu.':'Android WebAudio; dBFS tahmini',seconds_since_last_callback:streamStale?2.1:0};
+  stream_status:streamStale?'Android ses girişi durdu veya susturuldu.':'Android PCM / WebAudio FFT; dBFS RMS',seconds_since_last_callback:streamStale?2.1:0};
 }
 let androidMicPermissionId=0;
 function requestAndroidRuntimePermission(permission){
