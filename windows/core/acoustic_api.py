@@ -48,10 +48,11 @@ class AcousticAnalysisApi:
         reference, measurement = audio[:, 0], audio[:, 1]
         size = int(segment_size)
         ov = float(overlap)
-        from core.acoustic_engine import transfer_function, delay_finder, impulse_response
+        from core.acoustic_engine import transfer_function, delay_finder, impulse_response, measure_spl
         tf = transfer_function(reference, measurement, sample_rate, size, ov)
         delay = delay_finder(reference, measurement, sample_rate, 500.0)
         ir = impulse_response(reference, measurement, sample_rate, size, ov)
+        spl_analysis = measure_spl(measurement, sample_rate)
         return {
             "ok": True,
             "file_name": path.name,
@@ -61,6 +62,7 @@ class AcousticAnalysisApi:
             "transfer_function": tf,
             "delay": delay,
             "impulse_response": ir,
+            "spl_analysis": spl_analysis,
             "calibrated_spl": False,
         }
 
