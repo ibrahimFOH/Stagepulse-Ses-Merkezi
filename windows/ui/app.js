@@ -1047,6 +1047,42 @@ async function sendAiText(){
 }
 
 // --- Commercial account, license and teacher progress ---
+function initMeasurementAdminPanel(){
+ const key='stagepulse.measurement.admin.v1';
+ const ids=['measurementMicModel','measurementMicSerial','measurementCalibratorModel','measurementCalibratorSerial','measurementCalibrationDate','measurementReferenceLevel','measurementFieldNotes'];
+ const checks=['measurementCheckLoopback','measurementCheckCalibrator','measurementCheckPinkNoise','measurementCheckRepeatability','measurementCheckChannels'];
+ const advancedValues=new Set(['6','12','24','48']);
+ const status=$('measurementAdminStatus'),flag=$('measurementAdvancedRtaEnabled');
+ const applyFlag=enabled=>{
+  document.querySelectorAll('#rtaBands option[data-advanced="true"]').forEach(option=>{option.hidden=!enabled;option.disabled=!enabled;});
+  if(!enabled&&advancedValues.has($('rtaBands')?.value||'')){ $('rtaBands').value='3';$('rtaBands').dispatchEvent(new Event('change')); }
+ };
+ let saved={};
+ try{saved=JSON.parse(localStorage.getItem(key)||'{}')||{};}catch(_){saved={};}
+ ids.forEach(id=>{const el=$(id);if(el&&saved[id]!==undefined)el.value=String(saved[id]);});
+ checks.forEach(id=>{const el=$(id);if(el)el.checked=saved[id]===true;});
+ if(flag)flag.checked=saved.advancedRtaEnabled!==false;
+ applyFlag(flag?.checked!==false);
+ flag?.addEventListener('change',()=>applyFlag(flag.checked));
+ $('saveMeasurementAdmin')?.addEventListener('click',()=>{
+  if(currentRole!=='owner'){if(status)status.textContent='Bu ayarı yalnızca yönetici kaydedebilir.';return;}
+  const record={schema:1,saved_at:new Date().toISOString(),advancedRtaEnabled:flag?.checked!==false};
+  ids.forEach(id=>{const el=$(id);if(el)record[id]=el.value.trim();});
+  checks.forEach(id=>{const el=$(id);record[id]=Boolean(el?.checked);});
+  try{
+   localStorage.setItem(key,JSON.stringify(record));
+   const completed=checks.every(id=>record[id]===true)&&record.measurementMicModel&&record.measurementCalibratorModel&&record.measurementCalibrationDate;
+   if(status)status.textContent=completed?'Saha kontrol listesi kaydedildi. Bu kayıt operatör beyanıdır; cihazın IEC uygunluğunu doğrulamaz.':'Ölçüm ayarları kaydedildi. Saha doğrulaması için mikrofon/kalibratör bilgilerini ve beş kontrol maddesini tamamla.';
+   applyFlag(record.advancedRtaEnabled);
+  }catch(error){if(status)status.textContent='Kayıt bu cihazda saklanamadı: '+error.message;}
+ });
+ $('exportMeasurementAdmin')?.addEventListener('click',()=>{
+  try{const record=JSON.parse(localStorage.getItem(key)||'{}');downloadBlob(new Blob([JSON.stringify(record,null,2)],{type:'application/json'}),'Stagepulse_SPL_RTA_Saha_Dogrulama.json');if(status)status.textContent='Saha doğrulama kaydı JSON olarak dışa aktarıldı.';}
+  catch(error){if(status)status.textContent='Kayıt dışa aktarılamadı: '+error.message;}
+ });
+ if(status&&saved.saved_at)status.textContent='Son yerel kayıt: '+new Date(saved.saved_at).toLocaleString('tr-TR')+'. Kayıt yalnızca bu cihazdadır.';
+}
+
 function commerceApi(){return api();}
 function applyAccountContext(context){
  currentAccountContext=context||null;currentRole=context?.role||'guest';
@@ -1087,6 +1123,7 @@ function refreshAccountUi(){
 async function checkForUpdates(silent=false){const bridge=api()||(typeof accountApi==='function'?accountApi():null);if(!bridge||typeof bridge.check_updates!=='function'||updateCheckInProgress)return null;updateCheckInProgress=true;const check=$('checkUpdates'),status=$('updateStatus'),install=$('installUpdate');if(!silent&&check){check.disabled=true;if(status)status.textContent='Stagepulse güncellemeleri denetleniyor…';}try{const result=api()?await api().check_updates():await bridge.check_updates();if(!result||result.offline||result.ok===false){if(!silent&&status)status.textContent=result?.message||'Güncelleme servisine şu anda ulaşılamıyor.';return null;}latestUpdateManifest=result;const available=result.published===true&&result.available===true;if(install)install.classList.toggle('hidden',!available);if(available){const version=result.version||result.versionName||'Yeni sürüm';const message=`Yeni sürüm mevcut: ${version}.\n${result.message||'Güncelleme indirilmeye hazır.'}${result.notes?'\n\nSürüm notları: '+result.notes:''}`;if(status)status.textContent=message;if(silent)setStatus(`Yeni Stagepulse sürümü mevcut: ${version}. Hesap / güncellemeler bölümünden indirebilirsin.`);}else if(!silent&&status){status.textContent=result.message||(result.published?'Uygulama güncel.':'Henüz yayımlanmış kararlı güncelleme yok.');}return result;}catch(error){if(!silent&&status)status.textContent='Güncelleme denetlenemedi: '+String(error.message||error);return null;}finally{updateCheckInProgress=false;if(!silent&&check)check.disabled=false;}}
 async function openWhatsAppSupport(){const url='https://wa.me/905320683012?text='+encodeURIComponent('Merhaba Stagepulse, uygulama desteği almak istiyorum.');try{if(window.StagepulseAndroid&&typeof window.StagepulseAndroid.openWhatsApp==='function'){window.StagepulseAndroid.openWhatsApp();return;}}catch(_){}try{if(window.pywebview&&window.pywebview.api&&typeof window.pywebview.api.open_whatsapp==='function'){window.pywebview.api.open_whatsapp();return;}}catch(_){}window.open(url,'_blank','noopener');}
 function initAccount(){
+ initMeasurementAdminPanel();
  initFullPackageCommerce();
  $('accountLogin').addEventListener('click',async()=>{try{$('accountLogin').disabled=true;$('accountStatus').textContent='Hesap doğrulanıyor…';const result=await api().auth_login($('accountEmail').value,$('accountPassword').value);applyAccountContext(result.context);$('accountPassword').value='';setStatus('Stagepulse hesabına giriş yapıldı.');}catch(err){$('accountStatus').textContent='Giriş başarısız: '+err.message;}finally{$('accountLogin').disabled=false;}});
  $('accountSignup').addEventListener('click',async()=>{try{if(!$('accountEmail').value.trim())throw new Error('E-posta veya telefon numarası gerekli.');$('accountSignup').disabled=true;$('accountStatus').textContent='Öğrenci hesabı oluşturuluyor…';const result=await api().auth_signup($('accountEmail').value,$('accountPassword').value,$('accountDisplayName').value);$('accountStatus').textContent=result.message;if(result.session_created){const context=await api().auth_context();applyAccountContext(context);}else $('accountPassword').value='';}catch(err){$('accountStatus').textContent='Hesap oluşturulamadı: '+err.message;}finally{$('accountSignup').disabled=false;}});
