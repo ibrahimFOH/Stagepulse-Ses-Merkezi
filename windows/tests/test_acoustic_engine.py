@@ -169,6 +169,14 @@ def test_spl_metrics_reject_non_finite_calibration_offset():
     with pytest.raises(ValueError, match="Kalibrasyon"):
         measure_spl(tone(1000, 48000, 8192), 48000, float("nan"))
 
+def test_spl_metrics_at_low_sample_rate_return_z_without_claiming_a_or_c():
+    from core.acoustic_engine import measure_spl
+    result = measure_spl(tone(1000, 16000, 32000), 16000)
+    assert result["available_weightings"] == ["Z"]
+    assert set(result["weightings"]) == {"Z"}
+    assert "32 kHz" in result["warning"]
+    assert result["units"] == "dBFS"
+
 
 def test_acoustic_api_exposes_fractional_rta_and_spl_analysis():
     import json
