@@ -346,7 +346,7 @@ Deno.serve(async (req: Request) => {
     if (withinRateLimit !== true) return fail("RATE_LIMITED", 429);
     const role = await getRole(user.id);
     if (action === "store_get") {
-      const { data, error } = await admin.from("sesm_store_settings").select("product_code,product_name,price,currency,bank_name,account_holder,iban,payment_instructions,contact_phone").eq("id", true).single();
+      const { data, error } = await admin.from("sesm_store_settings").select("product_code,product_name,price,currency,bank_name,account_holder,iban,payment_instructions,contact_phone,measurement_settings").eq("id", true).single();
       if (error || !data) return fail("STORE_SETTINGS_UNAVAILABLE",503);
       return reply({ok:true,settings:data});
     }
@@ -356,9 +356,21 @@ Deno.serve(async (req: Request) => {
       const iban=String(body.iban??"").replace(/\s+/g,"").toUpperCase().slice(0,34), paymentInstructions=String(body.payment_instructions??"").trim().slice(0,1000), contactPhone=String(body.contact_phone??"").trim().slice(0,40);
       if (!Number.isFinite(price) || price < 0 || price > 2500) return fail("FULL_PACKAGE_PRICE_LIMIT", 400);
       if(iban&&!/^TR[0-9]{24}$/.test(iban))return fail("STORE_IBAN_INVALID",400);
-      const {data,error}=await admin.from("sesm_store_settings").update({price,currency:"TRY",product_code:"full_package",product_name:"FULL PAKET",bank_name:bankName,account_holder:accountHolder,iban,payment_instructions:paymentInstructions,contact_phone:contactPhone,updated_at:new Date().toISOString(),updated_by:user.id}).eq("id",true).select("product_code,product_name,price,currency,bank_name,account_holder,iban,payment_instructions,contact_phone").single();
+      const {data:currentSettings,error:currentSettingsError}=await admin.from("sesm_store_settings").select("measurement_settings").eq("id",true).single();
+      if(currentSettingsError||!currentSettings)return fail("STORE_SETTINGS_UNAVAILABLE",503);
+      const currentMeasurement=currentSettings.measurement_settings||{advanced_rta_enabled:true,microphone_correction_enabled:true};
+      let measurementSettings=currentMeasurement;
+      if(body.measurement_settings!==undefined){
+        const incoming=body.measurement_settings;
+        if(!incoming||typeof incoming!=="object"||Array.isArray(incoming))return fail("MEASUREMENT_SETTINGS_INVALID",400);
+        const advanced=incoming.advanced_rta_enabled===undefined?currentMeasurement.advanced_rta_enabled:incoming.advanced_rta_enabled;
+        const correction=incoming.microphone_correction_enabled===undefined?currentMeasurement.microphone_correction_enabled:incoming.microphone_correction_enabled;
+        if(typeof advanced!=="boolean"||typeof correction!=="boolean")return fail("MEASUREMENT_SETTINGS_INVALID",400);
+        measurementSettings={advanced_rta_enabled:advanced,microphone_correction_enabled:correction};
+      }
+      const {data,error}=await admin.from("sesm_store_settings").update({price,currency:"TRY",product_code:"full_package",product_name:"FULL PAKET",bank_name:bankName,account_holder:accountHolder,iban,payment_instructions:paymentInstructions,contact_phone:contactPhone,measurement_settings:measurementSettings,updated_at:new Date().toISOString(),updated_by:user.id}).eq("id",true).select("product_code,product_name,price,currency,bank_name,account_holder,iban,payment_instructions,contact_phone,measurement_settings").single();
       if(error||!data)return fail("STORE_SETTINGS_SAVE_FAILED",500);
-      await audit(user.id,"full_package_store_updated",null,null,{price,bank_name:bankName,iban_configured:!!iban});
+      await audit(user.id,"full_package_store_updated",null,null,{price,bank_name:bankName,iban_configured:!!iban,measurement_settings:measurementSettings});
       return reply({ok:true,settings:data});
     }
     if (action === "purchase_submit") {
