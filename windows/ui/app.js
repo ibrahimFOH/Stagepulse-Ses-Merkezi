@@ -583,6 +583,7 @@ function initAcousticAnalyzer(){
      lines.push(weighting+' ağırlık: Leq '+Number(w.leq_db).toFixed(1)+' · Lmax Fast '+Number(w.lmax_fast_db).toFixed(1)+' · Lmax Slow '+Number(w.lmax_slow_db).toFixed(1)+' · Peak '+Number(w.lpeak_db).toFixed(1));
      lines.push('  L10 '+Number(p.L10).toFixed(1)+' · L50 '+Number(p.L50).toFixed(1)+' · L90 '+Number(p.L90).toFixed(1));
     }
+    if(spl.warning)lines.push('Uyarı: '+spl.warning);
     lines.push('Kırpılma: '+Number(spl.clipping_percent).toFixed(3)+'% · Kalibrasyon: '+(spl.calibrated_spl?'uygulandı':'yok; dBFS gösterimi'));
     $('acousticSplResult').textContent=lines.join('\\n');
    }else $('acousticSplResult').textContent='SPL istatistikleri bu WAV dosyasında üretilemedi.';
