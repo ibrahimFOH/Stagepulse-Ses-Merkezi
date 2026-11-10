@@ -87,6 +87,8 @@ def test_stereo_wav_api_reads_local_file_and_returns_analysis(tmp_path):
     assert result["sample_rate"] == rate
     assert result["file_name"] == path.name
     assert result["calibrated_spl"] is False
+    assert result["spl_analysis"]["units"] == "dBFS"
+    assert set(result["spl_analysis"]["weightings"]) == {"A", "C", "Z"}
     assert len(result["transfer_function"]["frequency_hz"]) == 1025
     assert len(result["impulse_response"]["impulse_response"]) == 2048
 
