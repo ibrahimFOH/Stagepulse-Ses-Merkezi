@@ -1135,7 +1135,8 @@ function initMeasurementAdminPanel(){
   const measurement_settings={advanced_rta_enabled:record.advancedRtaEnabled,microphone_correction_enabled:record.microphoneCorrectionEnabled};
   const button=$('saveMeasurementAdmin');if(button)button.disabled=true;
   try{
-   const response=await commerceApi().store_update({price:Number($('fullPackageAdminPrice')?.value||2500),bank_name:$('fullPackageBankName')?.value||'',account_holder:$('fullPackageAccountHolder')?.value||'',iban:$('fullPackageIban')?.value||'',payment_instructions:$('fullPackagePaymentInstructions')?.value||'',contact_phone:$('fullPackageContactPhone')?.value||'',measurement_settings});
+   const currentStore=await commerceApi().store_get(),store=currentStore.settings||{};
+   const response=await commerceApi().store_update({price:Number(store.price??2500),bank_name:store.bank_name||'',account_holder:store.account_holder||'',iban:store.iban||'',payment_instructions:store.payment_instructions||'',contact_phone:store.contact_phone||'',measurement_settings});
    applyMeasurementFeatureSettings(response?.settings?.measurement_settings||measurement_settings);localStorage.setItem(key,JSON.stringify(record));
    const completed=checks.every(id=>record[id]===true)&&record.measurementMicModel&&record.measurementCalibratorModel&&record.measurementCalibrationDate;
    if(status)status.textContent=(completed?'Saha kontrol listesi kaydedildi. ':'Ölçüm ayarları sunucuya kaydedildi. ')+(completed?'Bu kayıt operatör beyanıdır; cihazın IEC uygunluğunu doğrulamaz.':'Saha doğrulaması için mikrofon/kalibratör bilgilerini ve beş kontrol maddesini tamamla.');
