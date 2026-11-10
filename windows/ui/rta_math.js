@@ -33,7 +33,22 @@
     if(!Array.isArray(previous)||previous.length!==current.length)return current.slice();
     return current.map((value,index)=>previous[index]+alpha*(value-previous[index]));
   }
-  const api={ratio,centers,supportedCenters,clampRangeToSupported,smooth};
+  function fractionalCenters(sampleRate,bandsPerOctave,minHz=20,maxHz=20000) {
+    const bands=Number(bandsPerOctave), low=Number(minHz), high=Number(maxHz);
+    if(!Number.isFinite(sampleRate)||sampleRate<=0)return [];
+    if(![1,3,6,12,24,48].includes(bands))throw new Error('Bant çözünürlüğü 1, 3, 6, 12, 24 veya 48 olmalı.');
+    if(!Number.isFinite(low)||!Number.isFinite(high)||low<=0||high<=low)throw new Error('Frekans aralığı pozitif ve artan olmalı.');
+    const halfBandRatio=Math.pow(2,1/(2*bands)), nyquist=sampleRate/2;
+    const first=Math.ceil(bands*Math.log2(low/1000)-1e-12);
+    const last=Math.floor(bands*Math.log2(high/1000)+1e-12);
+    const result=[];
+    for(let k=first;k<=last;k++){
+      const center=1000*Math.pow(2,k/bands);
+      if(center>=low&&center<=high&&center*halfBandRatio<=nyquist*.999)result.push(center);
+    }
+    return result;
+  }
+  const api={ratio,centers,supportedCenters,clampRangeToSupported,smooth,fractionalCenters};
   root.StagepulseRtaMath=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

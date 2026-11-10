@@ -101,3 +101,80 @@ def test_stereo_wav_api_rejects_mono_file(tmp_path):
     api._selected_wav_path = str(path)
     with pytest.raises(ValueError, match="Stereo WAV"):
         api.analyze_stereo_wav(str(path), 2048, 0.5)
+
+@pytest.mark.parametrize("bands", [1, 3, 6, 12, 24, 48])
+def test_fractional_octave_spectrum_includes_reference_tone_and_reports_dBFS(bands):
+    from core.acoustic_engine import fractional_octave_spectrum
+    rate, size = 48000, 16384
+    result = fractional_octave_spectrum(tone(1000, rate, size, 0.5), rate, bands, size)
+    index = int(np.argmin(np.abs(np.asarray(result["centers_hz"]) - 1000.0)))
+    assert result["centers_hz"][index] == pytest.approx(1000.0)
+    assert result["levels_dbfs"][index] == pytest.approx(-9.0309, abs=1.0)
+    assert result["units"] == "dBFS RMS"
+    assert result["standard_compliance"] is False
+
+
+def test_fractional_octave_resolution_increases_band_count():
+    from core.acoustic_engine import fractional_octave_spectrum
+    x = tone(1000, 48000, 32768)
+    counts = [len(fractional_octave_spectrum(x, 48000, bands, 32768)["centers_hz"])
+              for bands in (3, 6, 12, 24, 48)]
+    assert counts == sorted(counts)
+    assert counts[-1] > counts[0] * 10
+
+
+def test_fractional_octave_rejects_unsupported_resolution_and_fft():
+    from core.acoustic_engine import fractional_octave_spectrum
+    x = tone(1000, 48000, 8192)
+    with pytest.raises(ValueError, match="Bant çözünürlüğü"):
+        fractional_octave_spectrum(x, 48000, 5)
+    with pytest.raises(ValueError, match="FFT boyutu"):
+        fractional_octave_spectrum(x, 48000, 3, 3000)
+
+
+def test_spl_metrics_are_explicitly_uncalibrated_without_reference_offset():
+    from core.acoustic_engine import measure_spl
+    rate, size = 48000, 96000
+    result = measure_spl(tone(1000, rate, size, 0.1), rate)
+    assert result["calibrated_spl"] is False
+    assert result["units"] == "dBFS"
+    assert result["weightings"]["Z"]["leq_db"] == pytest.approx(-23.0103, abs=0.2)
+    assert result["weightings"]["A"]["leq_db"] == pytest.approx(result["weightings"]["Z"]["leq_db"], abs=0.5)
+    assert result["weightings"]["C"]["leq_db"] == pytest.approx(result["weightings"]["Z"]["leq_db"], abs=0.5)
+
+
+def test_spl_metrics_apply_calibration_offset_and_return_fast_slow_peak_percentiles():
+    from core.acoustic_engine import measure_spl
+    rate, size = 48000, 96000
+    result = measure_spl(tone(1000, rate, size, 0.1), rate, calibration_offset_db=114.0)
+    assert result["calibrated_spl"] is True
+    assert result["units"] == "dB SPL"
+    assert result["weightings"]["Z"]["leq_db"] == pytest.approx(90.9897, abs=0.2)
+    assert result["weightings"]["A"]["lmax_fast_db"] > 80
+    assert result["weightings"]["A"]["lmax_slow_db"] > 80
+    assert set(result["weightings"]["A"]["percentiles_1s_db"]) == {"L10", "L50", "L90"}
+
+
+def test_a_weighting_attenuates_100hz_more_than_c_weighting():
+    from core.acoustic_engine import measure_spl
+    rate, size = 48000, 96000
+    result = measure_spl(tone(100, rate, size, 0.1), rate, calibration_offset_db=114.0)
+    assert result["weightings"]["C"]["leq_db"] - result["weightings"]["A"]["leq_db"] > 15.0
+
+
+def test_spl_metrics_reject_non_finite_calibration_offset():
+    from core.acoustic_engine import measure_spl
+    with pytest.raises(ValueError, match="Kalibrasyon"):
+        measure_spl(tone(1000, 48000, 8192), 48000, float("nan"))
+
+
+def test_acoustic_api_exposes_fractional_rta_and_spl_analysis():
+    import json
+    from core.acoustic_api import AcousticAnalysisApi
+    api = AcousticAnalysisApi()
+    x = tone(1000, 48000, 8192).tolist()
+    rta = api.analyze_rta_samples_json(json.dumps(x), 48000, 12, 8192)
+    spl = api.analyze_spl_samples_json(json.dumps(x), 48000)
+    assert rta["bands_per_octave"] == 12
+    assert spl["calibrated_spl"] is False
+    assert spl["units"] == "dBFS"

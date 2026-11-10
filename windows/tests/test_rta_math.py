@@ -57,3 +57,21 @@ def test_python_and_javascript_supported_bands_match():
         for mode in ('third', 'octave'):
             js = run_js(f"m.supportedCenters({sr}, {json.dumps(mode)}, 20, 20000)")
             assert js == py_supported(sr, mode, 20, 20000)
+
+def test_fractional_octave_centers_support_1_over_6_to_1_over_48():
+    for bands in (6, 12, 24, 48):
+        centers = run_js(f"m.fractionalCenters(48000, {bands}, 20, 20000)")
+        assert 1000 in centers
+        assert centers == sorted(centers)
+        assert len(centers) > len(run_js("m.fractionalCenters(48000, 3, 20, 20000)"))
+
+
+def test_fractional_octave_centers_respect_nyquist_and_range():
+    centers = run_js("m.fractionalCenters(44100, 48, 100, 20000)")
+    assert all(100 <= value <= 20000 for value in centers)
+    assert all(value * (2 ** (1 / 96)) <= 44100 / 2 * 0.999 for value in centers)
+
+
+def test_fractional_octave_centers_reject_unsupported_resolution():
+    with pytest.raises(subprocess.CalledProcessError):
+        run_js("m.fractionalCenters(48000, 5, 20, 20000)")
