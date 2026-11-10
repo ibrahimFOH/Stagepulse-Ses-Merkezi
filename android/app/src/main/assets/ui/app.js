@@ -72,7 +72,6 @@ let browserRtaStream = null;
 let browserRtaContext = null;
 let browserRtaAnalyser = null;
 let browserRtaTimeData = null;
-let browserRtaFrequencyData = null;
 let rtaCommandQueue = Promise.resolve();
 let rtaLastTime = 0;
 let rtaSampleRate = 0;
@@ -627,7 +626,7 @@ function rtaMicError(err){const msg=String(err&&err.message||err||'Bilinmeyen ha
 async function stopBrowserRta(){
  if(browserRtaStream){try{browserRtaStream.getTracks().forEach(t=>t.stop());}catch(_){}browserRtaStream=null;}
  if(browserRtaContext){const closingContext=browserRtaContext;browserRtaContext=null;try{const closing=closingContext.close();if(closing&&typeof closing.catch==='function')closing.catch(()=>{});}catch(_){}}
- browserRtaAnalyser=null;browserRtaTimeData=null;browserRtaFrequencyData=null;
+ browserRtaAnalyser=null;browserRtaTimeData=null;
 }
 function browserPcmFractionalBands(samples,sampleRate,bandsPerOctave,minHz,maxHz){
  const n=samples.length,half=n>>1;
@@ -692,7 +691,7 @@ async function startBrowserRta(){
   // AudioContext kapanışını beklemeden getUserMedia çağrısına ilerle.
   if(browserRtaStream){try{browserRtaStream.getTracks().forEach(track=>track.stop());}catch(_){}browserRtaStream=null;}
   if(browserRtaContext){const previousContext=browserRtaContext;browserRtaContext=null;try{previousContext.close().catch(()=>{});}catch(_){}}
-  browserRtaAnalyser=null;browserRtaTimeData=null;browserRtaFrequencyData=null;
+  browserRtaAnalyser=null;browserRtaTimeData=null;
   if(token!==rtaGeneration){$('rtaStart').disabled=false;$('rtaStop').disabled=true;return;}
   $('rtaStatus').textContent='Android WebView üzerinden mikrofon izni isteniyor…';
   // getUserMedia, WebChromeClient.onPermissionRequest akışını tetikler.
@@ -732,7 +731,6 @@ async function startBrowserRta(){
   browserRtaAnalyser.connect(browserRtaSilentSink);
   browserRtaSilentSink.connect(browserRtaContext.destination);
   browserRtaTimeData=new Float32Array(browserRtaAnalyser.fftSize);
-  browserRtaFrequencyData=new Float32Array(browserRtaAnalyser.frequencyBinCount);
   rtaSampleRate=browserRtaContext.sampleRate;
   rtaDeviceName=browserRtaStream.getAudioTracks()[0]?.label||'Android mikrofonu';
   rtaRunning=true;resetRtaHistory();
