@@ -6,13 +6,17 @@ Stagepulse ölçüm altyapısını profesyonel ses sistemi analizi için gelişt
 
 Smaart Suite'in yayımlanmış özellikleri işlevsel referans alınır; arayüzü veya özel algoritmaları kopyalanmaz. Hedeflenen ana başlıklar RTA/spektrogram, çift kanallı Transfer Function, magnitude/faz/coherence, delay, impulse response ve SPL kayıt/raporlamadır.
 
-## Mevcut koda eklenen temel
+## 3.9.8 sürümünde entegre edilenler
 
-- windows/core/acoustic_engine.py: 1/1, 1/3, 1/6, 1/12, 1/24 ve 1/48 oktav bant analizi; A/C/Z ağırlıklı SPL metrikleri.
-- windows/core/acoustic_api.py: WebView üzerinden RTA ve SPL örnek analizi çağrıları.
-- windows/ui/rta_math.js ve Android varlığı: aynı base-2 bant merkezlerinin UI tarafında hesaplanması.
-- windows/tests/test_acoustic_engine.py: sentetik sinyal, çözünürlük, ağırlıklandırma, kalibrasyon ve API testleri.
-- Ölçüm seviyeleri, fiziksel kalibrasyon düzeltmesi yoksa dBFS olarak işaretlenir.
+- Windows canlı RTA yakalama motoru 1/1, 1/3, 1/6, 1/12, 1/24 ve 1/48 oktav çözünürlüklerini destekler.
+- Android canlı mikrofon akışı WebView getUserMedia üzerinden alınır; zaman alanı PCM örnekleri Hann pencereli FFT ile aynı fractional-octave bantlarına dönüştürülür.
+- Windows ve Android RTA matematiği ortak rta_math.js varlığıyla eşitlenmiştir.
+- Ölçüm mikrofonu CSV correction profili frekans ekseninde logaritmik interpolasyonla RTA bantlarına uygulanır. Profil cihazda saklanır ve yalnızca RTA spektrumunu düzeltir; SPL kalibrasyonu değildir.
+- Windows stereo WAV analiz ekranı A/C/Z ağırlıklı Leq, Fast/Slow maksimum, Peak ve 1 saniyelik L10/L50/L90 sonuçlarını gösterir. Kalibrasyon offset'i yoksa dBFS olarak etiketlenir. A/C ağırlıklandırması için 32 kHz altındaki dosyalarda yalnızca Z hesaplanır.
+- Android canlı RTA'da fiziksel 1 kHz kalibratörle oturumluk Z/ağırlıksız RMS kalibrasyonu bulunur. Bu, A/C ağırlıklı yasal SPL ölçümü değildir.
+- Mevcut yönetici paneline gelişmiş RTA ve mikrofon correction özellik bayrakları eklendi. Ayarlar Supabase `sesm_store_settings.measurement_settings` JSON alanında tutulur; güncelleme yalnızca owner yetkili Edge Function üzerinden yapılır.
+- Yönetici panelindeki saha kayıt alanı mikrofon/kalibratör metaverisini ve operatör kontrol listesini dışa aktarır. Bu saha notları cihazda tutulur; otomatik ölçüm doğrulaması değildir.
+- windows/core/acoustic_engine.py ve windows/core/rta_capture.py sentetik sinyal, bant çözünürlüğü, ağırlıklandırma ve kalibrasyon testlerini içerir.
 
 ## Ölçüm modülleri ve tamamlanma ölçütleri
 
@@ -86,27 +90,24 @@ Bunlar doğrulanacak proje hedefleridir; şu an sağlandığı iddia edilmez:
 - SPL Leq karşılaştırması: referans cihaza göre hedef ±1 dB; saha koşulu ve cihaz sınıfına göre ayrıca raporlanır.
 - A/C ağırlıklandırma eğrisi: IEC referans tablosuna karşı frekans noktası bazında hata raporu.
 
-## Yönetici kontrol merkezi için hedef mimari
+## Yönetici kontrol merkezi
 
-Mevcut ticari ürün tek FULL PAKET olarak kalır. Yönetici paneline daha sonra şu yapı eklenmelidir:
-- Modül görünürlüğü: Windows ve Android için ayrı ayrı etkin/pasif.
-- Özellik bayrakları: kararlı, beta, deneysel ve kapalı durumları.
-- Eğitim kataloğu: dal, seviye, ders, içerik ve yayımlanma durumu.
-- Uygulama içeriği: duyuru, yardım, sürüm notu ve bakım bildirimi.
-- Lisans ve satış: mevcut FULL PAKET/lisans akışını koruyarak fiyat ve kampanya yönetimi.
-- Değişiklik günlüğü: kim, neyi, hangi tarihte değiştirdi.
-- Sunucu tarafı yetki: UI'da düğme gizlemek yetkilendirme değildir; her yönetici yazma işlemi Edge Function/RLS/RPC tarafında doğrulanmalıdır.
-- Platform sürümü ve minimum sürüm: uyumsuz istemcide riskli özellik kapatılabilmelidir.
+Yönetici ayrı bir uygulama veya sayfa değildir; ana Stagepulse uygulamasında owner oturumu açılınca görünür. 3.9.8 kapsamında merkezi ölçüm bayrakları mevcut FULL PAKET mağaza ayarları kaydı içinde saklanır:
+- `advanced_rta_enabled`: 1/6, 1/12, 1/24 ve 1/48 oktav seçeneklerini açar/kapatır.
+- `microphone_correction_enabled`: RTA CSV mikrofon düzeltmesini açar/kapatır.
+- Edge Function `store_get` ayarları okur; `store_update` yalnızca owner tarafından değiştirilebilir ve değerleri boolean olarak doğrular.
+- İstemci ayarları çevrimdışı açılış için önbelleğe alır; sunucudan gelen yeni ayarlar önbelleği günceller.
+- Saha cihazı ve kalibratör metaverisi JSON olarak dışa aktarılır; bu operatör kaydı merkezi bir ölçüm sertifikası değildir.
 
-Özellik bayrakları için önerilen kayıt anahtarı feature_key + platform + channel; platform değerleri windows, android, both; kanal değerleri stable, beta, experimental olmalıdır. Kullanıcı/cihaz yanıtına yalnızca izin verilen, imzalı/HTTPS üzerinden alınan yapılandırma döndürülmelidir. Kritik güvenlik ve lisans kontrolleri özellik bayrağına bırakılmamalıdır.
+Gelecek genişletmeler (platform bazlı stable/beta/experimental kanalları, minimum sürüm, eğitim kataloğu, duyuru ve bakım bildirimi) ayrı gereksinim ve yetki tasarımıyla ele alınmalıdır. Kritik lisans ve güvenlik kararları özellik bayrağına bırakılmaz.
 
-## Şimdilik yapılmayanlar
+## Fiziksel kabul öncesinde kalan işler
 
-- Android gerçek zamanlı PCM yakalama zincirine yeni SPL algoritmasının bağlanması.
-- UI'da 1/6–1/48 oktav seçicilerinin ve SPL metrik ekranlarının açılması.
-- TF otomatik delay tracking, gelişmiş averaging ve multi-engine.
-- Ölçüm mikrofonu frekans düzeltme dosyası yönetimi.
-- Saha cihazı karşılaştırması ve IEC uygunluk testi.
-- Yönetici feature-flag veritabanı, Edge Function yönetim eylemi ve ekran kontrolleri.
+- Gerçek Android telefon, USB ses kartı ve ölçüm mikrofonuyla izin/akış/FFT kararlılığı saha ortamında doğrulanmalı.
+- Windows ve Android sonuçları aynı 1 kHz ton, pembe gürültü ve aynı kalibratörle karşılaştırılmalı.
+- Mikrofon CSV correction dosyasının üretici kaynağı, cihaz seri numarası ve geçerliliği doğrulanmalı; bilinen referans mikrofonla fark raporlanmalı.
+- SPL A/C/Z, Fast/Slow ve Leq sonuçları izlenebilir referans cihazla karşılaştırılmalı.
+- IEC 61672 / IEC 61260 uygunluğu bağımsız laboratuvar/uygun test ekipmanı ile ölçülmeli. Yazılım veya sentetik testler Class 1/2 uygunluk kanıtı değildir.
+- Transfer Function için canlı otomatik delay tracking, gelişmiş averaging ve multi-engine henüz kapsam dışıdır.
 
-Bu maddeler kodun mevcut durumuyla karıştırılmamalı; ayrı geliştirme ve kabul işleri olarak izlenmelidir.
+Kod testleri sentetik sinyallerin matematiksel davranışını doğrular; gerçek mikrofon, preamp, ADC, kalibratör, çevresel koşullar ve IEC sınıfını doğrulamaz.
