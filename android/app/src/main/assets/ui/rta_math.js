@@ -46,6 +46,24 @@
     if(!Array.isArray(previous)||previous.length!==current.length)return current.slice();
     return current.map((value,index)=>previous[index]+alpha*(value-previous[index]));
   }
+  function applyMicCorrection(centers, values, profile) {
+    if(!Array.isArray(values))return [];
+    if(!Array.isArray(centers)||!Array.isArray(profile)||profile.length<2)return values.slice();
+    const points=profile.filter(p=>Number.isFinite(Number(p.frequency_hz))&&Number.isFinite(Number(p.correction_db)))
+      .map(p=>({frequency_hz:Number(p.frequency_hz),correction_db:Number(p.correction_db)}))
+      .sort((a,b)=>a.frequency_hz-b.frequency_hz);
+    if(points.length<2)return values.slice();
+    return values.map((value,index)=>{
+      const frequency=Number(centers[index]);
+      if(!Number.isFinite(frequency)||frequency<points[0].frequency_hz||frequency>points[points.length-1].frequency_hz)return value;
+      let hi=points.findIndex(p=>p.frequency_hz>=frequency);
+      if(hi<=0)return value+points[0].correction_db;
+      const a=points[hi-1],b=points[hi];
+      if(b.frequency_hz===a.frequency_hz)return value+a.correction_db;
+      const t=(Math.log(frequency)-Math.log(a.frequency_hz))/(Math.log(b.frequency_hz)-Math.log(a.frequency_hz));
+      return value+a.correction_db+(b.correction_db-a.correction_db)*t;
+    });
+  }
   function fractionalCenters(sampleRate,bandsPerOctave,minHz=20,maxHz=20000) {
     const bands=Number(bandsPerOctave), low=Number(minHz), high=Number(maxHz);
     if(!Number.isFinite(sampleRate)||sampleRate<=0)return [];
@@ -61,7 +79,7 @@
     }
     return result;
   }
-  const api={ratio,centers,supportedCenters,clampRangeToSupported,smooth,fractionalCenters,normalizeBands};
+  const api={ratio,centers,supportedCenters,clampRangeToSupported,smooth,fractionalCenters,normalizeBands,applyMicCorrection};
   root.StagepulseRtaMath=api;
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof globalThis!=='undefined'?globalThis:this);
