@@ -325,7 +325,8 @@ def measure_spl(samples: Any, sample_rate: Any,
     from scipy.signal import lfilter
     block_size = max(1, int(round(rate)))
     results: dict[str, Any] = {}
-    for weighting in ("A", "C", "Z"):
+    available_weightings = ("A", "C", "Z") if rate >= 32000 else ("Z",)
+    for weighting in available_weightings:
         weighted = _weighting_filter(x, rate, weighting)
         squared = weighted * weighted
         fast_alpha = 1.0 - math.exp(-1.0 / (rate * 0.125))
@@ -357,6 +358,8 @@ def measure_spl(samples: Any, sample_rate: Any,
         "calibrated_spl": offset is not None,
         "units": "dB SPL" if offset is not None else "dBFS",
         "calibration_offset_db": offset,
+        "available_weightings": list(available_weightings),
+        "warning": None if rate >= 32000 else "A/C ağırlıklandırması için örnekleme hızı en az 32 kHz olmalı; yalnızca Z ağırlığı hesaplandı.",
         "peak_dbfs": 20.0 * math.log10(max(float(np.max(np.abs(x))), 1e-10)),
         "clipping_percent": float(np.mean(np.abs(x) >= 0.999) * 100.0),
         "percentile_window_seconds": 1.0, "weightings": results,
