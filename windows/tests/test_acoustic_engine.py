@@ -129,7 +129,7 @@ def test_fractional_octave_rejects_unsupported_resolution_and_fft():
     with pytest.raises(ValueError, match="Bant çözünürlüğü"):
         fractional_octave_spectrum(x, 48000, 5)
     with pytest.raises(ValueError, match="FFT boyutu"):
-        fractional_octave_spectrum(x, 48000, 3, 4096)
+        fractional_octave_spectrum(x, 48000, 3, 3000)
 
 
 def test_spl_metrics_are_explicitly_uncalibrated_without_reference_offset():
