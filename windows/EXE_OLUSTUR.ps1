@@ -6,7 +6,7 @@ Set-Location $PSScriptRoot
 # Remove an older student-delivery ZIP before tests; build products must never be mistaken for source assets.
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $PSScriptRoot 'ogrenciye_gonder')
 
-$version = '4.0.2'
+$version = '4.0.3'
 $appIcon = Join-Path $PSScriptRoot 'ui\assets\stagepulse.ico'
 if (-not (Test-Path -LiteralPath $appIcon)) { throw 'Stagepulse uygulama simgesi eksik: ui\assets\stagepulse.ico' }
 $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
@@ -25,7 +25,7 @@ if (-not (Test-Path -LiteralPath $webview) -or (Get-Item -LiteralPath $webview).
   $webviewReady = $false
   for ($attempt = 1; $attempt -le 2; $attempt++) {
     try {
-      Invoke-WebRequest -Uri $webviewUrl -OutFile $webview -UseBasicParsing -MaximumRedirection 10 -TimeoutSec 60 -Headers @{ 'User-Agent' = 'StagepulseSesMerkezi-Build/4.0.2' }
+      Invoke-WebRequest -Uri $webviewUrl -OutFile $webview -UseBasicParsing -MaximumRedirection 10 -TimeoutSec 60 -Headers @{ 'User-Agent' = 'StagepulseSesMerkezi-Build/4.0.3' }
       if ((Get-Item -LiteralPath $webview).Length -lt 1000000) { throw 'WebView2 yükleyicisi eksik veya bozuk indirildi.' }
       $webviewReady = $true
       break
@@ -68,7 +68,7 @@ if (-not (Test-Path $makensis)) {
       Remove-Item -LiteralPath $zip -Force -ErrorAction SilentlyContinue
       try {
         Write-Host "NSIS arşivi indiriliyor (kaynak $sourceIndex/$($zipUrls.Count), deneme $attempt)..." -ForegroundColor Cyan
-        Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing -MaximumRedirection 10 -TimeoutSec 30 -Headers @{ 'User-Agent' = 'StagepulseSesMerkezi-Build/4.0.2' }
+        Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing -MaximumRedirection 10 -TimeoutSec 30 -Headers @{ 'User-Agent' = 'StagepulseSesMerkezi-Build/4.0.3' }
         if (-not (Test-Path -LiteralPath $zip)) { throw 'İndirme dosyası oluşmadı.' }
         $fileInfo = Get-Item -LiteralPath $zip
         if ($fileInfo.Length -lt 1000000) { throw "İndirilen dosya beklenenden küçük ($($fileInfo.Length) bayt); sunucu indirme sayfası döndürmüş olabilir." }
@@ -117,7 +117,7 @@ if (-not (Test-Path $makensis)) {
       Remove-Item -LiteralPath $nsisSetup -Force -ErrorAction SilentlyContinue
       try {
         Write-Host 'Arşiv aynası çalışmadı. Resmî NSIS 3.13 kurulum dosyası indiriliyor...' -ForegroundColor Yellow
-        Invoke-WebRequest -Uri $url -OutFile $nsisSetup -UseBasicParsing -MaximumRedirection 10 -TimeoutSec 60 -Headers @{ 'User-Agent' = 'StagepulseSesMerkezi-Build/4.0.2' }
+        Invoke-WebRequest -Uri $url -OutFile $nsisSetup -UseBasicParsing -MaximumRedirection 10 -TimeoutSec 60 -Headers @{ 'User-Agent' = 'StagepulseSesMerkezi-Build/4.0.3' }
         if (-not (Test-Path -LiteralPath $nsisSetup) -or (Get-Item -LiteralPath $nsisSetup).Length -lt 1000000) { throw 'NSIS kurulum dosyası eksik veya beklenenden küçük.' }
         $actualSetupHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $nsisSetup).Hash.ToLowerInvariant()
         if ($actualSetupHash -ne $expectedSetupHash) { throw "Kurulum dosyasının SHA-256 değeri uyuşmadı: $actualSetupHash" }
