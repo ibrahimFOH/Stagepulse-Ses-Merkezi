@@ -10,7 +10,7 @@ Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasında
 - Sistem taslağı JSON dışa aktarımı; Android ve Windows ortak arayüz/hesaplama kodu.
 - Model sınırları arayüzde açıklanır; polar/GLL verisi, oda yansımaları ve saha ölçümü yerine geçmez.
 
-## 3.9.8 SPL/RTA ölçüm ve mikrofon entegrasyonları
+## Önceki sürümden gelen SPL/RTA ölçüm ve mikrofon entegrasyonları
 
 - Windows ve Android canlı RTA ekranlarında 1/1, 1/3, 1/6, 1/12, 1/24 ve 1/48 oktav bant çözünürlükleri.
 - Android mikrofon akışında PCM tabanlı FFT; bant güçleri dBFS RMS olarak hesaplanır.
@@ -19,19 +19,19 @@ Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasında
 - Mevcut yönetici panelinden gelişmiş RTA ve mikrofon correction özellikleri merkezi olarak açılıp kapatılabilir; ayarlar Supabase üzerinde tutulur.
 - Yönetici panelinde mikrofon/kalibratör bilgileri ve saha kontrol kaydı bulunur. Operatör saha kaydı IEC uygunluk sertifikası değildir.
 
-## 3.9.7 önceki entegrasyonlar
+## Önceki sürümden gelen entegrasyonlar
 
 - Windows ve Android'e OSC/UDP gönderimi eklendi; M32/X32 için varsayılan UDP portu 10023.
 - İki platformda standart MIDI Type 0 dosyası oluşturulabilir.
 - Arşivdeki SPL/FFT, elektrik/kablo ve RF araçları mevcut daha gelişmiş Stagepulse araçlarıyla çakıştığı veya güvenilir ölçüm üretmediği için tekrar eklenmedi.
 
-## 3.9.7 son düzeltmeler
+## Önceki sürümden gelen son düzeltmeler
 
 - Android Compressor ve Gate kulak eğitimi A/B dinleme, rastgele sınav ve stilleriyle doğrulandı.
 - SPL 2D/3D kaynak seçimi ve sürükleme koordinatları düzeltildi.
 - Android kalite denetimi Compressor/Gate arayüz bileşenlerini ve sürüm eşleşmesini kontrol eder.
 
-## 3.9.5 arayüz ve SPL iyileştirmeleri
+## Önceki sürümden gelen arayüz ve SPL iyileştirmeleri
 
 - Öğrenci ekranında görünür FULL PAKET satın alma/lisans kısayolu.
 - Destek ve iletişim düğmeleri doğrudan Stagepulse WhatsApp hattını açar.
@@ -40,6 +40,8 @@ Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasında
 - Compressor ve Gate kulak eğitimi A/B dinleme ve rastgele sınavları korunmuştur.
 
 ## Platform sürümleri
+
+Kaynak sürümü 4.0.0'dır. Aşağıdaki sürüm bilgileri kaynak ağacını tanımlar; tek başına Release deposunda imzalı kurulumların yayımlandığını veya fiziksel cihaz kabul testlerinin tamamlandığını göstermez.
 
 | Bileşen | Kaynak sürümü | Sürümün yönetildiği yer |
 |---|---:|---|
@@ -62,11 +64,11 @@ Stagepulse ana web sitesi içeriği bu çalışma kapsamında değiştirilmedi.
 
 Windows masaüstü sürümünde canlı RTA, oturumluk 1 kHz ses kalibratörü referansıyla dB SPL Z gösterimi ve aynı ses kartının iki giriş kanalından canlı H1 Transfer Function bulunur. Stereo TF'de CH0 referans, CH1 ölçüm mikrofonudur. Kalibrasyon mikrofon frekans düzeltmesi veya IEC sınıfı ölçüm uygunluğu sağlamaz. Gerçek ses kartı, mikrofon ve saha kabul testleri otomatik kaynak testlerinden ayrı doğrulanmalıdır.
 
-Ticari satış modeli yalnızca FULL PAKET'tir. Eğitim dalları ayrı satış ürünü değil, Full Paket içindeki öğrenme/yeterlilik yapısıdır.
+Ticari satış modeli yalnızca FULL PAKET'tir. Eğitim dalları ayrı satış ürünü değil, FULL PAKET içindeki dokuz öğrenme/yeterlilik yoludur. Katalog JSON'unda kalan eski paket kodları veritabanı/geriye dönük uyumluluk içindir; aktif ayrı satış ürünleri değildir. Eğitim kataloğu ve açık doğrulama kapıları `windows/docs/EGITIM_DALLARI_USTA_YOLU_VE_FIYATLANDIRMA_TR.md` içinde tutulur.
 
 ## Android geliştirme ve doğrulama
 
-Gerekli araçlar: JDK 17, Android SDK Platform 35, Android Build Tools 35.0.0, Gradle 8.9, Node.js 22 ve Python 3.12.
+Gerekli araçlar: JDK 17, Android SDK Platform 35, Android Build Tools 35.0.0, Gradle Wrapper (sürümü `android/gradle/wrapper/gradle-wrapper.properties` dosyasından okunur), Android Gradle Plugin 8.13.2, Node.js 22 ve Python 3.12.
 
 Depo kök dizininden:
 
@@ -108,7 +110,7 @@ Android kalite iş akışı `main` dalına gelen Android kaynak değişiklikleri
 
 Kararlı Windows EXE ve imzalı Android APK, `Stagepulse-Releases` deposunun yayın hattından üretilir. Kaynak depoya push yapılması tek başına GitHub Release etiketi, indirme manifesti veya Stagepulse web sitesini güncellemez.
 
-## 3.9.8 SPL/RTA ölçüm motoru
+## SPL/RTA ölçüm motoru: mevcut kapsam ve sınırlar
 
 Windows canlı RTA motoru ve Android WebAudio PCM yakalama zinciri 1/1, 1/3, 1/6, 1/12, 1/24 ve 1/48 oktav çözünürlüklerini destekler. Android tarafında PCM örnekleri Hann pencereli FFT ile analiz edilir; bant seviyeleri dBFS RMS olarak gösterilir. Ölçüm mikrofonu CSV düzeltmesi RTA bant grafiğine uygulanabilir.
 
