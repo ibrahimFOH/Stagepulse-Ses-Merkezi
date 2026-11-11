@@ -293,3 +293,30 @@ def test_spl_filter_self_test_matches_iec_nominal_a_c_z_curves():
     assert report["tests_total"] == 33
     assert report["tests_failed"] == 0, report["results"]
     assert report["tests_passed"] == 33
+
+
+def test_live_tf_h1_reports_known_gain_phase_and_coherence_without_hardware():
+    import time
+    from core.tf_capture import TFCapture
+
+    capture = TFCapture()
+    capture._running = True
+    capture._sample_rate = 48000
+    capture._fft_size = 16384
+    capture._num_avg = 4
+    capture._device_name = "Sentetik stereo TF"
+    capture._started = time.monotonic()
+    capture._last_callback = capture._started
+    bins = capture._fft_size // 2 + 1
+    transfer = 0.5 * np.exp(-1j * np.pi / 2)
+    capture._sxx = np.ones(bins, dtype=np.float64)
+    capture._syy = np.full(bins, abs(transfer) ** 2, dtype=np.float64)
+    capture._syx = np.full(bins, transfer, dtype=np.complex128)
+    capture._avg_count = 4
+
+    result = capture.snapshot("third", 900, 1100)
+    index = result["centers"].index(1000.0)
+    assert result["ready"] is True
+    assert result["mag_db"][index] == pytest.approx(-6.0206, abs=0.01)
+    assert result["phase_deg"][index] == pytest.approx(-90.0, abs=0.1)
+    assert result["coherence"][index] == pytest.approx(1.0, abs=1e-6)
