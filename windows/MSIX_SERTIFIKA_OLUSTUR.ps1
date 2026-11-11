@@ -12,8 +12,11 @@ if (-not $password -or $password.Length -lt 12) { throw 'PFX parolası en az 12 
 $cert = New-SelfSignedCertificate -Type Custom -Subject 'CN=Stagepulse' -FriendlyName 'Stagepulse MSIX Package Signing' -CertStoreLocation 'Cert:\CurrentUser\My' -KeyAlgorithm RSA -KeyLength 3072 -HashAlgorithm SHA256 -KeyExportPolicy Exportable -KeyUsage DigitalSignature -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3','2.5.29.19={text}') -NotAfter (Get-Date).AddYears(5)
 Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $password | Out-Null
 Export-Certificate -Cert $cert -FilePath $cerPath -Type CERT | Out-Null
-Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople' | Out-Null
-Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\CurrentUser\Root' | Out-Null
+$principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    throw 'MSIX test sertifikasını LocalMachine\TrustedPeople deposuna eklemek için PowerShell Yönetici olarak çalıştırılmalıdır.'
+}
+Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
 Write-Host ''
 Write-Host 'SERTİFİKA HAZIR' -ForegroundColor Green
 Write-Host "PFX: $pfxPath"
