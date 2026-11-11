@@ -101,3 +101,11 @@ def test_windows_android_have_same_28_primary_screens():
     android_pages = set(re.findall(r"""data-page=["']([^"']+)["']""", android_html))
     assert len(win_pages) == 28
     assert win_pages == android_pages
+
+
+def test_android_gradle_wrapper_matches_quality_ci():
+    repo = ROOT.parent
+    wrapper = (repo / "android/gradle/wrapper/gradle-wrapper.properties").read_text("utf-8")
+    workflow = (repo / ".github/workflows/android-quality.yml").read_text("utf-8")
+    assert "gradle-8.13-bin.zip" in wrapper
+    assert 'gradle-version: "8.13"' in workflow
