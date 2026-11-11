@@ -18,6 +18,15 @@
 
 Kaynak sürümü 4.0.0'dır. Özellik listesi kaynak kodda tanımlı kapsamı özetler; her cihazda gerçek donanım kabul testinin tamamlandığı anlamına gelmez.
 
+- Frekans Bulucu ve Kulak Eğitimi: nota/frekans tanıma, EQ dinleme, compressor ve noise gate A/B alıştırmaları.
+- Teknik Hesaplayıcılar: dBu/Vrms, dB oranları, dalga ve akustik ön hesapları.
+- Ses Katmanı Atölyesi ve Sanal Mikser Laboratuvarı: çok katmanlı ses çalışma alanı ve dört kanallı sanal mikser pratikleri.
+- Cue/Video Notları, saha kontrol listeleri ve öğrenci çalışma profili.
+- WAV kalite analizi: desteklenen WAV biçimlerinde peak/RMS ve dosya temel özellikleri. Windows masaüstündeki A/C/Z Leq, Fast/Slow ve L10/L50/L90 analiz kapsamıyla aynı değildir.
+- Yaklaşık LUFS düzeyleme ve stereo PCM WAV dışa aktarma. EBU/ITU sertifikalı ölçüm veya profesyonel mastering limiteri değildir.
+- Video Ders Kütüphanesi: video ders senaryosu/storyboard ve oynatıcı arayüzü. Ekranın bulunması, bütün ders videolarının yayımlanmış olduğu anlamına gelmez.
+- Eğitim Müfredatı: dokuz uzmanlık dalı, L0–L5 öğrenme basamakları, uygulama görevleri ve kısa bilgi sınavları. Yerel görev tikleri kişisel takiptir; resmî usta onayı değildir.
+- Öğrenci ilerlemesi, öğretmen değerlendirmesi ve PDF katılım belgesi. Katılım belgesi resmî yeterlilik veya akreditasyon sağlamaz.
 - OSC/UDP: IPv4 hedefe float/integer/string parametre gönderimi; M32/X32 için varsayılan port 10023. UDP paketi gönderildi bilgisi cihazın komutu uyguladığını kanıtlamaz.
 - MIDI Type 0 dosyası üretimi ve İndirilenler/Stagepulse klasörüne kaydetme.
 
