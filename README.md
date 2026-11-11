@@ -51,7 +51,7 @@ Kaynak sürümü 4.0.2'dır. Aşağıdaki sürüm bilgileri kaynak ağacını ta
 
 4.0.2 kaynak sürümüdür. Windows EXE ve imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır; indirme manifesti ve SHA-256 dosyaları da aynı sürümle üretilir. Android APK kalıcı Stagepulse keystore ile imzalanmıştır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz.
 
-## Uygulama ekranları ve araç envanteri (4.0.2)
+## Uygulama ekranları ve araç envanteri (4.0.2)\n\nArayüzün tüm sayfalarında ve öğrenci PDF kitaplığındaki 13 kitapta teknik terimler Türkçe ad + İngilizce karşılık biçiminde gösterilir; PDF'lerde ortak terim sözlüğü de bulunur.
 
 Windows ve Android arayüzlerinde aynı 28 çalışma ekranı bulunur. Ekran adlarının ortak olması, donanıma bağlı işlevlerin iki platformda birebir aynı olduğu anlamına gelmez; platform farkları aşağıda ayrıca belirtilmiştir.
 
