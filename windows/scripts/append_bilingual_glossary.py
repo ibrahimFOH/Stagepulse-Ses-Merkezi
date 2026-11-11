@@ -24,7 +24,7 @@ PDF_NAMES = [
     "12_Allen_Heath_Avantis_Uygulamali_Egitim.pdf",
 ]
 TERMS = [
-    ("Kompresör", "Compressor"), ("Gürültü kapısı", "Noise Gate"),
+    ("Kompresörün", "Compressor"), ("Kompresör", "Compressor"), ("Gürültü kapısının", "Noise Gate"), ("Gürültü kapısı", "Noise Gate"),
     ("Eşik", "Threshold"), ("Oran", "Ratio"), ("Diz", "Knee"),
     ("Atak", "Attack"), ("Bırakma", "Release"), ("Çıkış kazancı", "Makeup Gain"),
     ("Kısma aralığı", "Range"), ("Bekletme", "Hold"),
