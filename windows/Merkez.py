@@ -30,7 +30,7 @@ from core.acoustic_api import AcousticAnalysisApi
 
 APP_NAME = "Stagepulse Ses Mühendisliği Merkezi"
 # 4.0.0: System Designer, SPL Coverage ve Sub-Top Alignment
-APP_VERSION = "4.0.2"
+APP_VERSION = "4.0.3"
 SUPABASE_URL = "https://itasctyjzyewcykozuex.supabase.co"
 SUPABASE_PUBLISHABLE_KEY = "sb_publishable_tP3CMhVAjv6FNtrkYfVEOA_dbF9m8Jb"
 WEBSITE_URL = "https://stagepulse.com.tr"
