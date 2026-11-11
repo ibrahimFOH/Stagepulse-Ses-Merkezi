@@ -1,4 +1,18 @@
-# Stagepulse Ses Merkezi 3.9.7
+# Stagepulse Ses Merkezi değişiklik geçmişi
+
+## 4.0.0 · Kaynak sürümü
+
+- Windows ve Android kaynak sürümleri 4.0.0 olarak eşitlendi.
+- Sistem tasarım araçları; Line Array Designer, SPL Coverage ve Sub-Top Alignment açıklamalarıyla belgelendi. Bu araçlar yaklaşık/geometrik ön çalışma üretir; üretici polar/GLL verisi ve saha ölçümü yerine geçmez.
+- Eğitim kataloğu dokuz uzmanlık dalı ve L0–L5 yeterlilik basamaklarıyla eşitlendi. Güncel ticari ürün yalnızca FULL PAKET olarak tanımlandı; eski paket kodları geriye dönük uyumluluk olarak işaretlendi.
+- Canlı ses öğrenci PDF'sine RF tarama, intermodülasyon, anten ve IEM koordinasyonu dersi eklendi.
+- Stüdyo öğrenci PDF'sine miks/mastering, LUFS, true peak, dither ve teslim QC dersi eklendi.
+- PDF kalite kapısı yeni RF/mastering anahtar içeriklerini de doğrular.
+- Windows/Android katalog kopyaları ve 28 birincil ekran için otomatik eşitlik testleri eklendi.
+- Android Gradle Wrapper, Android kalite CI iş akışıyla Gradle 8.13 üzerinde eşitlendi.
+- PDF üretim iş akışında main dalına yazmadan önce uzak dalı fetch/rebase ederek eşzamanlı commit yarışına karşı koruma eklendi.
+
+## Önceki sürüm geçmişi (3.9.7 ve öncesi)
 
 - Windows ve Android'e ortak OSC/UDP mesaj gönderimi eklendi. IPv4, UDP portu, OSC adresi ve float/integer/string veri türü doğrulanır; gönderim cihaz yanıtı olarak raporlanmaz.
 - Windows ve Android'de tempo, kanal, program, nota, velocity ve süre ayarlı standart MIDI Type 0 dosyası oluşturulabilir.
