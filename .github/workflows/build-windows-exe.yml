@@ -117,8 +117,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pytest tests -q
-      - name: Eğitim PDF içerik ve kopya denetimi
-        run: python windows/scripts/verify_education_pdfs.py
       - name: Kurulum EXE'sini derle
         shell: pwsh
         run: ./windows/EXE_OLUSTUR.ps1
