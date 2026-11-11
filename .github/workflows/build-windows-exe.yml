@@ -70,7 +70,6 @@ jobs:
             echo "PDF çıktıları zaten güncel."
           else
             git commit -m "Eğitim PDF kitaplığını iki dilli terminolojiyle yenile"
-            # Paralel doküman commit'leri sırasında main ilerleyebilir; fetch/rebase/push tekrar dene.
             pushed=false
             for attempt in 1 2 3 4 5; do
               git fetch origin main
@@ -172,22 +171,24 @@ jobs:
           $output = Join-Path $env:GITHUB_WORKSPACE 'windows\dist'
           & ./windows/MSIX_OLUSTUR.ps1 -PayloadPath $payload -OutputDirectory $output -CertificatePath $env:MSIX_TEST_PFX -CertificatePassword $env:MSIX_TEST_PASSWORD
           if ($LASTEXITCODE -ne 0) { throw "MSIX derlemesi başarısız: $LASTEXITCODE" }
-          $msix = Get-ChildItem windows/dist -Filter '*.msix' -File
-          if (@($msix).Count -ne 1 -or $msix.Length -lt 1000000) { throw 'Tek ve geçerli boyutta bir MSIX paketi bekleniyordu.' }
-          if (-not (Test-Path ($msix.FullName + '.sha256'))) { throw 'MSIX SHA-256 dosyası eksik.' }
-          if (-not (Test-Path 'windows/dist/Stagepulse-MSIX-Signing.cer')) { throw 'MSIX test sertifikası eksik.' }
-          Write-Host "MSIX CI doğrulaması başarılı: $($msix.Name)" -ForegroundColor Green
+          # MSIX betiği çalışma dizinini değiştirebilir; tüm kontroller mutlak çıktı yolunu kullanır.
+          $msix = @(Get-ChildItem -LiteralPath $output -Filter '*.msix' -File)
+          if ($msix.Count -ne 1 -or $msix[0].Length -lt 1000000) { throw 'Tek ve geçerli boyutta bir MSIX paketi bekleniyordu.' }
+          if (-not (Test-Path -LiteralPath ($msix[0].FullName + '.sha256'))) { throw 'MSIX SHA-256 dosyası eksik.' }
+          if (-not (Test-Path -LiteralPath (Join-Path $output 'Stagepulse-MSIX-Signing.cer'))) { throw 'MSIX test sertifikası eksik.' }
+          Write-Host "MSIX CI doğrulaması başarılı: $($msix[0].Name)" -ForegroundColor Green
 
       - name: MSIX paketini Windows'a kurup kaldırarak doğrula
         shell: powershell
         run: |
-          $msix = Get-ChildItem windows/dist -Filter '*.msix' -File
-          if (@($msix).Count -ne 1) { throw 'Tek bir MSIX paketi bekleniyordu.' }
-          Add-AppxPackage -Path $msix.FullName -ErrorAction Stop
+          $output = Join-Path $env:GITHUB_WORKSPACE 'windows\dist'
+          $msix = @(Get-ChildItem -LiteralPath $output -Filter '*.msix' -File)
+          if ($msix.Count -ne 1) { throw 'Tek bir MSIX paketi bekleniyordu.' }
+          Add-AppxPackage -Path $msix[0].FullName -ErrorAction Stop
           $installed = Get-AppxPackage -Name 'Stagepulse.SesMerkezi'
           if (-not $installed) { throw 'Add-AppxPackage başarılı göründü ancak paket kaydı bulunamadı.' }
           Remove-AppxPackage -Package $installed.PackageFullName -ErrorAction Stop
-          Write-Host "MSIX_INSTALL_REMOVE_OK $($msix.Name)" -ForegroundColor Green
+          Write-Host "MSIX_INSTALL_REMOVE_OK $($msix[0].Name)" -ForegroundColor Green
 
       - uses: actions/upload-artifact@v4
         name: Windows EXE ve MSIX artifact
