@@ -1807,6 +1807,7 @@
       ['OSC / MIDI kontrol araçları', initOscMidiTools]
     ];
 
+    // Android ve Windows aynı sıralı başlatma akışını kullanır.
     // Her ağır ekranı ayrı tarayıcı görevinde başlat. Böylece WebView2
     // ilk açılışta tek uzun JavaScript döngüsü yüzünden yanıt vermez olmaz.
     const runStep = (index) => {
