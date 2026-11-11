@@ -24,7 +24,7 @@ permissions:
 
 concurrency:
   group: stagepulse-pdf-and-build-v2-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   generate-education-pdfs:
