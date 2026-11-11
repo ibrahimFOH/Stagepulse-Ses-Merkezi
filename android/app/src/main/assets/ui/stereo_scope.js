@@ -28,7 +28,7 @@
       monoDeltaDb:db(rmsMid / Math.max(stereoRms, 1e-12)), rmsLeft:rmsL, rmsRight:rmsR };
   }
 
-  var api = { analyzeStereo: analyzeStereo };
+  var api = { analyzeStereo: analyzeStereo, parseWavInfo: parseWavInfo };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   if (!root || !root.document) return;
 
@@ -85,18 +85,60 @@
       ctx.fillRect(cx + x * radius, cy - y * radius, 1.5, 1.5);
     }
   }
+  function parseWavInfo(bytes) {
+    if (!bytes || bytes.byteLength < 44) throw new Error('WAV başlığı eksik veya bozuk.');
+    var view = new DataView(bytes), readTag = function (offset) {
+      return String.fromCharCode(view.getUint8(offset), view.getUint8(offset + 1), view.getUint8(offset + 2), view.getUint8(offset + 3));
+    };
+    if (readTag(0) !== 'RIFF' || readTag(8) !== 'WAVE') throw new Error('Yalnızca standart RIFF/WAVE dosyaları destekleniyor.');
+    var offset = 12, channels = 0, sampleRate = 0, byteRate = 0, format = 0, dataSize = 0, foundFmt = false, foundData = false;
+    while (offset + 8 <= view.byteLength) {
+      var tag = readTag(offset), size = view.getUint32(offset + 4, true), payload = offset + 8;
+      if (tag === 'fmt ') {
+        if (size < 16 || payload + 16 > view.byteLength) throw new Error('WAV format başlığı okunamıyor.');
+        format = view.getUint16(payload, true);
+        channels = view.getUint16(payload + 2, true);
+        sampleRate = view.getUint32(payload + 4, true);
+        byteRate = view.getUint32(payload + 8, true);
+        if (format === 65534 && size >= 40 && payload + 26 <= view.byteLength) format = view.getUint16(payload + 24, true);
+        foundFmt = true;
+      } else if (tag === 'data') {
+        dataSize = size; foundData = true;
+      }
+      if (foundFmt && foundData) break;
+      var next = payload + size + (size & 1);
+      if (next <= offset || next > view.byteLength) break;
+      offset = next;
+    }
+    if (!foundFmt || !foundData || !channels || !sampleRate || !byteRate) {
+      throw new Error('WAV süre bilgisi okunamadı. Standart PCM veya IEEE Float WAV kullan.');
+    }
+    if (format !== 1 && format !== 3) throw new Error('Sıkıştırılmış WAV biçimi desteklenmiyor. PCM veya IEEE Float WAV kullan.');
+    if (channels < 2) throw new Error('Dosya mono. Vectorscope için iki kanallı stereo WAV yükle.');
+    var duration = dataSize / byteRate;
+    if (!Number.isFinite(duration) || duration <= 0) throw new Error('WAV süresi hesaplanamadı.');
+    var decodedBytes = duration * sampleRate * channels * 4;
+    return { channels:channels, sampleRate:sampleRate, duration:duration, decodedBytes:decodedBytes };
+  }
+
   async function loadFile(file) {
     if (!file) return;
     if (file.size > 150 * 1024 * 1024) { status('Dosya 150 MB sınırını aşıyor. Daha kısa veya daha küçük bir WAV dosyası kullan.', true); return; }
     var AudioCtor = root.AudioContext || root.webkitAudioContext;
     if (!AudioCtor) { status('Bu cihaz Web Audio API desteklemiyor.', true); return; }
-    status('Stereo ses dosyası çözümleniyor…');
+    status('WAV başlığı ve bellek ihtiyacı kontrol ediliyor…');
     try {
+      // Yalnızca ilk 1 MiB okunur; tam ses verisi decode işleminden önce belleğe alınmaz.
+      var header = await file.slice(0, Math.min(file.size, 1024 * 1024)).arrayBuffer();
+      var wavInfo = parseWavInfo(header);
+      if (wavInfo.duration > 600) throw new Error('Dosya süresi 10 dakikayı aşıyor. Daha kısa bölüm kullan.');
+      if (wavInfo.decodedBytes > 96 * 1024 * 1024) throw new Error('Çözümlenmiş ses belleği 96 MiB sınırını aşıyor. Daha kısa veya düşük örnekleme hızlı WAV kullan.');
       if (currentAudioContext) await currentAudioContext.close().catch(function () {});
       currentAudioContext = new AudioCtor();
+      status('Stereo ses dosyası çözümleniyor…');
       var buffer = await currentAudioContext.decodeAudioData(await file.arrayBuffer());
       if (buffer.numberOfChannels < 2) throw new Error('Dosya mono. Vectorscope için iki kanallı stereo WAV yükle.');
-      if (buffer.duration > 600) throw new Error('Dosya süresi 10 dakikayı aşıyor. Bellek güvenliği için daha kısa bölüm kullan.');
+      if (buffer.duration > 600 || buffer.length * buffer.numberOfChannels * 4 > 96 * 1024 * 1024) throw new Error('Çözümlenmiş ses bellek sınırını aşıyor. Daha kısa bölüm kullan.');
       currentBuffer = buffer;
       paintMetrics(analyzeStereo(buffer.getChannelData(0), buffer.getChannelData(1)), buffer);
       drawScope(buffer);
