@@ -1,4 +1,4 @@
-# Stagepulse Ses Mühendisliği Merkezi 3.9.7
+# Stagepulse Ses Mühendisliği Merkezi 3.9.8
 
 **Tek Windows kurulum dosyası · tek pencere uygulama · lisanssız yerel demo · çevrimiçi lisans, satış ve öğretmen kontrolü**
 
