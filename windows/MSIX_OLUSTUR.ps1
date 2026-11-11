@@ -108,7 +108,7 @@ $manifest = @"
       <uap:VisualElements DisplayName="Stagepulse Ses Merkezi" Description="Stagepulse Ses Mühendisliği Merkezi" BackgroundColor="#0D1015" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" />
     </Application>
   </Applications>
-  <Capabilities><Capability Name="internetClient" /><DeviceCapability Name="microphone" /><rescap:Capability Name="runFullTrust" /></Capabilities>
+  <Capabilities><Capability Name="internetClient" /><rescap:Capability Name="runFullTrust" /><DeviceCapability Name="microphone" /></Capabilities>
 </Package>
 "@
 $manifestPath = Join-Path $stage 'AppxManifest.xml'
