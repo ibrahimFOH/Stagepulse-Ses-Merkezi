@@ -102,6 +102,201 @@ def analyze_wav(path: str | Path) -> dict[str, Any]:
         "scope_note": "Bu rapor PCM sample-peak/RMS/DC ölçer. LUFS, oversampled true-peak veya kalibreli dB SPL ölçümü değildir."
     }
 
+
+def _true_peak_linear(audio: Any, sample_rate: int) -> tuple[float, str]:
+    """ITU-R BS.1770-5 Annex 2 oversampled inter-sample peak estimate."""
+    import numpy as np
+    from scipy.signal import resample_poly, upfirdn
+
+    x = np.asarray(audio, dtype=np.float64)
+    if x.ndim == 1:
+        x = x[:, None]
+    if x.size == 0 or not np.all(np.isfinite(x)):
+        raise ValueError("True Peak girdisi boş veya geçersiz.")
+    rate = int(sample_rate)
+    if rate <= 0:
+        raise ValueError("True Peak örnekleme hızı geçersiz.")
+
+    if rate == 48000:
+        # ITU-R BS.1770-5 Annex 2, Table: 48-tap / four-phase FIR interpolator.
+        phases = (
+            (0.0017089843750, 0.0109863281250, -0.0196533203125, 0.0332031250,
+             -0.0594482421875, 0.1373291015625, 0.9721679687500, -0.1022949218750,
+             0.0476074218750, -0.0266113281250, 0.0148925781250, -0.0083007812500),
+            (-0.0291748046875, 0.0292968750, -0.0517578125, 0.0891113281250,
+             -0.16650390625, 0.4650878906250, 0.7797851562500, -0.2003173828125,
+             0.1015625000, -0.0582275390625, 0.0330810546875, -0.0189208984375),
+            (-0.0189208984375, 0.0330810546875, -0.0582275390625, 0.1015625000,
+             -0.2003173828125, 0.7797851562500, 0.4650878906250, -0.16650390625,
+             0.0891113281250, -0.0517578125, 0.0292968750, -0.0291748046875),
+            (-0.0083007812500, 0.0148925781250, -0.0266113281250, 0.0476074218750,
+             -0.1022949218750, 0.9721679687500, 0.1373291015625, -0.0594482421875,
+             0.0332031250, -0.0196533203125, 0.0109863281250, 0.0017089843750),
+        )
+        taps = np.asarray([phases[p][i] for i in range(12) for p in range(4)], dtype=np.float64)
+        oversampled = upfirdn(taps, x, up=4, axis=0)
+        method = "ITU-R BS.1770-5 Annex 2 · 48 kHz · 4-phase 48-tap FIR"
+    else:
+        # Retain at least 192 kHz analysis rate; a high-quality Kaiser FIR is used
+        # where the Recommendation's published 48 kHz coefficient set does not apply.
+        factor = max(1, int(math.ceil(192000.0 / rate)))
+        if factor == 1:
+            oversampled = x
+            method = f"BS.1770-5 Annex 2 yaklaşımı · {rate} Hz native-rate"
+        else:
+            oversampled = resample_poly(x, factor, 1, axis=0, window=("kaiser", 8.6))
+            method = f"BS.1770-5 Annex 2 yaklaşımı · Kaiser FIR {factor}x"
+    peak = float(np.max(np.abs(oversampled))) if oversampled.size else 0.0
+    return peak, method
+
+
+def _measure_true_peak(audio: Any, sample_rate: int, chunk_seconds: float = 8.0) -> tuple[float, str]:
+    """Measure a long file in overlapping chunks without losing inter-sample peaks."""
+    import numpy as np
+
+    x = np.asarray(audio, dtype=np.float64)
+    if x.ndim == 1:
+        x = x[:, None]
+    chunk = max(1, int(round(int(sample_rate) * float(chunk_seconds))))
+    overlap = 64
+    peak = 0.0
+    method = ""
+    for start in range(0, len(x), chunk):
+        lo = max(0, start - overlap)
+        hi = min(len(x), start + chunk + overlap)
+        value, method = _true_peak_linear(x[lo:hi], int(sample_rate))
+        peak = max(peak, value)
+    return peak, method
+
+
+def _loudness_window_maxima(audio: Any, sample_rate: int, meter: Any) -> tuple[float | None, float | None]:
+    """Return ungated 400 ms Momentary and 3 s Short-term maxima."""
+    import numpy as np
+
+    x = np.asarray(audio, dtype=np.float64)
+    if x.ndim == 1:
+        x = x[:, None]
+    filtered = x.copy()
+    filters = getattr(meter, "_filters", None)
+    if not filters:
+        return None, None
+    for filt in filters:
+        for channel in range(filtered.shape[1]):
+            filtered[:, channel] = filt.apply_filter(filtered[:, channel])
+    weights = np.asarray(getattr(meter, "_channel_weights", np.ones(filtered.shape[1])), dtype=np.float64).reshape(-1)
+    if weights.size != filtered.shape[1]:
+        weights = np.ones(filtered.shape[1], dtype=np.float64)
+    weights = np.maximum(weights, 0.0)
+    weighted_power = np.sum(np.square(filtered) * weights[None, :], axis=1)
+    step = max(1, int(round(sample_rate * 0.1)))
+
+    def maximum(window_seconds: float) -> float | None:
+        width = int(round(sample_rate * window_seconds))
+        if width <= 0 or len(weighted_power) < width:
+            return None
+        values = []
+        for start in range(0, len(weighted_power) - width + 1, step):
+            power = float(np.mean(weighted_power[start:start + width]))
+            if power > 0 and math.isfinite(power):
+                values.append(-0.691 + 10.0 * math.log10(power))
+        return max(values) if values else None
+
+    return maximum(0.4), maximum(3.0)
+
+
+def validate_ebu_test_set(folder: str | Path, reference_csv_text: str = "",
+                          tolerance_lu: float = 0.2) -> dict[str, Any]:
+    """Measure extracted EBU WAV sequences and compare optional operator-supplied references.
+
+    CSV columns: filename, integrated_lufs, lra_lu, momentary_max_lufs,
+    short_term_max_lufs, true_peak_dbtp. Missing references are never marked PASS.
+    """
+    import csv
+    import io
+    import numpy as np
+    import soundfile as sf
+    import pyloudnorm as pyln
+
+    root = Path(folder).expanduser().resolve()
+    if not root.is_dir():
+        raise FileNotFoundError("EBU test klasörü bulunamadı.")
+    files = sorted(p for p in root.rglob("*.wav") if p.is_file())
+    if not files:
+        raise ValueError("Seçilen klasörde WAV test dosyası bulunamadı.")
+    if len(files) > 500:
+        raise ValueError("Tek çalıştırmada en fazla 500 WAV test dosyası işlenebilir.")
+    tolerance = float(tolerance_lu)
+    if not math.isfinite(tolerance) or not 0.01 <= tolerance <= 2.0:
+        raise ValueError("LU toleransı 0.01 ile 2.0 arasında olmalı.")
+
+    references: dict[str, dict[str, str]] = {}
+    if reference_csv_text.strip():
+        reader = csv.DictReader(io.StringIO(reference_csv_text.lstrip("\ufeff")))
+        required = {"filename"}
+        if not reader.fieldnames or not required.issubset(set(reader.fieldnames)):
+            raise ValueError("Referans CSV başlığı en az filename içermeli.")
+        for row in reader:
+            key = Path(str(row.get("filename", "")).strip()).name.casefold()
+            if key:
+                references[key] = row
+
+    rows = []
+    for path in files:
+        audio, rate = sf.read(str(path), dtype="float64", always_2d=True)
+        if audio.size == 0 or not np.all(np.isfinite(audio)):
+            rows.append({"filename": path.name, "status": "FAIL", "error": "Boş veya geçersiz ses verisi"})
+            continue
+        if audio.shape[1] > 6:
+            rows.append({"filename": path.name, "status": "UNSUPPORTED", "error": "BS.1770-5 Annex 1 için en fazla 5.1 kanal"})
+            continue
+        meter = pyln.Meter(int(rate), filter_class="DeMan")
+        try:
+            integrated = float(meter.integrated_loudness(audio))
+            lra = float(meter.loudness_range(audio))
+            if not math.isfinite(lra):
+                lra = None
+        except Exception as exc:
+            rows.append({"filename": path.name, "status": "FAIL", "error": str(exc)})
+            continue
+        momentary, short_term = _loudness_window_maxima(audio, int(rate), meter)
+        peak_linear, peak_method = _measure_true_peak(audio, int(rate))
+        true_peak = 20.0 * math.log10(peak_linear) if peak_linear > 0 else -120.0
+        measured = {
+            "integrated_lufs": integrated, "lra_lu": lra,
+            "momentary_max_lufs": momentary, "short_term_max_lufs": short_term,
+            "true_peak_dbtp": true_peak,
+        }
+        ref = references.get(path.name.casefold())
+        comparisons = []
+        if ref:
+            for key, value in measured.items():
+                raw = str(ref.get(key, "") or "").strip()
+                if not raw or value is None:
+                    continue
+                try:
+                    expected = float(raw)
+                except ValueError:
+                    continue
+                allowed = max(tolerance, 0.3) if key == "true_peak_dbtp" else tolerance
+                delta = float(value) - expected
+                comparisons.append({"metric": key, "reference": expected, "measured": float(value),
+                                    "difference": delta, "tolerance": allowed,
+                                    "pass": abs(delta) <= allowed})
+        status = "PASS" if comparisons and all(x["pass"] for x in comparisons) else ("FAIL" if comparisons else "REFERENCE_REQUIRED")
+        rows.append({
+            "filename": path.name, "sample_rate_hz": int(rate), "channels": int(audio.shape[1]),
+            "duration_seconds": len(audio) / int(rate), **measured,
+            "true_peak_method": peak_method, "comparisons": comparisons, "status": status,
+        })
+    counts = {key: sum(1 for row in rows if row["status"] == key)
+              for key in ("PASS", "FAIL", "REFERENCE_REQUIRED", "UNSUPPORTED")}
+    return {
+        "ok": True, "standard_basis": "ITU-R BS.1770-5 / EBU Tech 3341 / EBU Tech 3342",
+        "folder": root.name, "files_total": len(rows), "counts": counts, "tolerance_lu": tolerance,
+        "reference_csv_loaded": bool(references), "results": rows,
+        "scope_note": "EBU Loudness Test Set WAV dosyalarını ölçer. Referans CSV verilmeden hiçbir dosya PASS sayılmaz. Bu otomatik rapor resmî sertifika veya EBU onayı değildir.",
+    }
+
 def normalize_lufs(source: str | Path, output: str | Path, target_lufs: float = -14.0,
                    target_true_peak_db: float = -1.0) -> dict[str, Any]:
     """K-weighted BS.1770 loudness hedefi ve tahmini 4x true-peak tavanıyla WAV üretir.
@@ -112,7 +307,6 @@ def normalize_lufs(source: str | Path, output: str | Path, target_lufs: float = 
     import numpy as np
     import soundfile as sf
     import pyloudnorm as pyln
-    from scipy.signal import resample_poly
 
     src = Path(source).expanduser().resolve()
     out = Path(output).expanduser().resolve()
@@ -144,17 +338,8 @@ def normalize_lufs(source: str | Path, output: str | Path, target_lufs: float = 
     if not math.isfinite(measured):
         raise ValueError("LUFS ölçümü alınamadı. Dosya sessiz veya ölçüm için uygun olmayabilir.")
 
-    # 4x oversampling true-peak tahmini; uzun kayıtları düşük RAM ile işlemek için bloklar.
-    peak_linear = 0.0
-    frame_count = len(audio)
-    chunk = max(65536, int(rate * 8))
-    overlap = 256
-    for start in range(0, frame_count, chunk):
-        lo = max(0, start - overlap)
-        hi = min(frame_count, start + chunk + overlap)
-        seg = audio[lo:hi]
-        over = resample_poly(seg, 4, 1, axis=0)
-        peak_linear = max(peak_linear, float(np.max(np.abs(over))) if over.size else 0.0)
+    # BS.1770-5 Annex 2 true-peak ölçümü; 48 kHz için yayımlanmış 4-fazlı FIR katsayıları.
+    peak_linear, true_peak_method = _measure_true_peak(audio, int(rate))
     input_tp = 20 * math.log10(peak_linear) if peak_linear > 0 else -120.0
     requested_gain = float(target_lufs) - measured
     peak_limited_gain = float(target_true_peak_db) - input_tp
@@ -184,13 +369,7 @@ def normalize_lufs(source: str | Path, output: str | Path, target_lufs: float = 
             output_lra = None
         if not math.isfinite(verified_lufs):
             raise RuntimeError("Yazılan dosyanın LUFS ölçümü doğrulanamadı.")
-        verified_peak = 0.0
-        for start in range(0, len(verified_audio), chunk):
-            lo = max(0, start - overlap)
-            hi = min(len(verified_audio), start + chunk + overlap)
-            oversampled = resample_poly(verified_audio[lo:hi], 4, 1, axis=0)
-            if oversampled.size:
-                verified_peak = max(verified_peak, float(np.max(np.abs(oversampled))))
+        verified_peak, verified_tp_method = _measure_true_peak(verified_audio, int(verified_rate))
         verified_tp = 20 * math.log10(verified_peak) if verified_peak > 0 else -120.0
         if verified_tp > float(target_true_peak_db) + 0.15:
             raise RuntimeError("Yazılan dosya true-peak tavanını aşıyor; çıktı yayımlanmadı.")
@@ -215,11 +394,11 @@ def normalize_lufs(source: str | Path, output: str | Path, target_lufs: float = 
         "applied_gain_db": applied_gain,
         "target_lufs_limited_by_peak": applied_gain < requested_gain - 1e-6,
         "output_sample_peak_dbfs": actual_sample_peak,
-        "output_true_peak_dbtp_verified": verified_tp,
+        "output_true_peak_dbtp_verified": verified_tp,\n        "true_peak_method": true_peak_method,
         "output_subtype": "PCM_24",
         "notes": [
             "LUFS integrated ve LRA ölçümleri pyloudnorm DeMan K-weighting filtresiyle hesaplandı.",
-            "True-peak değeri 4x oversampling ile tahmin edilmiştir; sertifikalı teslim ölçer yerine geçmez.",
+            f"True Peak yöntemi: {true_peak_method}; referans testleri tamamlanmadan sertifikalı ölçüm iddiası değildir.",
             "Limiter uygulanmaz; true-peak tavanı hedef loudness'e erişimi kısıtlayabilir.",
             "Çıktıyı tekrar ölçüp kritik bölümleri dinleyin. Kaynak dosya değiştirilmez."
         ]
