@@ -1792,7 +1792,7 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLower
 // Stagepulse global bilingual audio-engineering terminology.
 (function installBilingualTechnicalLabels(){
   const terms = [
-    ["Kompresör","Kompresör (Compressor)"],["Gürültü kapısı","Gürültü kapısı (Noise Gate)"],
+    ["Kompresörün","Kompresörün (Compressor)"],["Kompresör","Kompresör (Compressor)"],["Gürültü kapısının","Gürültü kapısının (Noise Gate)"],["Gürültü kapısı","Gürültü kapısı (Noise Gate)"],
     ["Eşik","Eşik (Threshold)"],["Oran","Oran (Ratio)"],["Diz","Diz (Knee)"],
     ["Atak","Atak (Attack)"],["Bırakma","Bırakma (Release)"],
     ["Çıkış kazancı","Çıkış kazancı (Makeup Gain)"],["Kısma aralığı","Kısma aralığı (Range)"],
