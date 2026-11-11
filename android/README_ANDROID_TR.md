@@ -4,7 +4,7 @@
 **Sürüm kodu:** `40000`  
 **Minimum Android:** API 26  
 **Hedef Android:** API 35  
-**Derleme:** JDK 17 · Gradle Wrapper sürümü `gradle-wrapper.properties` dosyasından okunur · Android Gradle Plugin 8.13.2 · Android SDK 35
+**Derleme:** JDK 17 · Gradle 8.13 (wrapper ve CI eşleşir) · Android Gradle Plugin 8.13.2 · Android SDK 35
 
 ## Proje yapısı
 
