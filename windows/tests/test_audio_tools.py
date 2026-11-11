@@ -174,13 +174,13 @@ def test_ebu_reference_csv_can_produce_pass_only_when_all_available_metrics_matc
     measured = validate_ebu_test_set(tmp_path)
     row = measured["results"][0]
     reference = (
-        "filename,integrated_lufs,lra_lu,momentary_max_lufs,short_term_max_lufs,true_peak_dbtp\\n"
+        "filename,integrated_lufs,lra_lu,momentary_max_lufs,short_term_max_lufs,true_peak_dbtp\n"
         + path.name + ","
         + ",".join(str(row[key]) for key in (
             "integrated_lufs", "lra_lu", "momentary_max_lufs",
             "short_term_max_lufs", "true_peak_dbtp"
         ))
-        + "\\n"
+        + "\n"
     )
     result = validate_ebu_test_set(tmp_path, reference, tolerance_lu=0.01)
     assert result["counts"]["PASS"] == 1
