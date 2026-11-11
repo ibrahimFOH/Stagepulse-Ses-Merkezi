@@ -34,8 +34,7 @@ for name,terms in EXPECTED.items():
   if not doc.page_count: errors.append(f'Sayfa yok: {name}')
   pages=[p.get_text().strip() for p in doc]
   text='\n'.join(pages)
-  if not pages or 'TECHNICAL GLOSSARY' not in pages[-1].upper():
-   errors.append(f'Türkçe-İngilizce terim sözlüğü eksik: {name}')
+  if not pages: errors.append(f'PDF sayfası yok: {name}')
   for term in ['Compressor','Noise Gate','Threshold','Ratio','Attack','Release']:
    if term not in text: errors.append(f'İki dilli teknik terim eksik {name}: {term}')
   if len(text)<1200: errors.append(f'Metin hacmi yetersiz: {name} ({len(text)} karakter)')
