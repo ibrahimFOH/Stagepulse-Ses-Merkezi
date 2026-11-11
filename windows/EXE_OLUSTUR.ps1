@@ -19,9 +19,23 @@ Write-Host "Derleme Python'u: $($parts[0]) x64" -ForegroundColor Green
 # Build tooling is used only on the developer/build machine; customers receive one Setup.exe.
 $webview = Join-Path $PSScriptRoot 'build_support\MicrosoftEdgeWebView2RuntimeInstallerX64.exe'
 New-Item -ItemType Directory -Force -Path (Split-Path $webview) | Out-Null
-if (-not (Test-Path $webview)) {
+if (-not (Test-Path -LiteralPath $webview) -or (Get-Item -LiteralPath $webview).Length -lt 1000000) {
   Write-Host 'WebView2 çevrimdışı yükleyicisi indiriliyor...' -ForegroundColor Cyan
-  Invoke-WebRequest -Uri 'https://go.microsoft.com/fwlink/p/?LinkId=2124703' -OutFile $webview -UseBasicParsing
+  $webviewUrl = 'https://go.microsoft.com/fwlink/p/?LinkId=2124703'
+  $webviewReady = $false
+  for ($attempt = 1; $attempt -le 3; $attempt++) {
+    try {
+      Invoke-WebRequest -Uri $webviewUrl -OutFile $webview -UseBasicParsing -MaximumRedirection 10 -TimeoutSec 90 -Headers @{ 'User-Agent' = 'StagepulseSesMerkezi-Build/4.0.2' }
+      if ((Get-Item -LiteralPath $webview).Length -lt 1000000) { throw 'WebView2 yükleyicisi eksik veya bozuk indirildi.' }
+      $webviewReady = $true
+      break
+    } catch {
+      Remove-Item -LiteralPath $webview -Force -ErrorAction SilentlyContinue
+      if ($attempt -eq 3) { throw "WebView2 yükleyicisi 3 denemede indirilemedi: $($_.Exception.Message)" }
+      Start-Sleep -Seconds 3
+    }
+  }
+  if (-not $webviewReady) { throw 'WebView2 yükleyicisi indirilemedi.' }
 }
 $sig = Get-AuthenticodeSignature -LiteralPath $webview
 if ($sig.Status -ne 'Valid' -or $sig.SignerCertificate.Subject -notmatch 'Microsoft') {
