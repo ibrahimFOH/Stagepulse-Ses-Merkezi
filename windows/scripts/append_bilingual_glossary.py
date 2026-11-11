@@ -24,7 +24,7 @@ PDF_NAMES = [
     "12_Allen_Heath_Avantis_Uygulamali_Egitim.pdf",
 ]
 TERMS = [
-    ("Kompresörün", "Compressor"), ("Kompresör", "Compressor"), ("Gürültü kapısının", "Noise Gate"), ("Gürültü kapısı", "Noise Gate"),
+    ("Kompresör", "Compressor"), ("Gürültü kapısı", "Noise Gate"),
     ("Eşik", "Threshold"), ("Oran", "Ratio"), ("Diz", "Knee"),
     ("Atak", "Attack"), ("Bırakma", "Release"), ("Çıkış kazancı", "Makeup Gain"),
     ("Kısma aralığı", "Range"), ("Bekletme", "Hold"),
@@ -47,10 +47,13 @@ TERMS = [
     ("Hoparlör", "Loudspeaker"), ("Monitör", "Monitor"),
     ("Hat dizisi", "Line Array"), ("Alt frekans hoparlörü", "Subwoofer"),
 ]
+INLINE_VARIANTS = [("Kompresörün", "Compressor"), ("Gürültü kapısının", "Noise Gate")]
+
+
 def bilingualize_markup(value):
     """Metin akışındaki Türkçe teknik terimleri İngilizce karşılığıyla birlikte gösterir."""
     text = str(value)
-    for tr, en in sorted(TERMS, key=lambda pair: len(pair[0]), reverse=True):
+    for tr, en in sorted(TERMS + INLINE_VARIANTS, key=lambda pair: len(pair[0]), reverse=True):
         pattern = r"(?<![\wğüşöçıİĞÜŞÖÇ])" + re.escape(tr) + r"(?![\wğüşöçıİĞÜŞÖÇ])(?!\s*\()"
         text = re.sub(pattern, lambda match, label=f"{tr} ({en})": label, text, flags=re.IGNORECASE)
     return text
