@@ -732,7 +732,7 @@ function initMeasurementValidation(){
     const value=v=>v===null||v===undefined?'—':Number(v).toFixed(2);
     return row.filename+' | '+row.status+' | I '+value(row.integrated_lufs)+' LUFS | LRA '+value(row.lra_lu)+' LU | Mmax '+value(row.momentary_max_lufs)+' LUFS | Smax '+value(row.short_term_max_lufs)+' LUFS | TP '+value(row.true_peak_dbtp)+' dBTP'+(row.error?' | '+row.error:'');
    });
-   $('ebuReport').textContent='Standart temeli: '+report.standard_basis+'\nDosya: '+report.files_total+' | PASS: '+(c.PASS||0)+' | FAIL: '+(c.FAIL||0)+' | Referans bekliyor: '+(c.REFERENCE_REQUIRED||0)+' | Desteklenmiyor: '+(c.UNSUPPORTED||0)+'\nTolerans: ±'+report.tolerance_lu+' LU\n\n'+lines.join('\n')+'\n\n'+report.scope_note;
+   $('ebuReport').textContent='Standart temeli: '+report.standard_basis+'\nDosya: '+report.files_total+' | PASS: '+(c.PASS||0)+' | FAIL: '+(c.FAIL||0)+' | Kısmi referans: '+(c.PARTIAL_REFERENCE||0)+' | Referans bekliyor: '+(c.REFERENCE_REQUIRED||0)+' | Desteklenmiyor: '+(c.UNSUPPORTED||0)+'\nTolerans: ±'+report.tolerance_lu+' LU\n\n'+lines.join('\n')+'\n\n'+report.scope_note;
   }catch(err){$('ebuReport').textContent='EBU doğrulama başarısız: '+(err.message||String(err));}
   finally{runButton.disabled=false;}
  });
