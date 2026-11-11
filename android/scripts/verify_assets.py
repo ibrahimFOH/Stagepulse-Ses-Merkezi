@@ -22,7 +22,7 @@ MANIFEST = ROOT / "android" / "app" / "src" / "main" / "AndroidManifest.xml"
 errors = []
 DYNAMICS_CONTROLS = ("compThreshold", "compRatio", "compPlayA", "compPlayB", "gateThreshold", "gateRange", "gatePlayA", "gatePlayB")
 
-for p in (HTML, UI / "app.js", UI / "style.css", UI / "rta_math.js", UI / "acoustic_math.js", UI / "first_party_tools.js", UI / "advanced_modules.js", MAIN, MANIFEST, DOC_LIST):
+for p in (HTML, UI / "app.js", UI / "style.css", UI / "rta_math.js", UI / "acoustic_math.js", UI / "first_party_tools.js", UI / "advanced_modules.js", UI / "stereo_scope.js", MAIN, MANIFEST, DOC_LIST):
     if not p.is_file():
         errors.append("Zorunlu dosya eksik: " + str(p.relative_to(ROOT)))
 
@@ -150,6 +150,17 @@ if android_app_js.is_file():
             errors.append("OSC/MIDI arayüz bileşeni eksik: " + element_id)
     if "function initWaveLab()" not in tool_source or "pascalsToDbSpl" not in tool_source:
         errors.append("Dalga / faz / gecikme laboratuvarının ortak motoru eksik.")
+    stereo_source = (UI / "stereo_scope.js").read_text(encoding="utf-8") if (UI / "stereo_scope.js").is_file() else ""
+    for token in ("function analyzeStereo(", "decodeAudioData(", "getChannelData(1)", "correlation:", "monoDeltaDb:"):
+        if token not in stereo_source:
+            errors.append("Stereo Vectorscope analiz bileşeni eksik: " + token)
+    for element_id in ("stereoScopeFile", "stereoScopeCanvas", "stereoCorrelation", "stereoWidth", "stereoMonoDelta", "stereoScopeStatus"):
+        if f'id="{element_id}"' not in page_source:
+            errors.append("Stereo Vectorscope arayüz bileşeni eksik: " + element_id)
+    if 'data-wave-tab="stereo"' not in page_source or 'data-wave-panel="stereo"' not in page_source:
+        errors.append("Stereo Vectorscope sekmesi veya paneli eksik.")
+    if "stereo_scope.js" not in page_source:
+        errors.append("Stereo Vectorscope modülü HTML içinde yüklenmiyor.")
     for required in ('data-wave-tab="live"', "waveMicStart", "waveMicStop", "waveMicDelaySlider", "waveMicMonitor", "function startMicDelay()", "function stopMicDelay()", "N = round(Δt × fₛ)", "varsayılan olarak kamera veya mikrofon açmaz"):
         if required not in page_source and required not in tool_source:
             errors.append("Canlı mikrofon gecikme laboratuvarı bileşeni eksik: " + required)

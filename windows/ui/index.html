@@ -496,6 +496,7 @@
     <button class="wave-tab-btn" type="button" data-wave-tab="phase" role="tab" aria-selected="false">Faz ve girişim (Phase &amp; interference)</button>
     <button class="wave-tab-btn" type="button" data-wave-tab="sources" role="tab" aria-selected="false">İki kaynak (Two sources, 2D)</button>
     <button class="wave-tab-btn" type="button" data-wave-tab="spl" role="tab" aria-selected="false">Pa ve dB SPL (Pressure &amp; level)</button>
+    <button class="wave-tab-btn" type="button" data-wave-tab="stereo" role="tab" aria-selected="false">Stereo görüntü ve faz (Vectorscope)</button>
     <button class="wave-tab-btn" type="button" data-wave-tab="live" role="tab" aria-selected="false">Canlı mikrofon (Live mic)</button>
   </div>
   <section class="wave-lab-panel" data-wave-panel="wave">
@@ -537,6 +538,27 @@
       <canvas id="waveLabCanvas" height="250" aria-label="Dalga boyu ve sinüs dalgası görseli"></canvas>
     </article>
     <article class="panel wave-lab-note"><strong>Ses gecikmesi formülü (Propagation delay formula)</strong><span>Δt = d ÷ c. Δt gecikme süresi (delay time, s), d ses yolları arasındaki mesafe farkı (path difference, m), c ortamın ses hızı (speed of sound, m/s). Faz farkı φ = (360° × f × Δt) mod 360° ile bulunur. Faz hesabı seçilen tek frekans içindir; geniş bantlı müzikte (broadband audio) gecikmenin etkisi frekansa göre değişir.</span></article>
+  </section>
+
+  <section class="wave-lab-panel" data-wave-panel="stereo" hidden>
+    <article class="panel">
+      <div class="panel-head"><div><span class="eyebrow">STEREO / FAZ / MONO UYUMLULUĞU</span><h3>Stereo görüntüleyici ve faz korelasyonu</h3><p class="muted">İki kanallı WAV dosyasını yerel olarak analiz eder. Ses dosyası kaydedilmez veya sunucuya gönderilmez.</p></div><span class="chip">Yerel analiz</span></div>
+      <div class="stereo-scope-controls">
+        <label class="field"><span class="field-label">Stereo WAV dosyası</span><input id="stereoScopeFile" type="file" accept=".wav,.wave,audio/wav"></label>
+        <button class="btn btn-secondary" id="stereoScopeClear" type="button">Analizi temizle</button>
+      </div>
+      <div class="stereo-scope-metrics">
+        <div><small>Faz korelasyonu</small><strong id="stereoCorrelation">—</strong></div>
+        <div><small>Stereo genişliği (Side/Mid)</small><strong id="stereoWidth">—</strong></div>
+        <div><small>Sol RMS</small><strong id="stereoLeftRms">—</strong></div>
+        <div><small>Sağ RMS</small><strong id="stereoRightRms">—</strong></div>
+        <div><small>Mono toplama farkı</small><strong id="stereoMonoDelta">—</strong></div>
+      </div>
+      <canvas id="stereoScopeCanvas" class="stereo-scope-canvas" height="380" aria-label="Stereo vectorscope görüntüsü"></canvas>
+      <div class="stereo-scope-foot"><span id="stereoSampleInfo">Dosya seçilmedi</span><span>MID: L+R · SIDE: L−R</span></div>
+      <div id="stereoScopeStatus" class="wave-lab-note" role="status" aria-live="polite">Analiz için iki kanallı stereo WAV dosyası seç.</div>
+    </article>
+    <article class="notice"><strong>Ölçüm sınırı</strong><span>Bu araç dosyanın iki kanalındaki örnekleri analiz eder. Akustik faz ölçümü, canlı transfer function, mikrofon kalibrasyonu veya IEC uygunluk testi değildir. Faz korelasyonu tek başına miksin iyi/kötü olduğunu göstermez; dinleme ve mono kontrolüyle birlikte değerlendirilmelidir.</span></article>
   </section>
 
   <section class="wave-lab-panel" data-wave-panel="live" hidden>
@@ -685,5 +707,6 @@
 <script src="/ui/acoustic_math.js" defer></script>
 <script src="/ui/first_party_tools.js" defer></script>
 <script src="/ui/advanced_modules.js" defer></script>
+<script src="/ui/stereo_scope.js" defer></script>
 <script src="/ui/app.js" defer></script>
 </body></html>
