@@ -1806,10 +1806,20 @@
       ['Dalga, faz ve ses gecikmesi laboratuvarı', initWaveLab],
       ['OSC / MIDI kontrol araçları', initOscMidiTools]
     ];
-    steps.forEach(([name, fn]) => {
+
+    // Her ağır ekranı ayrı tarayıcı görevinde başlat. Böylece WebView2
+    // ilk açılışta tek uzun JavaScript döngüsü yüzünden yanıt vermez olmaz.
+    const runStep = (index) => {
+      if (index >= steps.length) return;
+      const [name, fn] = steps[index];
       try { fn(); }
       catch (error) { console.error('Stagepulse araç başlatma hatası [' + name + ']:', error); }
-    });
+      if (index + 1 < steps.length) {
+        window.requestAnimationFrame(() => window.setTimeout(() => runStep(index + 1), 0));
+      }
+    };
+
+    window.requestAnimationFrame(() => window.setTimeout(() => runStep(0), 0));
   }
 
   window.StagepulseFirstPartyTools = {
