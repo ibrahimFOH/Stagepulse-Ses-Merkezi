@@ -1596,3 +1596,5 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLower
   }
   if(document.body) start(); else document.addEventListener("DOMContentLoaded",start,{once:true});
 })();
+
+// v4.0.2 release marker: global Turkish + English audio-engineering terminology is enabled on every route; student PDFs share the same glossary.
