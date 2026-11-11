@@ -51,6 +51,8 @@ jobs:
         run: python windows/scripts/generate_spl_visual_atlas.py
       - name: Konsol eğitim kitaplarını üret
         run: python windows/scripts/generate_console_training_pdfs.py
+      - name: Tüm öğrenci PDF'lerine ortak iki dilli teknik sözlük ekle
+        run: python windows/scripts/append_bilingual_glossary.py
       - name: Android eğitim kitaplığını Windows PDF'leriyle eşitle
         run: |
           mkdir -p android/app/src/main/assets/egitim_paketleri
@@ -67,7 +69,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "PDF çıktıları zaten güncel."
           else
-            git commit -m "Eğitim PDF kitaplığını v4.0.0 ile yenile"
+            git commit -m "Eğitim PDF kitaplığını iki dilli terminolojiyle yenile"
             # Paralel doküman commit'leri sırasında main ilerleyebilir; fetch/rebase/push tekrar dene.
             pushed=false
             for attempt in 1 2 3 4 5; do
