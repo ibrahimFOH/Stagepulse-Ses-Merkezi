@@ -155,6 +155,7 @@ class AppApi(AcousticAnalysisApi):
     def __init__(self) -> None:
         self.window = None
         self._selected_wav_path: str | None = None
+        self._ebu_test_folder: str | None = None
         self._rta_capture = None
         self._tf_capture = None
         self._session: dict[str, Any] | None = None  # Tokens are encrypted at rest with the Windows user DPAPI key.
@@ -539,6 +540,37 @@ class AppApi(AcousticAnalysisApi):
             out += ".wav"
         from core.audio_tools import normalize_lufs
         return normalize_lufs(src, out, float(target_lufs), float(target_tp))
+
+
+    def select_ebu_test_folder(self) -> dict[str, Any]:
+        """Select the extracted EBU Loudness Test Set folder using a native dialog."""
+        import webview
+        chosen = _dialog_path(self.window.create_file_dialog(
+            webview.FOLDER_DIALOG, allow_multiple=False,
+        ))
+        self._ebu_test_folder = str(Path(chosen).resolve()) if chosen else None
+        return {
+            "ok": bool(self._ebu_test_folder),
+            "cancelled": not bool(self._ebu_test_folder),
+            "folder_name": Path(self._ebu_test_folder).name if self._ebu_test_folder else "",
+        }
+
+    def run_ebu_loudness_validation(self, reference_csv_text: str = "",
+                                    tolerance_lu: Any = 0.2) -> dict[str, Any]:
+        """Run the local EBU WAV batch validation against optional reference values."""
+        if not self._ebu_test_folder:
+            raise RuntimeError("Önce çıkarılmış EBU Loudness Test Set klasörünü seç.")
+        if len(str(reference_csv_text or "")) > 1_000_000:
+            raise ValueError("Referans CSV 1 MB sınırını aşıyor.")
+        from core.audio_tools import validate_ebu_test_set
+        return validate_ebu_test_set(
+            self._ebu_test_folder, str(reference_csv_text or ""), float(tolerance_lu)
+        )
+
+    def run_spl_filter_self_test(self) -> dict[str, Any]:
+        """Run software-only A/C/Z weighting response checks."""
+        from core.acoustic_engine import run_spl_filter_self_test
+        return run_spl_filter_self_test()
 
     def ai_provider_catalog(self) -> list[dict[str, Any]]:
         from core.ai_providers import PROVIDERS
