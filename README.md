@@ -51,6 +51,32 @@ Kaynak sürümü 4.0.0'dır. Aşağıdaki sürüm bilgileri kaynak ağacını ta
 
 4.0.0 kaynak sürümüdür. Windows EXE ve imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır; indirme manifesti ve SHA-256 dosyaları da aynı sürümle üretilir. Android APK kalıcı Stagepulse keystore ile imzalanmıştır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz.
 
+## Uygulama ekranları ve araç envanteri (4.0.0)
+
+Windows ve Android arayüzlerinde aynı 28 çalışma ekranı bulunur. Ekran adlarının ortak olması, donanıma bağlı işlevlerin iki platformda birebir aynı olduğu anlamına gelmez; platform farkları aşağıda ayrıca belirtilmiştir.
+
+| Alan | Ekranlar ve kapsam |
+|---|---|
+| Temel ses ve eğitim | Ana sayfa, Frekans Bulucu, Kulak Eğitimi, Teknik Hesaplayıcılar, Ses Katmanı Atölyesi, Sanal Mikser Laboratuvarı |
+| Ölçüm ve analiz | SPL/Alan Planı, Canlı RTA, WAV Kalite Analizi, LUFS Normalizasyonu, Oda SPL Haritası, Dalga/Faz/Gecikme Laboratuvarı |
+| Sistem ve saha | Sahne/AV Planı, Mikser Patch Raporu, RF Frekans Planı, 70,7/100 V Dağıtım Hesabı, Hoparlör/DSP Tasarım Eğitimi, OSC/MIDI Araçları |
+| Operasyon ve içerik | Cue/Video Notları, Kontrol Listeleri, Türkçe Kılavuzlar, Öğrenci PDF Kitaplığı, Video Ders Kütüphanesi |
+| Öğrenme ve hesap | Eğitim Müfredatı, Öğrenci İlerlemesi, AI Asistanı, Hesap/Lisans/Güncelleme, Ayarlar/Gizlilik |
+
+### Platforma göre doğrulanmış kapsam sınırları
+
+- Windows: yerel ses girişinden RTA; oturumluk 1 kHz kalibratör referansıyla Z gösterimi; stereo WAV analizinde A/C/Z Leq, Fast/Slow maksimum, Peak ve L10/L50/L90; aynı ses kartının iki girişinden canlı H1 Transfer Function; yerel Ollama ve isteğe bağlı Groq.
+- Android: WebAudio mikrofon akışından RTA; 1 kHz kalibratörle oturumluk Z/RMS düzeltmesi; aynı USB ses kartının iki girişinden stereo H1 Transfer Function; WAV analizinde desteklenen biçimlerde peak/RMS; Groq sağlayıcısı.
+- Her iki platform: sahne/AV planlama, patch raporu, RF ön koordinasyon, 70/100 V hesabı, oda SPL haritası, hoparlör/DSP ön hesabı, dalga/faz laboratuvarı, OSC gönderimi ve MIDI Type 0 üretimi.
+- OSC/UDP gönderimi tek yönlüdür; mikserden durum/yanıt veya komutun uygulandığına dair teyit sağlamaz.
+- RF aracı koordinasyon ön çalışmasıdır; spektrum analizörü veya yasal frekans tahsis belgesi değildir. PA/SPL haritaları üretici polar/GLL verisi ve gerçek saha ölçümünün yerine geçmez.
+- RTA/FFT ve oturumluk kalibrasyon IEC 61672 veya IEC 61260 sınıf uygunluğu sağlamaz. Transfer Function sonuçları da tek başına sistemin doğru hizalandığını kanıtlamaz.
+- Eğitim/video kütüphanesindeki içerik ve ekranların bulunması, bütün videoların yayımlandığı veya her eğitim görevinin gerçek donanımda tamamlandığı anlamına gelmez.
+
+### Eğitim kataloğu
+
+Eğitim sistemi dokuz dal içerir: Canlı Ses/FOH/Monitör, RF/Kablosuz Mikrofon ve IEM, PA Sistem Tasarımı/DSP/Array, Stüdyo/Kayıt/Düzenleme/Miks, SPL/Akustik/Gürültü Ölçümü, Dijital Konsol, Konuşma/Podcast/Yayın, Kablolama/Bakım/Arıza Teşhisi ve Miks/Mastering. Yeterlilik basamakları L0–L5'tir. Öğrenci kitaplığında 13 özgün PDF bulunur; uygulama içindeki 12 konu kılavuzu bunlardan ayrı dokümanlardır. Katalog dosyası Windows ve Android varlıklarında byte düzeyinde aynı tutulur.
+
 ## Depo düzeni
 
 - windows/: Windows uygulaması, Python ses motorları, eğitim belgeleri, testler ve kurucu.
