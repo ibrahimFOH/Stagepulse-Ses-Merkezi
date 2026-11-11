@@ -655,6 +655,55 @@ function browserPcmFractionalBands(samples,sampleRate,bandsPerOctave,minHz,maxHz
  const levels=centers.map(center=>{const low=center/ratio,high=center*ratio;if(high>nyquist*.999)return -120;const first=Math.max(1,Math.floor(low/binHz)-1),last=Math.min(half,Math.ceil(high/binHz)+1);let sum=0,used=0;for(let k=first;k<=last;k++){const left=Math.max(0,k*binHz-binHz/2),right=Math.min(nyquist,k*binHz+binHz/2),width=right-left,overlap=Math.min(high,right)-Math.max(low,left);if(width>0&&overlap>0){sum+=power[k]*(overlap/width);used++;}}return !used||sum<=0?-120:Math.max(-120,Math.min(6,10*Math.log10(sum)));});
  return {centers,band_dbfs:levels};
 }
+function stagepulsePolyMultiply(a,b){
+ const out=new Array(a.length+b.length-1).fill(0);
+ for(let i=0;i<a.length;i++)for(let j=0;j<b.length;j++)out[i+j]+=a[i]*b[j];
+ return out;
+}
+function stagepulsePolyPower(a,n){
+ let out=[1];for(let i=0;i<n;i++)out=stagepulsePolyMultiply(out,a);return out;
+}
+function stagepulseAcousticWeightingCoefficients(rate,weighting){
+ const f1=20.598997,f2=107.65265,f3=737.86223,f4=12194.217;
+ const prewarp=f=>2*rate*Math.tan(Math.PI*f/rate),w1=prewarp(f1),w2=prewarp(f2),w3=prewarp(f3),w4=prewarp(f4);
+ let poles=[],zerosAtOrigin=0;
+ if(weighting==='A'){poles=[w1,w1,w2,w3,w4,w4];zerosAtOrigin=4;}
+ else if(weighting==='C'){poles=[w1,w1,w4,w4];zerosAtOrigin=2;}
+ else return {b:[1],a:[1]};
+ const k=2*rate,n=poles.length;
+ let numerator=stagepulsePolyMultiply(stagepulsePolyPower([1,-1],zerosAtOrigin),stagepulsePolyPower([1,1],n-zerosAtOrigin));
+ numerator=numerator.map(v=>v*Math.pow(k,zerosAtOrigin));
+ let denominator=[1];
+ for(const pole of poles)denominator=stagepulsePolyMultiply(denominator,[k-pole,-k-pole]);
+ const ref=prewarp(1000),analogGain=Math.pow(ref,zerosAtOrigin)/poles.reduce((v,p)=>v*Math.hypot(ref,p),1);
+ const a0=denominator[0];
+ return {b:numerator.map(v=>v/(analogGain*a0)),a:denominator.map(v=>v/a0)};
+}
+function stagepulseApplyIir(samples,coeff){
+ const order=coeff.a.length-1,b=coeff.b,a=coeff.a,xh=new Float64Array(order),yh=new Float64Array(order),out=new Float32Array(samples.length);
+ for(let i=0;i<samples.length;i++){
+  const x=samples[i];let y=b[0]*x;
+  for(let k=1;k<=order;k++)y+=b[k]*xh[k-1]-a[k]*yh[k-1];
+  for(let k=order-1;k>0;k--){xh[k]=xh[k-1];yh[k]=yh[k-1];}
+  if(order){xh[0]=x;yh[0]=y;}
+  out[i]=y;
+ }
+ return out;
+}
+function stagepulseMeasureSpl(samples,rate,offsetDb){
+ const weightings={};
+ for(const weighting of ['A','C','Z']){
+  const filtered=weighting==='Z'?samples:stagepulseApplyIir(samples,stagepulseAcousticWeightingCoefficients(rate,weighting));
+  let sum=0,peak=0;
+  for(const value of filtered){sum+=value*value;peak=Math.max(peak,Math.abs(value));}
+  const mean=sum/Math.max(1,filtered.length),correction=Number.isFinite(offsetDb)?offsetDb:0;
+  weightings[weighting]={leq_db:mean>0?10*Math.log10(mean)+correction:-120,
+   lpeak_db:peak>0?20*Math.log10(peak)+correction:-120};
+ }
+ return {ok:true,calibrated_spl:Number.isFinite(offsetDb),units:Number.isFinite(offsetDb)?'dB SPL':'dBFS',
+  window_seconds:samples.length/rate,weightings,
+  scope:'Son FFT penceresindeki A/C/Z ağırlıklı Leq ve weighted peak; mikrofon frekans düzeltmesi/IEC sınıfı değildir.'};
+}
 function browserRtaSnapshot(){
  if(!browserRtaAnalyser||!browserRtaContext)return {ok:false,error:'Android mikrofon akışı kapalı.'};
  const sampleRate=browserRtaContext.sampleRate,fftSize=browserRtaAnalyser.fftSize;
@@ -668,6 +717,9 @@ function browserRtaSnapshot(){
  return {ok:true,ready:!streamStale,sample_rate:sampleRate,fft_size:fftSize,centers:spectrum.centers,band_dbfs:spectrum.band_dbfs,
   peak_dbfs:peak>0?20*Math.log10(peak):-120,rms_dbfs:rms>0?20*Math.log10(rms):-120,
   device:track?.label||rtaDeviceName,stream_stale:streamStale,
+  spl_measurement:stagepulseMeasureSpl(browserRtaTimeData,sampleRate,rtaSplOffsetDb),
+  calibrated_spl:rtaSplOffsetDb!==null,spl_db:rtaSplOffsetDb!==null?20*Math.log10(Math.max(rms,1e-12))+rtaSplOffsetDb:null,
+  spl_calibration_offset_db:rtaSplOffsetDb,spl_calibration_reference_db:rtaSplReferenceDb,
   stream_status:streamStale?'Android ses girişi durdu veya susturuldu.':'Android PCM / WebAudio FFT; dBFS RMS',seconds_since_last_callback:streamStale?2.1:0};
 }
 let androidMicPermissionId=0;
@@ -838,7 +890,10 @@ async function tickRta(token){
    else if(snapshot.ready){const now=performance.now(),dt=rtaLastTime?Math.max(.001,(now-rtaLastTime)/1000):.1;rtaLastTime=now;const tau={fast:.12,medium:.18,slow:.5}[$('rtaSmooth').value]||.18;rtaSmoothed=RtaMath.smooth(rtaSmoothed,values,dt,tau);rtaPeak=rtaPeak&&rtaPeak.length===rtaSmoothed.length?rtaPeak.map((v,i)=>Math.max(v,rtaSmoothed[i])):rtaSmoothed.slice();rtaTraceHistory.push(rtaSmoothed.slice());if(rtaTraceHistory.length>4)rtaTraceHistory.shift();drawRta(rtaSmoothed);updateRtaOptimizer(centers,rtaSmoothed);}
    const peak=Number(snapshot.peak_dbfs??-120),rms=Number(snapshot.rms_dbfs??-120),peakWarn=peak>-1?' · Kırpılmaya çok yakın!':peak<-60?' · Çok düşük giriş; kazancı kontrol et.':' · Giriş alınıyor.';
    const splReadout=rtaSplOffsetDb===null?'':' · RMS '+(rms+rtaSplOffsetDb).toFixed(1)+' dB SPL (oturum kalibrasyonu)';
-   $('rtaInputMeter').textContent=`Giriş peak: ${peak.toFixed(1)} dBFS · RMS: ${rms.toFixed(1)} dBFS${splReadout}${peakWarn}`;updateRtaMeters(peak,rms);
+   const splWeights=snapshot.spl_measurement&&snapshot.spl_measurement.weightings||{};
+   const splUnits=snapshot.spl_measurement&&snapshot.spl_measurement.units||'dBFS';
+   const splWeightedText=['A','C','Z'].map(k=>{const v=splWeights[k]&&Number(splWeights[k].leq_db);return Number.isFinite(v)?'L'+k+'eq '+v.toFixed(1)+' '+splUnits:'';}).filter(Boolean).join(' / ');
+   $('rtaInputMeter').textContent=`Giriş peak: ${peak.toFixed(1)} dBFS · RMS: ${rms.toFixed(1)} dBFS${splReadout}${splWeightedText?' · '+splWeightedText:''}${peakWarn}`;updateRtaMeters(peak,rms);
    const bin=snapshot.sample_rate/snapshot.fft_size;
    const status=snapshot.stream_status?`\nSürücü uyarısı: ${snapshot.stream_status}`:'';
    const bandNote=rtaAvailableMax&&rtaViewMax>rtaAvailableMax?`\nTam bandın üst merkezi: ${rtaFormatHz(rtaAvailableMax)}; daha üst bantlar akış örnekleme hızında eksik kalır.`:'';
