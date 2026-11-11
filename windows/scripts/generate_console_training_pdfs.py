@@ -9,6 +9,7 @@ from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.utils import ImageReader
 import re
+from append_bilingual_glossary import bilingualize_markup
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'egitim_paketleri'
@@ -55,7 +56,7 @@ styles.add(ParagraphStyle(name='CenterSP', fontName='StageSans', fontSize=10, le
 
 def P(text, style='BodySP'):
     # Safe, intended markup only; escape ampersands in authored copy where needed.
-    return Paragraph(text, styles[style])
+    return Paragraph(bilingualize_markup(text), styles[style])
 
 def bullet(text):
     return Paragraph('• ' + bilingualize_markup(text), styles['BulletSP'])
