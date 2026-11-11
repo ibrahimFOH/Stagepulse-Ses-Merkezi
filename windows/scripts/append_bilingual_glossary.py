@@ -45,7 +45,7 @@ TERMS = [
     ("Kablosuz sistem", "Wireless System"), ("Girişim ürünleri", "Intermodulation Products"),
     ("Dijital sinyal işleme", "Digital Signal Processing"),
     ("Hoparlör", "Loudspeaker"), ("Monitör", "Monitor"),
-    ("Hat dizisi", "Line Array"), ("Subwoofer", "Subwoofer"),
+    ("Hat dizisi", "Line Array"), ("Alt frekans hoparlörü", "Subwoofer"),
 ]
 def bilingualize_markup(value):
     """Metin akışındaki Türkçe teknik terimleri İngilizce karşılığıyla birlikte gösterir."""
