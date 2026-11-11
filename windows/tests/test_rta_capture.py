@@ -262,3 +262,25 @@ def test_spl_calibration_rejects_stale_or_missing_microphone_signal():
     capture._rms_dbfs = -20.0
     with pytest.raises(RuntimeError, match="Kararlı mikrofon verisi"):
         capture.calibrate_spl(94.0)
+
+
+def test_snapshot_includes_weighted_spl_metrics_when_fft_window_is_ready():
+    import time
+    from core.rta_capture import RTACapture
+    capture = RTACapture()
+    capture._running = True
+    capture._sample_rate = 48000
+    capture._fft_size = 16384
+    capture._device_name = "Test giriş"
+    capture._started_monotonic = time.monotonic()
+    capture._last_callback_monotonic = time.monotonic()
+    capture._buffer = sine(1000, 48000, 16384, amplitude=0.1).astype(np.float32)
+    capture._filled = 16384
+    capture._write_pos = 0
+    capture._frequencies = np.fft.rfftfreq(16384, 1 / 48000)
+    capture._power_db = np.full(8193, -60.0)
+    result = capture.snapshot()
+    assert result["spl_measurement"]["ok"] is True
+    assert set(result["spl_measurement"]["weightings"]) == {"A", "C", "Z"}
+    assert result["spl_measurement"]["window_seconds"] == pytest.approx(16384 / 48000)
+    assert result["spl_measurement"]["calibrated_spl"] is False
