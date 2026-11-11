@@ -134,7 +134,7 @@ def test_itu_true_peak_uses_published_bs1770_fir_at_48khz():
     assert "48-tap FIR" in method
 
 
-def test_ebu_test_set_never_marks_files_pass_without_reference_csv(tmp_path):
+def test_ebu_test_set_requires_a_matching_reference_entry(tmp_path):
     from core.audio_tools import validate_ebu_test_set
 
     rate = 48000
@@ -147,6 +147,26 @@ def test_ebu_test_set_never_marks_files_pass_without_reference_csv(tmp_path):
     assert report["results"][0]["status"] == "REFERENCE_REQUIRED"
     assert report["results"][0]["momentary_max_lufs"] is not None
     assert report["results"][0]["short_term_max_lufs"] is None
+
+
+def test_ebu_reference_csv_loads_from_application_bundle_without_upload(tmp_path):
+    from core.audio_tools import validate_ebu_test_set
+
+    rate = 48000
+    t = np.arange(rate * 20, dtype=np.float64) / rate
+    signal = 0.1 * np.sin(2 * np.pi * 1000 * t)
+    stereo = np.column_stack((signal, signal))
+    path = tmp_path / "seq-3341-1-16bit.wav"
+    sf.write(path, stereo, rate, subtype="PCM_16")
+
+    report = validate_ebu_test_set(tmp_path)
+
+    assert report["reference_csv_loaded"] is True
+    assert report["reference_csv_source"] == "bundled"
+    assert report["reference_csv_rows"] >= 50
+    result = report["results"][0]
+    assert result["reference_metrics"]
+    assert result["status"] != "REFERENCE_REQUIRED"
 
 
 def test_ebu_reference_pass_is_limited_to_declared_metrics(tmp_path):
