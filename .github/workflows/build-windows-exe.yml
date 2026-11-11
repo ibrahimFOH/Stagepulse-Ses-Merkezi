@@ -68,6 +68,9 @@ jobs:
             echo "PDF çıktıları zaten güncel."
           else
             git commit -m "Eğitim PDF kitaplığını v4.0.0 ile yenile [skip ci]"
+            # Doküman güncellemeleriyle eşzamanlı push yarışını önle.
+            git fetch origin main
+            git rebase origin/main
             git push origin HEAD:main
           fi
 
