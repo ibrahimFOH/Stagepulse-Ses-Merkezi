@@ -1,6 +1,6 @@
 # Stagepulse Ses Mühendisliği Merkezi — Dallanmış Eğitim ve Lisans Kataloğu
 
-**Sürüm:** 3.6.0 · **Durum:** uygulama içi eğitim planı ve önerilen fiyatlandırma. Fiyatlar henüz canlı ödeme/satış verisi değildir.
+**Kaynak sürümü:** 4.0.0 · **Denetim tarihi:** 2026-11-11 · **Durum:** eğitim kapsamı ve yeterlilik tasarımı. Bu belge tek başına uygulama içi her görevin, öğretmen onayının veya fiziksel eğitimin çalıştığını kanıtlamaz.
 
 ## Eğitim modeli
 
@@ -155,48 +155,30 @@
 - Envanter ve bakım formu oluştur
 **Usta onay kapısı:** Kablo test cihazı sonuçları, güvenli arıza teşhisi ve bakım kayıtları; elektrik panosu/şebeke müdahalesi yalnız yetkili personelde.
 
-## Paketler ve önerilen fiyatlar
+## Ticari paket ve lisans kapsamı
 
-> Fiyatlar Stagepulse için başlangıç fiyat önerisidir. Bunlar doğrulanmış piyasa ortalaması, kesin satış fiyatı veya vergi dâhil teklif değildir. Saha ekipmanı, şehir dışı ulaşım, konaklama, fiziksel konsol erişimi ve bire bir eğitmen zamanı ayrı maliyet olabilir. Yayından önce işletme maliyeti, vergiler ve rakip/yerel talep araştırması ile onaylanmalıdır.
+**Güncel ticari ürün yalnızca FULL PAKET'tir.** Eğitim dalları ayrı satılan ürünler veya bağımsız lisanslar değildir; FULL PAKET içindeki öğrenme yollarıdır. Bu nedenle bu belgede eski ayrı dal fiyatları satış fiyatı olarak kullanılmamalıdır.
 
-| Paket | Önerilen fiyat | Süre | İçerik |
-|---|---:|---|---|
-| Temel Başlangıç | 2.490 TL | 8 hafta erişim | Temel ses. dB. sinyal akışı. araçlar. başlangıç testleri |
-| Canlı Ses / FOH | 7.490 TL | 12 hafta erişim | Canlı ses dalı. Midas M32 Live uygulama. FOH/monitör. sahne görevleri |
-| RF / Kablosuz Sistemler | 5.990 TL | 10 hafta erişim | RF tarama. koordinasyon. IEM. anten ve arıza testleri |
-| PA / Sistem Tasarımı | 8.990 TL | 12 hafta erişim | SPL tahminleri. DSP. sub hizalama. saha raporu ve doğrulama |
-| Stüdyo / Post Prodüksiyon | 6.990 TL | 12 hafta erişim | Kayıt. düzenleme. miks. loudness ve teslim QC |
-| SPL / Akustik Ölçüm | 6.490 TL | 10 hafta erişim | Ölçüm yöntemi. kalibrasyon. akustik. raporlama ve güvenlik |
-| Dijital Konsol Uzmanlığı | 5.490 TL | 8 hafta erişim | Midas M32 Live. Yamaha CL5 ve Avantis modülleri; fiziksel konsol erişimi ayrıca planlanır |
-| Usta Yolu Full Paket | 24.900 TL | 6 ay erişim | Tüm dallar. seviye sınavları. proje portföyü. öğretmen değerlendirmesi; saha/donanım oturumları takvime bağlı |
-| Kurum / Ekip Lisansı | 49.900 TL | 12 ay. 10 kullanıcıya kadar | Tüm eğitim dalları. öğretmen görünümü. ekip raporları ve kurum içi kullanım |
+Katalog JSON'unda ve eski veritabanı şemasında bulunan `start`, `live_sound`, `rf_wireless`, `pa_system`, `studio_post`, `spl_acoustics`, `digital_console`, `full_master` ve `institution` kodları geriye dönük veri/şema uyumluluğu içindir. Bu kodların bulunması, ayrı paketlerin bugün satışta olduğu anlamına gelmez. Güncel satış akışı, yönetici onaylı FULL PAKET banka havalesi/EFT bildirimiyle sınırlıdır; online kart tahsilatı ve otomatik fatura/e-Arşiv bu akışın parçası değildir.
+
+Fiyat, vergi, banka bilgileri ve satışa açılma durumu yönetici mağaza ayarları ile canlı sistemde doğrulanmalıdır. Bu doküman veya JSON içindeki eski öneri tutarları canlı fiyat kaynağı kabul edilmemelidir.
 
 ## Lisans paketlerinin işleyişi
 
-- **start:** ortak temel modüller ve başlangıç araçları.
-- **live_sound:** canlı ses dalı ve FOH/monitör görevleri.
-- **rf_wireless:** RF tarama, koordinasyon ve IEM.
-- **pa_system:** PA/DSP/SPL ve sistem raporu.
-- **studio_post:** kayıt, miks ve teslim kalite kontrolü.
-- **spl_acoustics:** ölçüm, akustik ve raporlama.
-- **digital_console:** dijital konsol uygulamaları.
-- **full_master:** bütün dallar, proje portföyü ve usta değerlendirme süreci.
-- **institution:** kurum lisansı ve çoklu kullanıcı.
-
-Lisans; hangi içeriğin açılacağını belirler. **Lisans tek başına yeterlilik belgesi değildir.** Usta/öğretmen onayı, fiziksel uygulama kanıtı ve kritik güvenlik maddelerinin geçilmesi gerekir. Sunucu tarafı lisans kontrolü uygulanmadan yalnızca arayüzde menü gizlemek güvenlik değildir.
+Lisans yetkisi içeriğe erişimi belirler; yeterlilik veya mesleki yetki vermez. Öğrenci kendi usta statüsünü onaylayamaz. Usta/öğretmen onayı için gerçek uygulama kanıtı, kritik güvenlik maddelerinin geçilmesi ve yetkili eğitmen kararı gerekir. Lisans kodlarının veritabanında bulunması, ilgili ayrı satış paketinin aktif olduğu anlamına gelmez.
 
 ## Usta seviyesine kadar ölçülebilir öğrenme akışı
 
 1. Ön değerlendirme ve hedef dal seçimi.
-2. Konu modülü + örnek vaka.
+2. Konu modülü ve örnek vaka.
 3. Rehberli uygulama: adım adım görev, beklenen çıktı ve durdurma koşulu.
 4. Bağımsız uygulama: aynı beceriyi farklı senaryoda tekrar et.
 5. Kanıt: dosya, ölçüm, fotoğraf, routing şeması veya rapor.
-6. Otomatik bilgi sınavı + uygulama rubriği.
+6. Otomatik bilgi sınavı ve uygulama rubriği.
 7. Eğitmen gözlemi ve düzeltme döngüsü.
 8. Başarısız maddelerde yeniden çalışma ve tekrar sınavı.
 9. Portföy ve sözlü savunma.
-10. Usta onayı yalnızca eğitmen/yetkili tarafından verilir.
+10. Usta onayı yalnızca yetkili eğitmen tarafından verilir.
 
 ## Stagepulse.com.tr iş akışlarıyla eşleştirme
 
@@ -222,7 +204,7 @@ Bu eşleştirme Stagepulse.com.tr ana sayfası, Hizmetler ve Teknik Mühendislik
 - Uygulama dBFS ölçümünü kalibre edilmiş dB SPL olarak göstermez; gerçek SPL raporu için uygun ölçüm donanımı ve yöntem gerekir.
 - Her eğitim modülünde hedef, ön koşul, araç, adım adım uygulama, beklenen çıktı, yaygın hata, güvenlik durdurma koşulu ve değerlendirme rubriği bulunmalıdır.
 
-## Yayına çıkışta tamamlanması gerekenler
+## Açık doğrulama ve tamamlanma kapıları
 
 - Fiyatları işletme maliyeti ve vergiyle onaylamak.
 - Paket kodlarını veritabanı, lisans üretimi, aktivasyon ve özellik yetkileri boyunca uçtan uca test etmek.
