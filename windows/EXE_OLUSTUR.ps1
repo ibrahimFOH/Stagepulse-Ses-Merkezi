@@ -23,9 +23,9 @@ if (-not (Test-Path -LiteralPath $webview) -or (Get-Item -LiteralPath $webview).
   Write-Host 'WebView2 çevrimdışı yükleyicisi indiriliyor...' -ForegroundColor Cyan
   $webviewUrl = 'https://go.microsoft.com/fwlink/p/?LinkId=2124703'
   $webviewReady = $false
-  for ($attempt = 1; $attempt -le 3; $attempt++) {
+  for ($attempt = 1; $attempt -le 1; $attempt++) {
     try {
-      Invoke-WebRequest -Uri $webviewUrl -OutFile $webview -UseBasicParsing -MaximumRedirection 10 -TimeoutSec 90 -Headers @{ 'User-Agent' = 'StagepulseSesMerkezi-Build/4.0.2' }
+      Invoke-WebRequest -Uri $webviewUrl -OutFile $webview -UseBasicParsing -MaximumRedirection 10 -TimeoutSec 30 -Headers @{ 'User-Agent' = 'StagepulseSesMerkezi-Build/4.0.2' }
       if ((Get-Item -LiteralPath $webview).Length -lt 1000000) { throw 'WebView2 yükleyicisi eksik veya bozuk indirildi.' }
       $webviewReady = $true
       break
