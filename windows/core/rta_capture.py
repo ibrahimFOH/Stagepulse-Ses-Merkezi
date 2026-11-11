@@ -460,7 +460,7 @@ class RTACapture:
             "band_spl_db": ([value + spl_offset for value in values] if spl_offset is not None else None),
             "spl_calibration_offset_db": spl_offset,
             "spl_calibration_reference_db": spl_reference,
-            "spl_weighting": "A/C/Z" if spl_measurement and spl_measurement.get("ok") else None,
+            "spl_weighting": "Z/unweighted" if spl_offset is not None else None,
             "spl_measurement": spl_measurement,
             "stream_status": status,
             "samples_received": samples_received,
