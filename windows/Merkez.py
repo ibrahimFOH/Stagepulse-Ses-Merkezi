@@ -555,16 +555,13 @@ class AppApi(AcousticAnalysisApi):
             "folder_name": Path(self._ebu_test_folder).name if self._ebu_test_folder else "",
         }
 
-    def run_ebu_loudness_validation(self, reference_csv_text: str = "",
-                                    tolerance_lu: Any = 0.2) -> dict[str, Any]:
-        """Run the local EBU WAV batch validation against optional reference values."""
+    def run_ebu_loudness_validation(self, tolerance_lu: Any = 0.2) -> dict[str, Any]:
+        """Run EBU WAV validation with the reference table bundled in the application."""
         if not self._ebu_test_folder:
             raise RuntimeError("Önce çıkarılmış EBU Loudness Test Set klasörünü seç.")
-        if len(str(reference_csv_text or "")) > 1_000_000:
-            raise ValueError("Referans CSV 1 MB sınırını aşıyor.")
         from core.audio_tools import validate_ebu_test_set
         return validate_ebu_test_set(
-            self._ebu_test_folder, str(reference_csv_text or ""), float(tolerance_lu)
+            self._ebu_test_folder, tolerance_lu=float(tolerance_lu)
         )
 
     def run_spl_filter_self_test(self) -> dict[str, Any]:
