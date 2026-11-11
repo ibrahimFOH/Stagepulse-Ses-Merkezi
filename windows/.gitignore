@@ -11,3 +11,7 @@ build_support/nsis-3.13.zip
 build_support/nsis_extract/
 website_release/latest.json
 website_release/YAYIN_KONTROL_TR.txt
+
+# MSIX signing private key material must never enter Git.
+msix/cert/*.pfx
+msix/cert/*.cer
