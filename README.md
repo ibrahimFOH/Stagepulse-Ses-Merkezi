@@ -2,6 +2,14 @@
 
 Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasından oluşan Türkçe ses mühendisliği platformudur. Yönetici hesabı ve yetkileri ana uygulama içindeki giriş/oturum akışıyla yönetilir. Son kullanıcı paketleri ayrı Stagepulse-Releases deposunda üretilir.
 
+## 4.0.0 Sistem tasarım araçları ve mühendislik güncellemeleri
+
+- Line Array Designer: kabin sayısı, splay, aiming ve askı yüksekliği için geometrik yan görünüş.
+- SPL Coverage: iki eşit noktasal kaynağa dayalı, serbest alan varsayımlı yaklaşık 2D seviye haritası.
+- Sub-Top Alignment: referans noktasına göre geometrik yol farkı, gecikme hedefi ve crossover faz kestirimi.
+- Sistem taslağı JSON dışa aktarımı; Android ve Windows ortak arayüz/hesaplama kodu.
+- Model sınırları arayüzde açıklanır; polar/GLL verisi, oda yansımaları ve saha ölçümü yerine geçmez.
+
 ## 3.9.8 SPL/RTA ölçüm ve mikrofon entegrasyonları
 
 - Windows ve Android canlı RTA ekranlarında 1/1, 1/3, 1/6, 1/12, 1/24 ve 1/48 oktav bant çözünürlükleri.
@@ -35,11 +43,11 @@ Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasında
 
 | Bileşen | Kaynak sürümü | Sürümün yönetildiği yer |
 |---|---:|---|
-| Windows Ses Merkezi | 3.9.8 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
-| Android Ses Merkezi | 3.9.8 (30908) | android/app/build.gradle |
+| Windows Ses Merkezi | 4.0.0 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
+| Android Ses Merkezi | 4.0.0 (40000) | android/app/build.gradle |
 | Yönetici girişi | Ana uygulama içinde | Ana uygulamanın kimlik doğrulama ve yetki kontrolü |
 
-3.9.8 kaynak sürümüdür. Windows EXE ve imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır. Android APK kalıcı Stagepulse keystore ile imzalanmıştır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz.
+4.0.0 kaynak sürümüdür. Windows EXE ve imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır. Android APK kalıcı Stagepulse keystore ile imzalanmıştır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz.
 
 ## Depo düzeni
 
