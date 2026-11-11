@@ -252,12 +252,18 @@ def validate_ebu_test_set(folder: str | Path, reference_csv_text: str = "",
         meter = pyln.Meter(int(rate), filter_class="DeMan")
         try:
             integrated = float(meter.integrated_loudness(audio))
-            lra = float(meter.loudness_range(audio))
-            if not math.isfinite(lra):
-                lra = None
+            if not math.isfinite(integrated):
+                raise ValueError("Integrated loudness sonucu sonlu değil.")
         except Exception as exc:
             rows.append({"filename": path.name, "status": "FAIL", "error": str(exc)})
             continue
+        try:
+            lra = float(meter.loudness_range(audio))
+            if not math.isfinite(lra):
+                lra = None
+        except (ValueError, RuntimeError):
+            # Very short EBU sequences may not contain enough valid 3 s blocks for LRA.
+            lra = None
         momentary, short_term = _loudness_window_maxima(audio, int(rate), meter)
         peak_linear, peak_method = _measure_true_peak(audio, int(rate))
         true_peak = 20.0 * math.log10(peak_linear) if peak_linear > 0 else -120.0
