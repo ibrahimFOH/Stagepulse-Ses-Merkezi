@@ -122,14 +122,18 @@ $manifestPath = Join-Path $stage 'AppxManifest.xml'
 [System.IO.File]::WriteAllText($manifestPath, $manifest + [Environment]::NewLine, [System.Text.UTF8Encoding]::new($false))
 
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null
-$packageName = if ($StoreSubmission) { "Stagepulse-Ses-Merkezi-Store-$($version -replace '\.0
+$packageName = if ($StoreSubmission) {
+    "Stagepulse-Ses-Merkezi-Store-$($version -replace '\.0$','').msix"
+} else {
+    "Stagepulse-Ses-Merkezi-MSIX-$($version -replace '\.0$','').msix"
+}
 $packagePath = Join-Path $OutputDirectory $packageName
 & $makeAppx.FullName pack /o /h SHA256 /d $stage /p $packagePath
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $packagePath)) { throw "MakeAppx MSIX paketi oluşturamadı. Çıkış kodu: $LASTEXITCODE" }
 
 if ($StoreSubmission) {
     $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $packagePath).Hash.ToLowerInvariant()
-    Set-Content -LiteralPath "${packagePath}.sha256" -Value "$hash  $packageName" -Encoding ascii -NoNewline
+    Set-Content -LiteralPath "$($packagePath).sha256" -Value "$hash  $packageName" -Encoding ascii -NoNewline
     Write-Host "STORE MSIX HAZIR (imzasız; Microsoft Store imzalayacak): $packagePath" -ForegroundColor Green
     Write-Host "Identity: $identityName"
     Write-Host "Publisher: $identityPublisher"
@@ -137,46 +141,6 @@ if ($StoreSubmission) {
     Write-Host "SHA-256: $hash"
     return
 }
-
-$cerPath = Join-Path $OutputDirectory 'Stagepulse-MSIX-Signing.cer'
-[System.IO.File]::WriteAllBytes($cerPath, $signingCert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
-$bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($securePassword)
-try { $plainPassword = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) }
-finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
-$signArgs = @('sign','/fd','SHA256','/a','/f',$CertificatePath,'/p',$plainPassword,'/tr','http://timestamp.digicert.com','/td','SHA256',$packagePath)
-& $signTool.FullName @signArgs
-if ($LASTEXITCODE -ne 0) { throw "SignTool MSIX imzalayamadı. Çıkış kodu: $LASTEXITCODE" }
-if ($signingCert.Subject -eq $signingCert.Issuer) {
-    $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        throw 'Kendinden imzalı MSIX sertifikasını güvenilir kılmak için PowerShell Yönetici olarak çalıştırılmalıdır.'
-    }
-    Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
-}
-$verifyOutput = (& $signTool.FullName verify /pa /v $packagePath 2>&1 | Out-String)
-$verifyExit = $LASTEXITCODE
-if ($verifyExit -ne 0) {
-    $selfSignedTrustOnly = ($signingCert.Subject -eq $signingCert.Issuer) -and
-        ($verifyOutput -match '0x800B0109|A certificate chain processed, but terminated in a root certificate which is not trusted') -and
-        $verifyOutput.Contains($signingCert.Subject)
-    if (-not $selfSignedTrustOnly) {
-        throw "MSIX imza doğrulaması başarısız oldu: $verifyOutput"
-    }
-    Write-Warning 'Self-signed sertifikanın zincir güveni SignTool tarafından varsayılan olarak kabul edilmedi. Paket güvenini, sertifika TrustedPeople deposundayken Add-AppxPackage kurulumu doğrular.'
-} else {
-    Write-Host 'MSIX imza doğrulaması başarılı.' -ForegroundColor Green
-}
-$hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $packagePath).Hash.ToLowerInvariant()
-Set-Content -LiteralPath "${packagePath}.sha256" -Value "$hash  $packageName" -Encoding ascii -NoNewline
-Write-Host ''
-Write-Host "MSIX BAŞARILI: $packagePath" -ForegroundColor Green
-Write-Host "SHA-256: $hash"
-Write-Host "Sertifika: $cerPath"
-Write-Host 'WebView2 Runtime yükleyicisi paket içine alındı.' -ForegroundColor Green
-,'').msix" } else { "Stagepulse-Ses-Merkezi-MSIX-$($version -replace '\.0
-$packagePath = Join-Path $OutputDirectory $packageName
-& $makeAppx.FullName pack /o /h SHA256 /d $stage /p $packagePath
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $packagePath)) { throw "MakeAppx MSIX paketi oluşturamadı. Çıkış kodu: $LASTEXITCODE" }
 
 $cerPath = Join-Path $OutputDirectory 'Stagepulse-MSIX-Signing.cer'
 [System.IO.File]::WriteAllBytes($cerPath, $signingCert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
