@@ -294,3 +294,17 @@ html,body{font-size:15px;line-height:1.55}
 .spl-equipment-item{display:block;width:100%;text-align:left;padding:8px;border:1px solid transparent;border-radius:7px;background:#0d1218;color:var(--text);margin:5px 0}.spl-equipment-item.active{border-color:var(--gold);background:rgba(201,166,91,.1)}.spl-equipment-item strong,.spl-equipment-item small{display:block}.spl-equipment-item small{font-size:10px;color:var(--muted);margin-top:3px}
 .spl-equipment-properties{border:1px solid var(--line);border-radius:9px;padding:12px;min-width:0}.spl-property-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.spl-equipment-properties .field{margin:8px 0}.spl-equipment-properties input{width:100%;min-width:0}#splMap2d{cursor:grab;touch-action:none}#splMap2d:active{cursor:grabbing}
 @media(max-width:720px){.spl-equipment-toolbar,.spl-equipment-layout{grid-template-columns:1fr}.spl-equipment-list{grid-template-columns:1fr}}
+
+
+/* EBU / ITU validation and SMAART comparison panel */
+.measurement-validation{margin-top:14px}
+.validation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+.validation-card{min-width:0;border:1px solid var(--line);border-radius:10px;background:#10161e;padding:14px}
+.validation-card h4{margin:0 0 8px;color:var(--gold2);font-size:14px}
+.validation-card p{margin:6px 0 12px}
+.validation-smaart{margin-top:12px}
+.smaart-input-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.smaart-input-grid .field{margin:0;min-width:0}
+.measurement-validation .notice{margin:10px 0}
+@media(max-width:900px){.validation-grid{grid-template-columns:1fr}.smaart-input-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.smaart-input-grid{grid-template-columns:1fr}}
