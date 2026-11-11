@@ -180,13 +180,14 @@ def _loudness_window_maxima(audio: Any, sample_rate: int, meter: Any) -> tuple[f
     filters = getattr(meter, "_filters", None)
     if not filters:
         return None, None
-    for filt in filters:
+    # pyloudnorm 0.2 stores its two K-weighting stages in a dict.
+    filter_stages = list(filters.values()) if isinstance(filters, dict) else list(filters)
+    for filt in filter_stages:
         for channel in range(filtered.shape[1]):
             filtered[:, channel] = filt.apply_filter(filtered[:, channel])
-    weights = np.asarray(getattr(meter, "_channel_weights", np.ones(filtered.shape[1])), dtype=np.float64).reshape(-1)
-    if weights.size != filtered.shape[1]:
-        weights = np.ones(filtered.shape[1], dtype=np.float64)
-    weights = np.maximum(weights, 0.0)
+    # BS.1770-5 Annex 1 channel order: L, R, C, Ls, Rs. No LFE channel.
+    channel_gains = np.asarray((1.0, 1.0, 1.0, 1.41, 1.41), dtype=np.float64)
+    weights = channel_gains[:filtered.shape[1]]
     weighted_power = np.sum(np.square(filtered) * weights[None, :], axis=1)
     step = max(1, int(round(sample_rate * 0.1)))
 
@@ -246,8 +247,8 @@ def validate_ebu_test_set(folder: str | Path, reference_csv_text: str = "",
         if audio.size == 0 or not np.all(np.isfinite(audio)):
             rows.append({"filename": path.name, "status": "FAIL", "error": "Boş veya geçersiz ses verisi"})
             continue
-        if audio.shape[1] > 6:
-            rows.append({"filename": path.name, "status": "UNSUPPORTED", "error": "BS.1770-5 Annex 1 için en fazla 5.1 kanal"})
+        if audio.shape[1] > 5:
+            rows.append({"filename": path.name, "status": "UNSUPPORTED", "error": "BS.1770-5 Annex 1 için en fazla 5 ana kanal (L/R/C/Ls/Rs), LFE ayrı desteklenmez"})
             continue
         meter = pyln.Meter(int(rate), filter_class="DeMan")
         try:
