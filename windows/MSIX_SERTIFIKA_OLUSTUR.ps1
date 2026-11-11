@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    throw 'Sertifika güvenini LocalMachine deposuna kurmak için PowerShell Yönetici olarak çalıştırılmalıdır.'
+    throw 'Sertifikayı LocalMachine\TrustedPeople deposuna eklemek için PowerShell Yönetici olarak çalıştırılmalıdır.'
 }
 $certDir = Join-Path $root 'msix\cert'
 $pfxPath = Join-Path $certDir 'Stagepulse-MSIX.pfx'
