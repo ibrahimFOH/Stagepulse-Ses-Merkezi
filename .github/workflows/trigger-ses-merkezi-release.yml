@@ -8,6 +8,7 @@ on:
     paths:
       - "android/**"
       - "windows/**"
+      - "README.md"
       - "!android/**/*.md"
       - "!windows/**/*.md"
       - "!android/**/README*"
