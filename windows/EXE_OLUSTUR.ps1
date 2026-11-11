@@ -38,6 +38,8 @@ if (-not (Test-Path $makensis)) {
   # Official SourceForge SHA-256 for nsis-3.13.zip. Never skip this check.
   $expectedZipHash = 'ba63dffc4410ee89193e1cb5a41989991bd77c61068da17e3156d136b7b0b3d8'
   $zipUrls = @(
+    # Third-party mirror of the official archive; the official SHA-256 below remains mandatory.
+    'https://github.com/egoist/mygo/releases/download/nsis-3.13/nsis-3.13.zip',
     'https://downloads.sourceforge.net/project/nsis/NSIS%203/3.13/nsis-3.13.zip',
     'https://sourceforge.net/projects/nsis/files/NSIS%203/3.13/nsis-3.13.zip/download',
     'https://netix.dl.sourceforge.net/project/nsis/NSIS%203/3.13/nsis-3.13.zip',
@@ -52,7 +54,7 @@ if (-not (Test-Path $makensis)) {
       Remove-Item -LiteralPath $zip -Force -ErrorAction SilentlyContinue
       try {
         Write-Host "NSIS arşivi indiriliyor (kaynak $sourceIndex/$($zipUrls.Count), deneme $attempt)..." -ForegroundColor Cyan
-        Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing -MaximumRedirection 10 -TimeoutSec 120 -Headers @{ 'User-Agent' = 'StagepulseSesMerkezi-Build/4.0.2' }
+        Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing -MaximumRedirection 10 -TimeoutSec 60 -Headers @{ 'User-Agent' = 'StagepulseSesMerkezi-Build/4.0.2' }
         if (-not (Test-Path -LiteralPath $zip)) { throw 'İndirme dosyası oluşmadı.' }
         $fileInfo = Get-Item -LiteralPath $zip
         if ($fileInfo.Length -lt 1000000) { throw "İndirilen dosya beklenenden küçük ($($fileInfo.Length) bayt); sunucu indirme sayfası döndürmüş olabilir." }
