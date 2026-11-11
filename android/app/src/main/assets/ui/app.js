@@ -674,7 +674,7 @@ function stagepulseAcousticWeightingCoefficients(rate,weighting){
  let numerator=stagepulsePolyMultiply(stagepulsePolyPower([1,-1],zerosAtOrigin),stagepulsePolyPower([1,1],n-zerosAtOrigin));
  numerator=numerator.map(v=>v*Math.pow(k,zerosAtOrigin));
  let denominator=[1];
- for(const pole of poles)denominator=stagepulsePolyMultiply(denominator,[k-pole,-k-pole]);
+ for(const pole of poles)denominator=stagepulsePolyMultiply(denominator,[k+pole,pole-k]);
  const ref=prewarp(1000),analogGain=Math.pow(ref,zerosAtOrigin)/poles.reduce((v,p)=>v*Math.hypot(ref,p),1);
  const a0=denominator[0];
  return {b:numerator.map(v=>v/(analogGain*a0)),a:denominator.map(v=>v/a0)};
@@ -1259,7 +1259,7 @@ async function stagepulseDeManBiquads(rate){
  const shelfB=[(vh+vb*k/qShelf+k*k)/den,2*(k*k-vh)/den,(vh-vb*k/qShelf+k*k)/den];
  const shelfA=[1,2*(k*k-1)/den,(1-k/qShelf+k*k)/den];
  const kh=Math.tan(Math.PI*fcHigh/rate),dh=1+kh/qHigh+kh*kh;
- const highB=[1/dh,-2/dh,1/dh],highA=[1,2*(kh*kh-1)/dh,(1-kh/qHigh+kh*kh)/dh];
+ const highB=[1,-2,1],highA=[1,2*(kh*kh-1)/dh,(1-kh/qHigh+kh*kh)/dh];
  return [{b:shelfB,a:shelfA},{b:highB,a:highA}];
 }
 function stagepulseApplyBiquad(samples,b,a){
@@ -1299,7 +1299,7 @@ function stagepulseMeasureLoudness(channels,rate){
  if(!gated.length)throw new Error('Göreli loudness kapısından geçen blok bulunamadı.');
  const measuredEnergy=meanByChannel(gated).reduce((a,b)=>a+b,0);
  const integrated=-0.691+10*Math.log10(Math.max(measuredEnergy,1e-30));
- const momentary=windows.map(x=>x.loudness).filter(Number.isFinite);
+ let momentaryMax=null;for(const x of windows)if(Number.isFinite(x.loudness)&&(momentaryMax===null||x.loudness>momentaryMax))momentaryMax=x.loudness;
  const shortTerm=[];
  if(hopCount>=30){
   for(let start=0;start<=hopCount+15-30;start++){
@@ -1325,7 +1325,7 @@ function stagepulseMeasureLoudness(channels,rate){
   }
  }
  return {integrated_lufs:integrated,lra_lu:lra,lra_p10_lufs:lraLow,lra_p95_lufs:lraHigh,
-  momentary_max_lufs:momentary.length?Math.max(...momentary):null,
+  momentary_max_lufs:momentaryMax,
   short_term_max_lufs:shortTerm.some(Number.isFinite)?Math.max(...shortTerm.filter(Number.isFinite)):null,
   gate_blocks_total:windows.length,gate_blocks_absolute:absolute.length,gate_blocks_used:gated.length,
   absolute_gate_lufs:-70,relative_gate_lu:-10,block_ms:400,overlap_percent:75,
@@ -1336,13 +1336,17 @@ function stagepulseTruePeak4x(channels){
  for(const channel of channels){
   const n=channel.length;
   for(let i=0;i<n;i++)peak=Math.max(peak,Math.abs(channel[i]));
-  for(let i=1;i<n-2;i++){
-   const p0=channel[i-1],p1=channel[i],p2=channel[i+1],p3=channel[i+2];
-   if(Math.abs(p1)<Math.abs(p0)||Math.abs(p1)<Math.abs(p2))continue;
-   for(let phase=1;phase<=3;phase++){
-    const t=phase*.25,t2=t*t,t3=t2*t;
-    const y=.5*((2*p1)+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t2+(-p0+3*p1-3*p2+p3)*t3);
-    peak=Math.max(peak,Math.abs(y));
+  for(let i=2;i<n-2;i++){
+   const magnitude=Math.abs(channel[i]);
+   if(magnitude<Math.abs(channel[i-1])||magnitude<Math.abs(channel[i+1]))continue;
+   for(const base of [i-1,i]){
+    if(base<1||base+2>=n)continue;
+    const p0=channel[base-1],p1=channel[base],p2=channel[base+1],p3=channel[base+2];
+    for(let phase=1;phase<=3;phase++){
+     const t=phase*.25,t2=t*t,t3=t2*t;
+     const y=.5*((2*p1)+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t2+(-p0+3*p1-3*p2+p3)*t3);
+     peak=Math.max(peak,Math.abs(y));
+    }
    }
   }
  }
