@@ -62,7 +62,7 @@ APK yolu:
 
 `android/app/build/outputs/apk/debug/app-debug.apk`
 
-Debug APK geliştirme/test paketidir. 3.9.0 yayın manifestinde kalıcı Stagepulse keystore ile imzalanmış APK ve SHA-256 bilgileri bulunur. Bu kaynak doküman, yeni değişikliklerin release APK olarak derlendiğini veya fiziksel cihaz kabul testlerinin tamamlandığını tek başına kanıtlamaz.
+Debug APK geliştirme/test paketidir. 4.0.0 kararlı yayınında kalıcı Stagepulse keystore ile imzalanmış APK ve SHA-256 bilgileri `Stagepulse-Releases` deposundaki `latest.json` üzerinden sunulur. Bu kaynak doküman, yeni değişikliklerin release APK olarak derlendiğini veya fiziksel cihaz kabul testlerinin tamamlandığını tek başına kanıtlamaz.
 
 ## Gerçek cihaz kabul listesi
 
