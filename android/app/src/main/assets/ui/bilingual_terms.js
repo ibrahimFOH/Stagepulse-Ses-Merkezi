@@ -106,7 +106,7 @@
   const pattern = new RegExp('(?<![\\wğüşöçıİĞÜŞÖÇ])(' + TERMS.map(([tr]) => escapeRegex(tr)).sort((a,b)=>b.length-a.length).join('|') + ')(?![\\wğüşöçıİĞÜŞÖÇ])(?!\\s*\\()', 'giu');
   const lookup = new Map(TERMS.map(([tr,en]) => [tr.toLocaleLowerCase('tr-TR'), {tr,en}]));
   function translate(value) {
-    if (!value || !/[ğüşöçıİĞÜŞÖÇ]/i.test(value)) return value;
+    if (!value) return value;
     return value.replace(pattern, match => {
       const item = lookup.get(match.toLocaleLowerCase('tr-TR'));
       if (!item) return match;
@@ -124,7 +124,7 @@
       acceptNode(node) {
         const parent = node.parentElement;
         if (!parent || SKIP.has(parent.tagName) || parent.closest('[data-no-bilingual]')) return NodeFilter.FILTER_REJECT;
-        return /[ğüşöçıİĞÜŞÖÇ]/i.test(node.nodeValue || '') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        return node.nodeValue && node.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
       }
     });
     const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
