@@ -56,7 +56,7 @@ assert.equal(gated.data.length, input.length);
 assert.ok(gated.maxAttenuation >= 0);
 assert.ok(gated.openPercent >= 0 && gated.openPercent <= 100);
 assert.ok(Array.from(gated.data).every(Number.isFinite));
-assert.ok(gated.data instanceof Float32Array, 'Noise Gate çıkışı Web Audio için Float32Array olmalı.');
+assert.equal(Object.prototype.toString.call(gated.data), '[object Float32Array]', 'Noise Gate çıkışı Web Audio için Float32Array olmalı.');
 assert.match(source, /const variant = item\.quizOrder\[slot\];\\s*await playProcessed\(type, item\[variant\]\);/, 'Rastgele A/B turu anahtar metnini değil, ses tamponunu oynatmalı.');
 assert.match(source, /buffer\.copyToChannel\(samples, 0\)/, 'Web Audio kanalına doğrulanmış Float32Array kopyalanmalı.');
 assert.match(source, /Ses örneği Float32Array veya sayı dizisi olmalı/, 'Geçersiz ses tamponu anlaşılır hata vermeli.');
