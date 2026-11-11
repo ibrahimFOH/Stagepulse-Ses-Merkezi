@@ -10,6 +10,10 @@ const context = { window: {}, console, Blob, URL, setTimeout, TextEncoder, TextD
 vm.runInNewContext(source, context, { filename: 'first_party_tools.js' });
 const tools = context.window.StagepulseFirstPartyTools;
 assert.ok(tools, 'Yerel araç modülü dışa açılmalı.');
+assert.match(source, /function initAll\(\)[\s\S]*?const runStep = \(index\) =>/, 'Gelişmiş araçlar tek uzun görev yerine sırayla başlatılmalı.');
+assert.match(source, /window\.requestAnimationFrame\(\(\) => window\.setTimeout\(\(\) => runStep\(index \+ 1\), 0\)\)/, 'Her araç başlangıcı WebView2 çizim döngüsüne zaman bırakmalı.');
+assert.doesNotMatch(source, /steps\.forEach\(\(\[name, fn\]\)/, 'Ağır araçlar açılışta eşzamanlı tek döngüde başlatılmamalı.');
+
 
 const scene = [
   '#2.7# "Stagepulse Test" "" %000000000 1',
