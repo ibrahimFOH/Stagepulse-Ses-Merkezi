@@ -67,7 +67,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "PDF çıktıları zaten güncel."
           else
-            git commit -m "Eğitim PDF kitaplığını v4.0.0 ile yenile [skip ci]"
+            git commit -m "Eğitim PDF kitaplığını v4.0.0 ile yenile"
             # Doküman güncellemeleriyle eşzamanlı push yarışını önle.
             git fetch origin main
             git rebase origin/main
