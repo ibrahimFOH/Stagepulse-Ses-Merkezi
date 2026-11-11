@@ -4,13 +4,13 @@ Paylaşılan arayüz/araç modülleri Android ve Windows tarafında aynı 4.0.0 
 
 **Tek Windows kurulum dosyası · tek pencere uygulama · lisanssız yerel demo · çevrimiçi lisans, satış ve öğretmen kontrolü**
 
-## 3.9.7 yeni araçlar
+## 4.0.0 ve önceki sürümden gelen araçlar
 
 - OSC/UDP mesaj gönderimi: IPv4 hedef, UDP portu ve float/integer/string parametreleri.
 - MIDI Type 0 dosyası üretimi: tempo, kanal, program, nota, velocity ve süre.
 - OSC gönderimi tek yönlüdür; mikserden durum/yanıt okuma veya otomatik geri bildirim içermez.
 
-## 3.9.5 sürümündeki yeni araçlar
+### Önceki sürümlerde eklenen araçlar
 
 - RTA ölçüm adayları için çoklu konum doğrulaması ve adım adım müdahale önerileri.
 - SPL saha ölçüm sihirbazı, ölçüm noktası kaydı ve CSV özeti.
@@ -22,7 +22,7 @@ Paylaşılan arayüz/araç modülleri Android ve Windows tarafında aynı 4.0.0 
 
 Katılım belgesi yalnızca Stagepulse eğitimine katılımı gösterir; resmî yeterlilik, akreditasyon veya mesleki yetki sağlamaz.
 
-## 3.9.0 sürümündeki yerel araçlar
+### Yerel araçlar
 
 - **Kulak eğitimi:** Frekans ve EQ çalışmalarına kompresör ve gürültü kapısı (Noise Gate) A/B dinleme alıştırmaları eklendi.
 - **70,7 / 100 V hoparlör hattı hesabı:** Hoparlör tap yükleri, yükselteç güç payı ve bakır kablo gerilim düşümü.
@@ -37,13 +37,13 @@ Yeni araçların hesaplama kodu Stagepulse içinde bağımsızdır. Kaynak ZIP a
 
 ## Öğrenci / müşteri kurulumu
 
-3.9.5 kaynak sürümüdür. Windows EXE ve kalıcı Stagepulse keystore ile imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Güvenilir yayıncı doğrulaması için gelecekteki sürümden önce geçerli bir Windows Code Signing sertifikası ve release secret'ları yapılandırılmalıdır. Bu kurucu uygulamayı `%LOCALAPPDATA%\Programs\Stagepulse\SesMerkezi` altına yerleştirir, masaüstüne ve Başlat menüsüne kısayol ekler ve Windows uygulama kaldırma kaydı oluşturur. Son kullanıcıya Python, CMD, BAT veya ayrı araç EXE'leri verilmez. Güncelleme aynı kurucunun sessiz yükseltme modunu kullanır; öğrenci profilleri kurulum güncellemesinde silinmez.
+4.0.0 kaynak sürümüdür. Windows EXE ve kalıcı Stagepulse keystore ile imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Güvenilir yayıncı doğrulaması için gelecekteki sürümden önce geçerli bir Windows Code Signing sertifikası ve release secret'ları yapılandırılmalıdır. Bu kurucu uygulamayı `%LOCALAPPDATA%\Programs\Stagepulse\SesMerkezi` altına yerleştirir, masaüstüne ve Başlat menüsüne kısayol ekler ve Windows uygulama kaldırma kaydı oluşturur. Son kullanıcıya Python, CMD, BAT veya ayrı araç EXE'leri verilmez. Güncelleme aynı kurucunun sessiz yükseltme modunu kullanır; öğrenci profilleri kurulum güncellemesinde silinmez.
 
 Bu depo kaynak koddur. Windows kurulum EXE'si, Windows x64 ortamındaki `EXE_OLUSTUR.bat` veya `EXE_OLUSTUR.ps1` ile üretilir. 3.9.5 kaynak sürümüdür; Windows x64 EXE, kalıcı anahtarla imzalı Android APK, SHA-256 ve GitHub Release doğrulamaları yayın hattında yapılır. Derleme bilgisayarında Python 3.11/3.12/3.13/3.14 x64 gerekir; son kullanıcıda gerekmez. Node.js derleme ortamında isteğe bağlıdır; kuruluysa JavaScript sözdizimi ve yerel araç çalışma zamanı testleri çalıştırılır. Kurulu değilse bu iki Node testi atlanır, Python kaynak testleri yine yürütülür. Betik önce testleri çalıştırır, Microsoft WebView2 yükleyicisinin dijital imzasını ve NSIS paketinin SHA-256 değerini doğrular; derleme sonunda geçici araçları siler ve `dist` klasöründe yalnızca tek kurulum EXE'si bırakır.
 
 ## Eğitim yolları ve yeterlilik
 
-Uygulamaya **Eğitim dalları / usta yolu** ekranı eklendi. Sekiz öğrenme alanı, L0–L5 yeterlilik basamakları, uygulama görevleri ve dal bazlı kısa bilgi testleri `docs/EGITIM_DALLARI_USTA_YOLU_VE_FIYATLANDIRMA_TR.md` içinde ayrıntılıdır. Makine tarafından okunabilir katalog `egitim_paketleri/stagepulse_egitim_katalogu_v1.json` dosyasıdır. Eğitim dalları içerik ve yeterlilik sınıflandırmasıdır; ayrı satılan modüller değildir. Ticari satış yalnızca FULL PAKET üzerinden yapılır.
+Uygulamaya **Eğitim dalları / usta yolu** ekranı eklendi. Dokuz öğrenme alanı, L0–L5 yeterlilik basamakları, uygulama görevleri ve dal bazlı kısa bilgi testleri `docs/EGITIM_DALLARI_USTA_YOLU_VE_FIYATLANDIRMA_TR.md` içinde ayrıntılıdır. Makine tarafından okunabilir katalog `egitim_paketleri/stagepulse_egitim_katalogu_v1.json` dosyasıdır. Eğitim dalları içerik ve yeterlilik sınıflandırmasıdır; ayrı satılan modüller değildir. Ticari satış yalnızca FULL PAKET üzerinden yapılır.
 
 Lisans kaydındaki teknik kapsam alanı veritabanı uyumluluğu için korunur; güncel ticari ürün tek FULL PAKET'tir. Eğitim dalları ayrı ürün veya ayrı lisans kapsamı değildir. Ücretli erişim ve cihaz yetkisi sunucu tarafında doğrulanır.
 
@@ -124,7 +124,7 @@ Windows PowerShell 5.1 ile uyumluluk için derleme betiğindeki akıllı tırnak
 
 ## Öğrenciye nasıl gönderilir?
 
-Windows x64 derleme bilgisayarında `EXE_OLUSTUR.bat` çalıştır. Testler başarılı olursa `dist` içinde yalnızca güncel sürüm numarasını taşıyan Stagepulse kurulum EXE'si bulunur. Aynı işlem `ogrenciye_gonder/Stagepulse_Ogrenci_Kurulum_3.8.4.zip` dosyasını üretir; bu ZIP'in içinde yalnızca `Stagepulse_Kurulum.exe` vardır. Öğrenciye kaynak depo, Python, NSIS, PowerShell veya ara uygulama EXE'si gönderilmez.
+Windows x64 derleme bilgisayarında `EXE_OLUSTUR.bat` çalıştır. Testler başarılı olursa `dist` içinde yalnızca güncel sürüm numarasını taşıyan Stagepulse kurulum EXE'si bulunur. Aynı işlem `ogrenciye_gonder/` altındaki güncel sürüm ZIP'i dosyasını üretir; bu ZIP'in içinde yalnızca `Stagepulse_Kurulum.exe` vardır. Öğrenciye kaynak depo, Python, NSIS, PowerShell veya ara uygulama EXE'si gönderilmez.
 
 Kurulum sırasında WebView2 Runtime yoksa tek kurulum sihirbazı bunu sessizce yükler. Kurulum dizininde `StagepulseSesMerkezi.exe`, PyInstaller bağımlılıklarını taşıyan `_internal` klasörü ve `Uninstall.exe` bulunur. Bu yapı, her uygulama açılışında tek dosyalı paketin yeniden çıkarılmasını önler. Kaldırıcı Windows'un Program Kaldır bölümüne kayıtlıdır ve öğrenci profillerini korur.
 
