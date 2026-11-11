@@ -108,3 +108,19 @@ Windows derleme testi `tests/test_visual_assets.py` dosyasında `fitz` modülü 
 - Stagepulse ikon dosyası ICO/PNG olarak doğrulandı ve PyInstaller/NSIS kaynaklarına bağlandı.
 - Supabase canlı veritabanında ödeme sütunları eklendi; Edge Function `ses-merkezi-desktop` sürüm 5 ve `verify_jwt=true` olarak etkin.
 - Gerçek Windows Setup EXE’si bu Linux ortamında derlenmedi. Windows x64 bilgisayarda `EXE_OLUSTUR.bat` çalıştırılmalı; sonra kurulum, masaüstü simgesi, ilk açılış hızı ve mikrofon testi gerçek bilgisayarda kontrol edilmelidir.
+
+
+## EBU Tech 3341 V4.0 ve OAA çapraz kontrol notu
+
+Kaynak: EBU Tech 3341 V4.0, Kasım 2023, Tablo 1 (özellikle PDF sayfa 8-9). Referans eşlemeleri `windows/references/ebu_tech3341_reference.csv` dosyasındadır. Bu CSV, ZIP içindeki WAV dosya adları ile standartta açıkça verilen beklenen değerleri eşler; test sinyallerinin kendisini içermez.
+
+- Dosya-temelli referans eşlemesi: test 1-10, 12-13 ve 15-23.
+- Test 11 ve 14: canlı ölçer için art arda 20 Short-term/Momentary değer gerektirir. Mevcut toplu dosya ölçümü bu zaman dizisini doğrulamadığından bu testler kapsam dışıdır.
+- Test 6: 5.0 kanal PCM dosyası kullanılır. 6 kanallı sessiz LFE varyantı bu ölçüm yolunda desteklenmez.
+- Test 15-23: true-peak toleransı asimetriktir (+0.2/−0.4 dBTP); referans karşılaştırması bunu ayrı üst/alt toleranslarla uygular.
+- CSV'de yalnızca EBU Tablo 1'in beklenen değer verdiği metrikler doldurulur. PASS yalnızca doldurulmuş kriterleri kapsar; boş alanlar doğrulanmış sayılmaz.
+- EBU Tech 3342 LRA testleri ayrı bir standart/test kapsamıdır. Bu raporda LRA için beklenen referans değerleri uydurulmamıştır.
+
+**Kullanım ve telif sınırı:** EBU test dizileri yalnızca iç Ar-Ge amaçlı performans değerlendirmesi için sağlanır; ticari/iş/kâr amaçlı kullanım ve test dizilerini kopyalama, değiştirme, yayımlama veya dağıtma yasaktır. Bu nedenle WAV arşivi, EBU PDF'si ve bunlardan oluşan test artifact'leri Stagepulse deposuna veya dağıtım paketlerine eklenmez. Stagepulse ticari ürün doğrulaması için kullanım öncesinde EBU'dan yazılı izin alınmalıdır. Resmî kaynaklar: https://tech.ebu.ch/publications/ebu_loudness_test_set ve EBU kullanım koşulları: https://tech.ebu.ch/files/live/sites/tech/files/shared/testmaterial/use%20of%20EBU%20AUDIO%20test%20sequences.pdf.
+
+**OAA CLI:** Yüklenen `oaa-cli-Windows.zip`, resmî Open Audio Analyzer v0.16.0 Windows release SHA-256 değeriyle eşleşir. CLI Stagepulse'a gömülmez; resmî sürümden ayrı edinilip aynı WAV dosyalarında bağımsız karşılaştırma için çalıştırılır. OAA çıktısı EBU sertifikası veya mutlak referans cihaz sonucu değildir. Resmî release: https://github.com/JonasGrunau/open_audio_analyzer/releases/tag/v0.16.0.
