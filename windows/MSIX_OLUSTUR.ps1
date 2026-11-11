@@ -134,10 +134,20 @@ if ($signingCert.Subject -eq $signingCert.Issuer) {
         throw 'Kendinden imzalı MSIX sertifikasını güvenilir kılmak için PowerShell Yönetici olarak çalıştırılmalıdır.'
     }
     Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
-    Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\LocalMachine\Root' | Out-Null
 }
-& $signTool.FullName verify /pa /v $packagePath
-if ($LASTEXITCODE -ne 0) { throw "MSIX imza doğrulaması başarısız. Çıkış kodu: $LASTEXITCODE" }
+$verifyOutput = (& $signTool.FullName verify /pa /v $packagePath 2>&1 | Out-String)
+$verifyExit = $LASTEXITCODE
+if ($verifyExit -ne 0) {
+    $selfSignedTrustOnly = ($signingCert.Subject -eq $signingCert.Issuer) -and
+        ($verifyOutput -match '0x800B0109|A certificate chain processed, but terminated in a root certificate which is not trusted') -and
+        $verifyOutput.Contains($signingCert.Subject)
+    if (-not $selfSignedTrustOnly) {
+        throw "MSIX imza doğrulaması başarısız oldu: $verifyOutput"
+    }
+    Write-Warning 'Self-signed sertifikanın zincir güveni SignTool tarafından kabul edilmedi. CI Add-AppxPackage testi, TrustedPeople deposuyla gerçek Windows kurulumunu doğrular.'
+} else {
+    Write-Host 'MSIX imza doğrulaması başarılı.' -ForegroundColor Green
+}
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $packagePath).Hash.ToLowerInvariant()
 Set-Content -LiteralPath "${packagePath}.sha256" -Value "$hash  $packageName" -Encoding ascii -NoNewline
 Write-Host ''
