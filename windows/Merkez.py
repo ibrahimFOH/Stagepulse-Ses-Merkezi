@@ -1370,7 +1370,8 @@ def main() -> int:
     if not ensure_webview2_runtime():
         show_native_error(
             APP_NAME,
-            "Microsoft WebView2 Runtime bulunamadı veya kurulamadı. Windows için Stagepulse kurulumunu tamamlayın. "
+            "Microsoft WebView2 Runtime bulunamadı. Uygulama, Stagepulse_Kurulum.exe ile kurulmalıdır. "
+            "Kurulum dosyası bu bileşeni gerekiyorsa sessizce yükler. "
             "MSIX paketinde Microsoft'un çevrimdışı yükleyicisi bulunur ve eksikse ilk açılışta çalıştırılır.\n\n"
             "Kurulumdan sonra Windows'u yeniden başlatıp uygulamayı tekrar açın.\n"
             "Destek: https://stagepulse.com.tr/"
