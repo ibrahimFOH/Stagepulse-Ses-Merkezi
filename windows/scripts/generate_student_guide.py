@@ -26,7 +26,8 @@ styles.add(ParagraphStyle(name='BodySP',fontName=REG,fontSize=9.3,leading=14,tex
 styles.add(ParagraphStyle(name='SmallSP',fontName=REG,fontSize=7.6,leading=11,textColor=GREY,spaceAfter=4))
 styles.add(ParagraphStyle(name='CalloutSP',fontName=REG,fontSize=9.2,leading=13.5,textColor=INK,backColor=PALE,borderColor=GOLD,borderWidth=0.6,borderPadding=8,spaceBefore=5,spaceAfter=8))
 styles.add(ParagraphStyle(name='TableSP',fontName=REG,fontSize=8.1,leading=11,textColor=INK))
-P=lambda t,style='BodySP': Paragraph(t,styles[style])
+from append_bilingual_glossary import bilingualize_markup
+P=lambda t,style='BodySP': Paragraph(bilingualize_markup(t),styles[style])
 story=[]
 # Cover
 story += [Spacer(1,28*mm),P('STAGEPULSE','CoverSub'),P('SES MÜHENDİSLİĞİ MERKEZİ','CoverTitle'),P('Öğrenci Uygulama ve Sorun Giderme Rehberi','CoverSub'),Spacer(1,8*mm)]
