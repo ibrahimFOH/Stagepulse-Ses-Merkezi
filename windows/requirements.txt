@@ -16,3 +16,8 @@ PyMuPDF>=1.24,<2
 Pillow>=13,<14
 
 cryptography>=50.0.2,<51
+
+# Student training PDF generation and visual atlas.
+reportlab>=4.2,<5
+matplotlib>=3.9,<4
+CairoSVG>=2.7,<3
