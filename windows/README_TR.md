@@ -110,12 +110,12 @@ python -m pytest -q
 `EXE_OLUSTUR.bat` yalnızca geliştirici/build makinesi içindir; öğrencinin bunu çalıştırması gerekmemelidir.
 
 
-### 3.6.0 derleme düzeltmesi
+### Eski 3.6.0 derleme düzeltmesi (tarihsel)
 
 Windows PowerShell 5.1 ile uyumluluk için derleme betiğindeki akıllı tırnaklar düz metinle değiştirildi. NSIS kurulum parametresinin boşluk içeren dizinlere güvenli aktarımı düzeltildi.
 
 
-## 3.6.0 düzeltmesi
+## Eski 3.6.0 düzeltmesi (tarihsel)
 
 - Profil testleri gerçek geliştirici profil dosyasını okumaz.
 - NSIS ZIP arşivi doğrulanıp çıkarıldıktan sonra testlerden önce silinir; geçici kurulum arşivi öğrenci uygulaması kaynak ağacında kalmaz.
@@ -129,7 +129,7 @@ Windows x64 derleme bilgisayarında `EXE_OLUSTUR.bat` çalıştır. Testler baş
 Kurulum sırasında WebView2 Runtime yoksa tek kurulum sihirbazı bunu sessizce yükler. Kurulum dizininde `StagepulseSesMerkezi.exe`, PyInstaller bağımlılıklarını taşıyan `_internal` klasörü ve `Uninstall.exe` bulunur. Bu yapı, her uygulama açılışında tek dosyalı paketin yeniden çıkarılmasını önler. Kaldırıcı Windows'un Program Kaldır bölümüne kayıtlıdır ve öğrenci profillerini korur.
 
 
-## 3.6.0 düzeltmeleri
+## Eski 3.6.0 düzeltmeleri (tarihsel)
 
 - Boş öğrenci profili deposunda tekrarlanan `load_profiles()` çağrısı kaldırıldı; profil listesi yalnızca bir kez yüklenir.
 - Lisans yokken ana sayfaya erişim engellenmez. Çevrimdışı araçlar, yerel profiller ve PDF kitaplığı demo modunda kullanılabilir; ücretli bulut/öğretmen özellikleri korunur.
