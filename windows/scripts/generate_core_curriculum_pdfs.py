@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Stagepulse 4.0.0: üretilebilir, Türkçe ve uygulama odaklı 01-07 öğrenci PDF'leri."""
+"""Stagepulse 4.0.2: üretilebilir, Türkçe ve uygulama odaklı 01-07 öğrenci PDF'leri."""
 from pathlib import Path
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
@@ -34,7 +34,7 @@ from append_bilingual_glossary import bilingualize_markup
 P=lambda t,s='Bodyx':Paragraph(bilingualize_markup(t),styles[s])
 def footer(c,d):
  c.saveState(); w,h=A4; c.setStrokeColor(GOLD); c.setLineWidth(.65); c.line(16*mm,14*mm,w-16*mm,14*mm)
- c.setFont('SP',7); c.setFillColor(GREY); c.drawString(16*mm,8*mm,'STAGEPULSE · SES MÜHENDİSLİĞİ MERKEZİ · v4.0.0'); c.drawRightString(w-16*mm,8*mm,f'Sayfa {d.page}'); c.restoreState()
+ c.setFont('SP',7); c.setFillColor(GREY); c.drawString(16*mm,8*mm,'STAGEPULSE · SES MÜHENDİSLİĞİ MERKEZİ · v4.0.2'); c.drawRightString(w-16*mm,8*mm,f'Sayfa {d.page}'); c.restoreState()
 def table(rows,widths):
  data=[[P(str(v),'Smallx') for v in row] for row in rows]
  t=Table(data,colWidths=widths,repeatRows=1)
@@ -130,12 +130,12 @@ MANUALS=[
 ]}
 ]
 def build(m):
- story=[Spacer(1,24*mm),P('STAGEPULSE','Sub'),P(m['title'],'Cover'),P(m['sub'],'Sub'),P('Öğrenci ders kitabı · Sürüm 4.0.0','Sub'),Spacer(1,8*mm),P('<b>Çalışma yöntemi:</b> Konuyu oku, formülü/akışı elle doğrula, uygulamayı gerçek veya kontrollü test ortamında yap, sonucu ve sınırlarını kaydet.','Callx'),P('<b>Önemli:</b> Bu belge üretici kılavuzu, akredite ölçüm, elektrik/rigging yetkisi veya mevzuat uygunluk belgesi değildir. Model/firmware ve saha koşullarını ayrıca doğrula.','Callx'),PageBreak()]
+ story=[Spacer(1,24*mm),P('STAGEPULSE','Sub'),P(m['title'],'Cover'),P(m['sub'],'Sub'),P('Öğrenci ders kitabı · Sürüm 4.0.2','Sub'),Spacer(1,8*mm),P('<b>Çalışma yöntemi:</b> Konuyu oku, formülü/akışı elle doğrula, uygulamayı gerçek veya kontrollü test ortamında yap, sonucu ve sınırlarını kaydet.','Callx'),P('<b>Önemli:</b> Bu belge üretici kılavuzu, akredite ölçüm, elektrik/rigging yetkisi veya mevzuat uygunluk belgesi değildir. Model/firmware ve saha koşullarını ayrıca doğrula.','Callx'),PageBreak()]
  story += [P('İçindekiler ve öğrenme planı','H1x'),table([['Bölüm','Konu']]+[[str(i+1),c[0]] for i,c in enumerate(m['chapters'])],[18*mm,130*mm]),Spacer(1,7),P('Her bölüm sonunda uygulama kanıtı ve öz değerlendirme üret. Kritik güvenlik hatası varsa görev tamamlanmış sayılmaz.','Bodyx'),PageBreak()]
  for i,c in enumerate(m['chapters'],1):
   story += lesson(i,*c)
  story += [P('Bitirme görevi ve değerlendirme','H1x'),P('Öğrenci, bu kitapta yer alan en az üç uygulamayı gerçek donanımda veya açıkça belirtilmiş kontrollü simülasyonda tamamlar. Her görev için tarih, kullanılan cihaz/yazılım sürümü, bağlantı şeması, ölçüm/ekran görüntüsü, sonuç ve sınırlama notu teslim edilir.'),table([['Değerlendirme alanı','Puan'],['Hazırlık ve plan','15'],['Teknik doğruluk ve yöntem','25'],['Güvenlik ve risk kontrolü','25'],['Uygulama kanıtı ve rapor','20'],['İletişim ve teslim disiplini','15'],['Toplam','100']],[110*mm,38*mm]),P('Başarı ölçütü: en az 80/100 ve sıfır kritik güvenlik hatası. Eğitmen onayı olmadan L5/usta yeterliliği verilmez.','Callx'),P('Kaynak ve doğrulama notu','H2x'),P('Teknik değerler üretici kılavuzları, ilgili IEC/ISO/ITU/EBU belgeleri ve güncel ulusal düzenlemelerle doğrulanmalıdır. Bu kitap genel eğitim materyalidir; standardın tam metnini veya üretici dokümanını ikame etmez.','Bodyx')]
- doc=SimpleDocTemplate(str(OUT/m['file']),pagesize=A4,rightMargin=17*mm,leftMargin=17*mm,topMargin=16*mm,bottomMargin=20*mm,title=m['title']+' - Stagepulse v4.0.0',author='Stagepulse')
+ doc=SimpleDocTemplate(str(OUT/m['file']),pagesize=A4,rightMargin=17*mm,leftMargin=17*mm,topMargin=16*mm,bottomMargin=20*mm,title=m['title']+' - Stagepulse v4.0.2',author='Stagepulse')
  doc.build(story,onFirstPage=footer,onLaterPages=footer)
  print(m['file'],(OUT/m['file']).stat().st_size)
 if __name__=='__main__':
