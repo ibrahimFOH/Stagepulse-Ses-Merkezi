@@ -4,17 +4,19 @@
 **Sürüm kodu:** `40000`  
 **Minimum Android:** API 26  
 **Hedef Android:** API 35  
-**Derleme:** JDK 17 · Gradle 8.13 · Android Gradle Plugin 8.13.2 · Android SDK 35
+**Derleme:** JDK 17 · Gradle Wrapper sürümü `gradle-wrapper.properties` dosyasından okunur · Android Gradle Plugin 8.13.2 · Android SDK 35
 
 ## Proje yapısı
 
 - `app/src/main/java/com/stagepulse/sesmerkezi/MainActivity.kt`: WebView, Android-JavaScript köprüsü, hesap/lisans oturumu, Groq bağlantısı, dosya dışa aktarma ve uygulama güncelleme doğrulaması.
 - `app/src/main/assets/ui/`: Türkçe arayüz, CSS, JavaScript araçları ve mobil/tablet düzeni.
-- `app/src/main/assets/docs/`: Uygulama içi 12 ders kılavuzu.
+- `app/src/main/assets/docs/`: Uygulama içi 12 konu kılavuzu.
 - `app/src/main/assets/egitim_paketleri/`: Öğrenciye sunulan 13 PDF.
 - `scripts/verify_assets.py`: HTML/CSS kaynakları, PDF kataloğu, Kotlin izin listesi ve sürüm eşleşmesi denetimi.
 
 ## Android'de bulunan özellikler
+
+Kaynak sürümü 4.0.0'dır. Özellik listesi kaynak kodda tanımlı kapsamı özetler; her cihazda gerçek donanım kabul testinin tamamlandığı anlamına gelmez.
 
 - OSC/UDP: IPv4 hedefe float/integer/string parametre gönderimi; M32/X32 için varsayılan port 10023. UDP paketi gönderildi bilgisi cihazın komutu uyguladığını kanıtlamaz.
 - MIDI Type 0 dosyası üretimi ve İndirilenler/Stagepulse klasörüne kaydetme.
@@ -65,6 +67,8 @@ APK yolu:
 Debug APK geliştirme/test paketidir. 4.0.0 kararlı yayınında kalıcı Stagepulse keystore ile imzalanmış APK ve SHA-256 bilgileri `Stagepulse-Releases` deposundaki `latest.json` üzerinden sunulur. Bu kaynak doküman, yeni değişikliklerin release APK olarak derlendiğini veya fiziksel cihaz kabul testlerinin tamamlandığını tek başına kanıtlamaz.
 
 ## Gerçek cihaz kabul listesi
+
+Bu liste açık kabul testleridir; tamamlandı işareti ancak test kanıtı kaydedildikten sonra verilmelidir.
 
 1. Android 8.0 ve üzeri telefonda (API 26+) temiz kurulum ve yükseltme.
 2. Ekran döndürme, sistem çubuğu güvenli alanları, telefon ve tablet görünümü.
