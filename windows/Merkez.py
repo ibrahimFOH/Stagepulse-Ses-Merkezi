@@ -74,6 +74,7 @@ EDUCATIONAL_DOCS = [
     ("08_SES_AI_ARASTIRMA_REHBERI_TR.md", "Ses analizi ve yapay zekâ araştırması"),
     ("09_API_GIZLILIK_TR.md", "Gizlilik ve API kullanımı"),
     ("10_MUZIK_PRODUKSIYONU_VE_OGRENME_TR.md", "Müzik prodüksiyonu"),
+    ("MIKS_MASTERING_KAYNAK_REHBERI_TR.md", "Miks ve mastering kaynak rehberi"),
     ("EGITIM_DALLARI_USTA_YOLU_VE_FIYATLANDIRMA_TR.md", "Eğitim dalları, usta yolu ve paketler"),
 ]
 
