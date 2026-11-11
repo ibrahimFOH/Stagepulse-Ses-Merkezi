@@ -94,7 +94,7 @@ Ticari satış modeli yalnızca FULL PAKET'tir. Eğitim dalları ayrı satış �
 
 ## Android geliştirme ve doğrulama
 
-Gerekli araçlar: JDK 17, Android SDK Platform 35, Android Build Tools 35.0.0, Gradle Wrapper (sürümü `android/gradle/wrapper/gradle-wrapper.properties` dosyasından okunur), Android Gradle Plugin 8.13.2, Node.js 22 ve Python 3.12.
+Gerekli araçlar: JDK 17, Android SDK Platform 35, Android Build Tools 35.0.0, Gradle 8.13 (wrapper ve CI ile eşleşir), Android Gradle Plugin 8.13.2, Node.js 22 ve Python 3.12.
 
 Depo kök dizininden:
 
