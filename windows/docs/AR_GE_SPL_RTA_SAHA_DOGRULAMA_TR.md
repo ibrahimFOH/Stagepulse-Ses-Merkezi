@@ -6,6 +6,30 @@ Stagepulse ölçüm altyapısını profesyonel ses sistemi analizi için gelişt
 
 Smaart Suite'in yayımlanmış özellikleri işlevsel referans alınır; arayüzü veya özel algoritmaları kopyalanmaz. Hedeflenen ana başlıklar RTA/spektrogram, çift kanallı Transfer Function, magnitude/faz/coherence, delay, impulse response ve SPL kayıt/raporlamadır.
 
+## SMAART ve EBU/ITU referans doğrulama protokolü
+
+Bu bölüm Stagepulse sonuçlarının bağımsız referans araçlarıyla karşılaştırılması içindir. Karşılaştırma tamamlanmadan "SMAART ile aynı", "EBU/ITU uyumlu" veya "sertifikalı" ifadesi kullanılmaz.
+
+### SMAART ile RTA / Transfer Function karşılaştırması
+1. Aynı ses kartı, aynı örnekleme hızı, aynı giriş kazancı ve aynı fiziksel mikrofon kullanılmalıdır.
+2. Transfer Function için CH0 referans, CH1 ölçüm mikrofonu olacak şekilde aynı sinyal yolu kurulmalıdır; iki kanal aynı saat kaynağından alınmalıdır.
+3. Önce dijital loopback ile unity magnitude, bilinen sample delay ve polarity inversion senaryoları doğrulanmalıdır.
+4. Ardından hoparlör-mikrofon ölçümünde aynı konum, pencereleme, FFT boyutu, averaging, smoothing ve delay ayarları iki yazılımda eşlenmelidir.
+5. Magnitude, phase, coherence, delay, impulse response/ETC ve 1/3 oktav RTA sonuçları aynı grafik aralığında dışa aktarılmalıdır.
+6. Her testte Stagepulse/SMAART farkı frekans bazında, gecikme örnek/ms bazında ve coherence farkı ayrı raporlanmalıdır.
+7. Düşük coherence, clipping, saat uyumsuzluğu veya farklı smoothing ayarı bulunan karşılaştırma kabul testi sayılmaz.
+
+### EBU / ITU loudness doğrulaması
+- Referans kapsamı: ITU-R BS.1770 ailesi ve EBU R128 iş akışı; ölçüm ve raporlama testleri için EBU Tech 3341/3342 dokümanları ve EBU Loudness Test Set kullanılmalıdır.
+- Kısa ton, sessizlik, kanal yerleşimi, surround ağırlıkları, gating, K-weighting, integrated loudness, loudness range ve true-peak testleri ayrı ayrı yürütülmelidir.
+- Test dosyalarının beklenen sonuçları referans test setinden alınmalı; örnek dosyalar ve beklenen sonuçlar uygulama testlerine sabit fixture olarak eklenmelidir.
+- LUFS normalizasyonu ile loudness ölçümü ayrı işlevlerdir. Bir dosyanın hedef LUFS seviyesine yaklaştırılması, BS.1770 ölçüm uygunluğunu veya true-peak sınırını tek başına kanıtlamaz.
+- Android ve Windows aynı referans dosyalarını kullanmalı; platform farkı, sample rate, kanal sırası ve decoder davranışı rapora yazılmalıdır.
+- EBU Loudness Test Set tam geçişi ve referans cihaz/uygulama karşılaştırması kaydedilmeden EBU/ITU uygunluğu iddia edilmez.
+
+### Kabul kaydı
+Her test için test kimliği, uygulama sürümü, platform, ham dosya SHA-256, referans yazılım/sürüm, donanım, ayarlar, beklenen değer, Stagepulse değeri, fark, kabul toleransı ve sonuç saklanmalıdır. Başarısız testler silinmez; hata kaydı ve düzeltme commit'iyle ilişkilendirilir.
+
 ## 3.9.8 sürümünde entegre edilenler
 
 - Windows canlı RTA yakalama motoru 1/1, 1/3, 1/6, 1/12, 1/24 ve 1/48 oktav çözünürlüklerini destekler.
