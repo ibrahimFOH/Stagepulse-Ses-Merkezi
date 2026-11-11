@@ -102,8 +102,6 @@ jobs:
           if ($values -contains '') { throw "Uygulama sürümlerinden biri bulunamadı." }
           if (($values | Select-Object -Unique).Count -ne 1) { throw "Uygulama sürümleri eşleşmiyor: $($values -join ', ')" }
           "version=$($values[0])" >> $env:GITHUB_OUTPUT
-      - name: Eğitim PDF içerik ve kopya denetimi
-        run: python windows/scripts/verify_education_pdfs.py
       - name: Android ortak varlıklarını doğrula
         run: python android/scripts/verify_assets.py
       - name: JavaScript ve regresyon testleri
@@ -119,6 +117,8 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pytest tests -q
+      - name: Eğitim PDF içerik ve kopya denetimi
+        run: python windows/scripts/verify_education_pdfs.py
       - name: Kurulum EXE'sini derle
         shell: pwsh
         run: ./windows/EXE_OLUSTUR.ps1
