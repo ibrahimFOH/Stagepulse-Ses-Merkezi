@@ -35,7 +35,7 @@ for name,terms in EXPECTED.items():
   pages=[p.get_text().strip() for p in doc]
   text='\n'.join(pages)
   if not pages: errors.append(f'PDF sayfası yok: {name}')
-  for term in ['Compressor','Noise Gate','Threshold','Ratio','Attack','Release']:
+  for term in ['Compressor','Noise Gate','Threshold','Ratio','Attack','Release','Makeup Gain','Hold','Range','Frequency Response','Sample Rate','Signal Flow','Gain Staging','Sound Pressure Level','Real-Time Analysis','Line Array','Subwoofer','A/B Comparison','Transfer Function','Impulse Response']:
    if term not in text: errors.append(f'İki dilli teknik terim eksik {name}: {term}')
   if len(text)<1200: errors.append(f'Metin hacmi yetersiz: {name} ({len(text)} karakter)')
   if sum(bool(x) for x in pages)<max(2,doc.page_count//2): errors.append(f'Boş sayfa oranı yüksek: {name}')

@@ -128,3 +128,23 @@ def test_curriculum_catalog_fetch_paths_resolve_on_both_platforms():
     assert "fetch('/egitim_paketleri/stagepulse_egitim_katalogu_v1.json')" in windows_js
     assert "fetch('../egitim_paketleri/stagepulse_egitim_katalogu_v1.json')" in android_js
     assert windows_catalog.is_file() and android_catalog.is_file()
+
+
+def test_bilingual_terminology_is_global_and_shared_by_windows_android():
+    repo = ROOT.parent
+    win_html = (ROOT / "ui/index.html").read_text("utf-8")
+    android_html = (repo / "android/app/src/main/assets/ui/index.html").read_text("utf-8")
+    win_script = (ROOT / "ui/bilingual_terms.js").read_text("utf-8")
+    android_script = (repo / "android/app/src/main/assets/ui/bilingual_terms.js").read_text("utf-8")
+    glossary = (ROOT / "scripts/append_bilingual_glossary.py").read_text("utf-8")
+    assert 'src="/ui/bilingual_terms.js"' in win_html
+    assert 'src="/assets/ui/bilingual_terms.js"' in android_html
+    assert win_script == android_script
+    for term in ["Threshold", "Ratio", "Knee", "Attack", "Release", "Makeup Gain",
+                 "Noise Gate", "Signal Flow", "Gain Staging", "Sound Pressure Level",
+                 "Frequency Response", "Sample Rate", "Line Array", "Subwoofer",
+                 "Transfer Function", "Impulse Response"]:
+        assert term in win_script
+        assert term in glossary
+    assert "MutationObserver" in win_script
+    assert "data-no-bilingual" in win_script

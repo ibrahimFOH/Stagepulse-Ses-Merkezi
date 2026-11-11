@@ -124,6 +124,7 @@ jobs:
       - name: JavaScript ve regresyon testleri
         shell: pwsh
         run: |
+          node --check windows/ui/bilingual_terms.js
           node --check windows/ui/app.js
           node --check windows/ui/first_party_tools.js
           node windows/tests/test_first_party_tools.js
