@@ -237,7 +237,7 @@ def validate_ebu_test_set(folder: str | Path, reference_csv_text: str = "",
 
     references: dict[str, dict[str, str]] = {}
     if reference_csv_text.strip():
-        reader = csv.DictReader(io.StringIO(reference_csv_text.lstrip("\\ufeff")))
+        reader = csv.DictReader(io.StringIO(reference_csv_text.lstrip("\ufeff")))
         if not reader.fieldnames or "filename" not in reader.fieldnames:
             raise ValueError("Referans CSV başlığı en az filename içermeli.")
         for row in reader:
