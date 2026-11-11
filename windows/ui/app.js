@@ -1562,7 +1562,7 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLower
     regex:new RegExp("(^|[^\\p{L}\\p{N}_])("+escapeRegExp(tr)+")(?![^\\p{L}\\p{N}_])(?!\\s*\\()", "giu"),
     bilingual
   }));
-  const excluded = new Set(["SCRIPT","STYLE","NOSCRIPT","TEXTAREA","INPUT","CODE","PRE","OPTION"]);
+  const excluded = new Set(["SCRIPT","STYLE","NOSCRIPT","TEXTAREA","CODE","PRE"]);
   function translateText(node){
     if(!node || !node.nodeValue || !node.nodeValue.trim()) return;
     let value=node.nodeValue;
