@@ -137,6 +137,8 @@ jobs:
           python -m pytest tests -q
       - name: Kurulum EXE'sini derle
         shell: pwsh
+        env:
+          STAGEPULSE_KEEP_PAYLOAD: '1'
         run: ./windows/EXE_OLUSTUR.ps1
       - name: EXE çıktısını ve SHA-256 değerini doğrula
         shell: pwsh
@@ -149,10 +151,35 @@ jobs:
           if ($files[0].Name -ne $expectedName) { throw "EXE adı sürümle eşleşmiyor: $($files[0].Name)" }
           if ($files[0].Length -lt 1000000) { throw "EXE boyutu beklenenden küçük." }
           Get-FileHash -Algorithm SHA256 $files[0].FullName
+      - name: CI için geçici MSIX test sertifikası oluştur
+        shell: pwsh
+        run: |
+          $password = ([guid]::NewGuid().ToString('N') + 'Aa9!')
+          $cert = New-SelfSignedCertificate -Type Custom -Subject 'CN=Stagepulse' -FriendlyName 'Stagepulse CI MSIX Test' -CertStoreLocation 'Cert:\CurrentUser\My' -KeyAlgorithm RSA -KeyLength 3072 -HashAlgorithm SHA256 -KeyExportPolicy Exportable -KeyUsage DigitalSignature -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3','2.5.29.19={text}') -NotAfter (Get-Date).AddDays(7)
+          $pfx = Join-Path $env:RUNNER_TEMP 'Stagepulse-CI-MSIX.pfx'
+          Export-PfxCertificate -Cert $cert -FilePath $pfx -Password (ConvertTo-SecureString -String $password -AsPlainText -Force) | Out-Null
+          Export-Certificate -Cert $cert -FilePath (Join-Path $env:RUNNER_TEMP 'Stagepulse-CI-MSIX.cer') -Type CERT | Out-Null
+          Import-Certificate -FilePath (Join-Path $env:RUNNER_TEMP 'Stagepulse-CI-MSIX.cer') -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople' | Out-Null
+          "MSIX_TEST_PFX=$pfx" >> $env:GITHUB_ENV
+          "MSIX_TEST_PASSWORD=$password" >> $env:GITHUB_ENV
+
+      - name: MSIX paketini oluştur, imzala ve doğrula
+        shell: pwsh
+        run: |
+          $payload = Join-Path $env:GITHUB_WORKSPACE 'windows\build\payload\StagepulseSesMerkezi'
+          $output = Join-Path $env:GITHUB_WORKSPACE 'windows\dist'
+          & ./windows/MSIX_OLUSTUR.ps1 -PayloadPath $payload -OutputDirectory $output -CertificatePath $env:MSIX_TEST_PFX -CertificatePassword $env:MSIX_TEST_PASSWORD
+          if ($LASTEXITCODE -ne 0) { throw "MSIX derlemesi başarısız: $LASTEXITCODE" }
+          $msix = Get-ChildItem windows/dist -Filter '*.msix' -File
+          if (@($msix).Count -ne 1 -or $msix.Length -lt 1000000) { throw 'Tek ve geçerli boyutta bir MSIX paketi bekleniyordu.' }
+          if (-not (Test-Path ($msix.FullName + '.sha256'))) { throw 'MSIX SHA-256 dosyası eksik.' }
+          if (-not (Test-Path 'windows/dist/Stagepulse-MSIX-Signing.cer')) { throw 'MSIX test sertifikası eksik.' }
+          Write-Host "MSIX CI doğrulaması başarılı: $($msix.Name)" -ForegroundColor Green
+
       - uses: actions/upload-artifact@v4
-        name: Windows EXE artifact
+        name: Windows EXE ve MSIX artifact
         with:
           name: Stagepulse-Ses-Merkezi-Windows-${{ steps.version.outputs.version }}
-          path: windows/dist/*.exe
+          path: windows/dist/*
           if-no-files-found: error
           retention-days: 30
