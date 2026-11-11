@@ -327,7 +327,9 @@ def validate_ebu_test_set(folder: str | Path, reference_csv_text: str = "",
                         "difference": delta, "tolerance": row_tolerance,
                         "pass": abs(delta) <= row_tolerance,
                     })
-        if ref and any(item.get("status") == "INVALID_REFERENCE" for item in comparisons):
+        if any(item.get("pass") is False and item.get("status") != "INVALID_REFERENCE" for item in comparisons):
+            status = "FAIL"
+        elif ref and any(item.get("status") == "INVALID_REFERENCE" for item in comparisons):
             status = "PARTIAL_REFERENCE"
         elif unavailable_metrics:
             status = "PARTIAL_REFERENCE"
