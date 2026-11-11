@@ -147,3 +147,37 @@ Windows canlı RTA motoru ve Android WebAudio PCM yakalama zinciri 1/1, 1/3, 1/6
 Windows stereo WAV analiz ekranı A/C/Z ağırlıklı Leq, Fast/Slow maksimum, Peak ve 1 saniyelik L10/L50/L90 sonuçlarını gösterir. Kalibrasyon offset'i olmadan değerler dBFS olarak etiketlenir. Yönetici panelinden gelişmiş RTA ve mikrofon düzeltme özellikleri Supabase üzerinde merkezi olarak yönetilir. Mikrofon, kalibratör ve saha kontrol bilgileri yerel saha kaydı olarak dışa aktarılabilir.
 
 Gerçek mikrofon/ses kartı saha testi, izlenebilir kalibrasyon, ölçüm mikrofonu üretici correction dosyasının doğrulanması ve IEC 61672 / IEC 61260 uygunluk testleri laboratuvar veya yetkin saha ekipmanıyla ayrıca yapılmalıdır. Uygulama bu standartlara uygunluk sertifikası iddia etmez.
+
+
+## EBU Tech 3341 doğrulaması ve bağımsız OAA karşılaştırması
+
+Stagepulse Windows loudness test aracı, EBU Tech 3341 V4.0 (Kasım 2023) Tablo 1'de açıkça tanımlanan ölçütleri CSV'deki dolu referans alanları üzerinden karşılaştırır. Referans CSV'de 59 dosya/kriter eşlemesi bulunur: test 1-10, 12-13 ve 15-23. Test 11 ve 14 canlı ölçerde art arda 20 değer üretmeyi gerektirir; mevcut dosya-temelli toplu ölçüm yalnızca maksimum değer çıkardığı için bu iki test PASS sayılmaz. Test 6 için 5.0 kanal dosyası kullanılır; sessiz LFE kanalı eklenmiş 6 kanallı WAVEEX varyantı mevcut ölçüm kapsamına dahil değildir.
+
+- Referans dosyası: `windows/references/ebu_tech3341_reference.csv`
+- Test motoru: `windows/core/audio_tools.py` içindeki `validate_ebu_test_set()`
+- Loudness toleransı: Tech 3341 Tablo 1'de belirtilen ±0.1 LU.
+- True Peak toleransı: +0.2 / −0.4 dBTP; kod bu toleransı asimetrik uygular.
+- PASS, yalnızca CSV'de doldurulmuş referans metriklerinin geçtiğini belirtir. Boş metrikler test edilmemiştir; bu sonuç EBU/ITU sertifikası veya tam uygunluk beyanı değildir.
+- LRA testleri EBU Tech 3342 kapsamındadır; bu CSV'de LRA için doğrulanmış beklenen değer bulunmadığından LRA sütunu boş bırakılmıştır.
+
+### EBU test sinyallerinin kullanım kısıtları
+
+EBU test seti Git deposuna, GitHub Actions artifact'lerine veya Stagepulse dağıtım paketlerine kopyalanmaz. EBU kullanım koşulları test sinyallerini yalnızca kurum içi Ar-Ge kapsamında ses ekipmanı/sistem performansını değerlendirmek için sınırlar; ticari, iş veya kâr amaçlı kullanım ile kopyalama, değiştirme, yayımlama ve dağıtım yasaktır. Stagepulse ticari ürün geliştirme/satış doğrulaması için bu sinyallerin kullanımı, EBU'dan ayrıca yazılı izin alınmadan yapılmamalıdır.
+
+- Resmî test seti: https://tech.ebu.ch/publications/ebu_loudness_test_set
+- EBU ses test dizileri kullanım koşulları: https://tech.ebu.ch/files/live/sites/tech/files/shared/testmaterial/use%20of%20EBU%20AUDIO%20test%20sequences.pdf
+- EBU Tech 3341 V4.0: https://tech.ebu.ch/publications/tech3341
+
+Test 15-23 sinyalleri yüksek seviyelidir; EBU uyarısı gereği normal dinleme seviyesinde dinlenmemelidir. Testler yalnızca dosya analiziyle yürütülmelidir.
+
+### OAA CLI ile çapraz kontrol
+
+Yüklenen Windows CLI arşivinin SHA-256 değeri resmî Open Audio Analyzer v0.16.0 Windows release varlığıyla eşleşir: `e93544a6dbde956bba2c2f7a74575b82b19eb95750d91eae159d076836bdfa9c`. Bu araç Stagepulse'a gömülmez ve ikili dosyası depoya kopyalanmaz; resmî kaynaktan ayrı indirilir.
+
+1. Resmî sürüm: https://github.com/JonasGrunau/open_audio_analyzer/releases/tag/v0.16.0
+2. Arşivi açın; `bin/oaa.exe` ile `lib/oaa_engine.dll` dosyalarının göreli konumunu koruyun.
+3. Bir WAV dosyasını metin raporuyla analiz edin: `bin/oaa.exe "dosya.wav"`
+4. JSON raporu alın: `bin/oaa.exe --format json "dosya.wav"`
+5. Stagepulse ile OAA sonuçlarını aynı kaynak WAV, aynı kanal düzeni ve aynı örnekleme hızı üzerinden karşılaştırın. Farkları otomatik olarak hata saymayın; algoritma sürümü, K-weighting, gating, kanal haritası ve true-peak filtreleri aynı olmalıdır.
+
+OAA bağımsız bir karşılaştırma aracıdır; EBU tarafından sertifikalandırılmış referans cihaz olarak sunulmaz. OAA motorunun GPL-3.0-or-later lisansı vardır. İkili dosyanın dağıtılması halinde ilgili lisans ve karşılık gelen kaynak kod yükümlülükleri ayrıca yerine getirilmelidir. Kaynak: https://github.com/JonasGrunau/open_audio_analyzer
