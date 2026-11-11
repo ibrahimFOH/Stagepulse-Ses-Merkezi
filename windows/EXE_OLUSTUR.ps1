@@ -143,12 +143,16 @@ if (-not (Test-Path $makensis)) {
 }
 if (-not (Test-Path $makensis)) { throw 'NSIS komut satırı derleyicisi bulunamadı.' }
 
-Write-Host 'Bağımlılıklar yükleniyor...' -ForegroundColor Cyan
-python -m pip install --upgrade pip
-python -m pip install -r requirements.txt
-Write-Host 'Otomatik testler çalıştırılıyor...' -ForegroundColor Cyan
-python -m pytest -q
-if ($LASTEXITCODE -ne 0) { throw 'Testler gecmedi; kurulum EXE dosyasi uretilmedi.' }
+if ($env:STAGEPULSE_SKIP_PREBUILD_TESTS -eq '1') {
+  Write-Host 'CI ön kontrol ve pytest adımları zaten geçti; yinelenen pip kurulumu ve testler atlanıyor.' -ForegroundColor Cyan
+} else {
+  Write-Host 'Bağımlılıklar yükleniyor...' -ForegroundColor Cyan
+  python -m pip install --upgrade pip
+  python -m pip install -r requirements.txt
+  Write-Host 'Otomatik testler çalıştırılıyor...' -ForegroundColor Cyan
+  python -m pytest -q
+  if ($LASTEXITCODE -ne 0) { throw 'Testler gecmedi; kurulum EXE dosyasi uretilmedi.' }
+}
 $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
 if ($nodeCmd) {
   node --check ui\app.js
