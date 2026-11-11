@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 """Her öğrenci PDF'sine ortak Türkçe-İngilizce ses mühendisliği terim tablosu ekler."""
 from pathlib import Path
+import re
 import pymupdf
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -46,6 +47,14 @@ TERMS = [
     ("Hoparlör", "Loudspeaker"), ("Monitör", "Monitor"),
     ("Hat dizisi", "Line Array"), ("Subwoofer", "Subwoofer"),
 ]
+def bilingualize_markup(value):
+    """Metin akışındaki Türkçe teknik terimleri İngilizce karşılığıyla birlikte gösterir."""
+    text = str(value)
+    for tr, en in sorted(TERMS, key=lambda pair: len(pair[0]), reverse=True):
+        pattern = r"(?<![\\wğüşöçıİĞÜŞÖÇ])" + re.escape(tr) + r"(?![\\wğüşöçıİĞÜŞÖÇ])(?!\\s*\\()"
+        text = re.sub(pattern, lambda match, label=f"{tr} ({en})": label, text, flags=re.IGNORECASE)
+    return text
+
 FONT_CANDIDATES = [
     Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
     Path("C:/Windows/Fonts/arial.ttf"),
