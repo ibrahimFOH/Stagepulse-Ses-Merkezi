@@ -41,6 +41,24 @@ Yeni araçların hesaplama kodu Stagepulse içinde bağımsızdır. Kaynak ZIP a
 
 Bu depo kaynak koddur. Windows kurulum EXE'si, Windows x64 ortamındaki `EXE_OLUSTUR.bat` veya `EXE_OLUSTUR.ps1` ile üretilir. 4.0.2 kaynak sürümüdür; Windows x64 EXE, kalıcı anahtarla imzalı Android APK, SHA-256 ve GitHub Release doğrulamaları yayın hattında yapılır. Derleme bilgisayarında Python 3.11/3.12/3.13/3.14 x64 gerekir; son kullanıcıda gerekmez. Node.js derleme ortamında isteğe bağlıdır; kuruluysa JavaScript sözdizimi ve yerel araç çalışma zamanı testleri çalıştırılır. Kurulu değilse bu iki Node testi atlanır, Python kaynak testleri yine yürütülür. Betik önce testleri çalıştırır, Microsoft WebView2 yükleyicisinin dijital imzasını ve NSIS paketinin SHA-256 değerini doğrular; derleme sonunda geçici araçları siler ve `dist` klasöründe yalnızca tek kurulum EXE'si bırakır.
 
+## Windows MSIX derleme ve kurulum
+
+MSIX, mevcut PyInstaller payload'ından üretilir; uygulama kaynakları veya EXE derleme sistemi ayrı bir kopyaya bölünmez. MSIX manifesti Windows masaüstü, internet ve mikrofon erişimini tanımlar. Paket x64'tür.
+
+### Yerel derleme
+
+1. Windows 10/11 x64 bilgisayara Python 3.11–3.14 x64, Windows 10/11 SDK (MakeAppx ve SignTool) ve mevcut EXE derlemesinin gerektirdiği araçları kur.
+2. Depoyu Windows bilgisayarına indir; `windows` klasörüne gir.
+3. İlk kurulumda sertifika oluşturulup Windows güvenilir kişiler deposuna ekleneceği için `MSIX_OLUSTUR.bat` dosyasını **Yönetici olarak çalıştır**.
+4. İlk çalıştırmada en az 12 karakterli PFX parolası belirle. `windows/msix/cert/` altındaki PFX özel anahtarını depoya veya dağıtım ZIP'ine ekleme.
+5. Derleme tamamlandığında `windows/dist/` altında sürüm numaralı `.msix`, `.msix.sha256` ve `Stagepulse-MSIX-Signing.cer` oluşur.
+
+İlk kurulumda Windows, yerel geliştirme sertifikasına güvenmediği için imzalı MSIX'i yüklemeyi reddedebilir. Betik sertifikayı yerel bilgisayarda güvenilir kişiler deposuna ekler. Başka bir bilgisayara test paketi taşınırsa CER sertifikasını o bilgisayarda güvenilir kişiler deposuna yönetici olarak eklemek gerekir. Bu kendinden imzalı sertifika yalnızca geliştirme/test içindir; genel dağıtımda Stagepulse adına güvenilir bir kod imzalama sertifikası kullanılmalıdır.
+
+### GitHub Actions otomasyonu
+
+`.github/workflows/build-windows-exe.yml` ana dalındaki Windows derleme hattı; kaynak testleri, EXE üretimi, SHA-256 kontrolü, geçici CI imza sertifikasıyla MSIX üretimi/imzası ve Windows üzerinde MSIX kur-kaldır testini çalıştırır. `main` dalına ilgili Windows kaynakları gönderildiğinde otomatik başlar; GitHub Actions > **Stagepulse Windows EXE kalite ve derleme** > **Run workflow** ile elle de başlatılabilir. Başarılı derleme çıktıları aynı sürüm numaralı workflow artifact'inde EXE, MSIX, SHA-256 ve CI test sertifikası olarak saklanır. CI sertifikası her çalıştırmada geçicidir; kullanıcıya dağıtılacak kalıcı imza anahtarı değildir.
+
 ## Eğitim yolları ve yeterlilik
 
 Uygulamaya **Eğitim dalları / usta yolu** ekranı eklendi. Dokuz öğrenme alanı, L0–L5 yeterlilik basamakları, uygulama görevleri ve dal bazlı kısa bilgi testleri `docs/EGITIM_DALLARI_USTA_YOLU_VE_FIYATLANDIRMA_TR.md` içinde ayrıntılıdır. Makine tarafından okunabilir katalog `egitim_paketleri/stagepulse_egitim_katalogu_v1.json` dosyasıdır. Eğitim dalları içerik ve yeterlilik sınıflandırmasıdır; ayrı satılan modüller değildir. Ticari satış yalnızca FULL PAKET üzerinden yapılır.
