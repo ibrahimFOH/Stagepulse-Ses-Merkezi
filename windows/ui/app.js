@@ -64,6 +64,9 @@ let mixerAudioContext = null;
 let mixerPreviewSource = null;
 let videoObjectUrl = null;
 let rtaPollTimer = 0;
+let rtaLastSnapshot = null;
+let ebuReferenceCsvText = '';
+let lastEbuValidationReport = null;
 let rtaRunning = false;
 let rtaBusy = false;
 let rtaGeneration = 0;
@@ -695,8 +698,80 @@ function initRtaControls(){
  $('rtaPeakThreshold').addEventListener('change',()=>{rtaOptimizerHistory=[];$('rtaOptimizerOutput').textContent='Eşik değişti; yeni kararlı örnekler toplanıyor.';});
  $('rtaClearOptimize').addEventListener('click',()=>{rtaOptimizerHistory=[];$('rtaOptimizerOutput').textContent='Öneri geçmişi sıfırlandı; yeni örnekler bekleniyor.';});
  window.addEventListener('resize',()=>{if(activeRoute==='rta')drawRtaPlaceholder();});
+ initMeasurementValidation();
  updateRtaRangeInfo();
 }
+
+function initMeasurementValidation(){
+ const folderButton=$('ebuSelectFolder'),runButton=$('ebuRun'),exportButton=$('ebuExport');
+ if(folderButton)folderButton.addEventListener('click',async()=>{
+  if(!api()||typeof api().select_ebu_test_folder!=='function'){$('ebuFolderStatus').textContent='EBU klasör seçimi Windows masaüstü sürümünde kullanılabilir.';return;}
+  folderButton.disabled=true;
+  try{const result=await api().select_ebu_test_folder();$('ebuFolderStatus').textContent=result.ok?'Seçilen klasör: '+result.folder_name:'Klasör seçimi iptal edildi.';}
+  catch(err){$('ebuFolderStatus').textContent='Klasör seçilemedi: '+(err.message||String(err));}
+  finally{folderButton.disabled=false;}
+ });
+ $('ebuReferenceCsv')?.addEventListener('change',async event=>{
+  const file=event.target.files&&event.target.files[0];
+  ebuReferenceCsvText='';
+  if(!file){$('ebuFolderStatus').textContent='Referans CSV seçilmedi; ölçüm yapılabilir ancak PASS üretilemez.';return;}
+  if(file.size>1000000){event.target.value='';$('ebuFolderStatus').textContent='Referans CSV 1 MB sınırını aşıyor.';return;}
+  try{ebuReferenceCsvText=await file.text();$('ebuFolderStatus').textContent='Referans CSV yüklendi: '+file.name;}
+  catch(err){$('ebuFolderStatus').textContent='CSV okunamadı: '+(err.message||String(err));}
+ });
+ if(runButton)runButton.addEventListener('click',async()=>{
+  if(!api()||typeof api().run_ebu_loudness_validation!=='function'){$('ebuReport').textContent='EBU test motoru Windows masaüstü sürümünde kullanılabilir.';return;}
+  const tolerance=Number($('ebuTolerance').value);
+  if(!Number.isFinite(tolerance)||tolerance<0.01||tolerance>2){$('ebuReport').textContent='LU toleransı 0.01 ile 2.0 arasında olmalı.';return;}
+  runButton.disabled=true;$('ebuReport').textContent='EBU WAV dosyaları analiz ediliyor. Dosya sayısına göre işlem sürebilir…';
+  try{
+   const report=await api().run_ebu_loudness_validation(ebuReferenceCsvText,tolerance);
+   lastEbuValidationReport=report;if(exportButton)exportButton.disabled=false;
+   const c=report.counts||{};
+   const lines=(report.results||[]).map(row=>{
+    const value=v=>v===null||v===undefined?'—':Number(v).toFixed(2);
+    return row.filename+' | '+row.status+' | I '+value(row.integrated_lufs)+' LUFS | LRA '+value(row.lra_lu)+' LU | Mmax '+value(row.momentary_max_lufs)+' LUFS | Smax '+value(row.short_term_max_lufs)+' LUFS | TP '+value(row.true_peak_dbtp)+' dBTP'+(row.error?' | '+row.error:'');
+   });
+   $('ebuReport').textContent='Standart temeli: '+report.standard_basis+'\nDosya: '+report.files_total+' | PASS: '+(c.PASS||0)+' | FAIL: '+(c.FAIL||0)+' | Referans bekliyor: '+(c.REFERENCE_REQUIRED||0)+' | Desteklenmiyor: '+(c.UNSUPPORTED||0)+'\nTolerans: ±'+report.tolerance_lu+' LU\n\n'+lines.join('\n')+'\n\n'+report.scope_note;
+  }catch(err){$('ebuReport').textContent='EBU doğrulama başarısız: '+(err.message||String(err));}
+  finally{runButton.disabled=false;}
+ });
+ if(exportButton)exportButton.addEventListener('click',()=>{
+  if(!lastEbuValidationReport)return;
+  downloadBlob(new Blob([JSON.stringify(lastEbuValidationReport,null,2)],{type:'application/json'}),'Stagepulse_EBU_Loudness_Test_Report.json');
+ });
+ $('splFilterSelfTest')?.addEventListener('click',async()=>{
+  const button=$('splFilterSelfTest');button.disabled=true;$('splSelfTestReport').textContent='A/C/Z filtreleri sentetik referans sinyalleriyle kontrol ediliyor…';
+  try{
+   if(!api()||typeof api().run_spl_filter_self_test!=='function')throw new Error('Windows masaüstü API bağlantısı bulunamadı.');
+   const report=await api().run_spl_filter_self_test();
+   const rows=report.results.map(x=>x.weighting+' '+x.frequency_hz+' Hz | beklenen '+x.expected_db.toFixed(2)+' dB | ölçülen '+x.measured_db.toFixed(2)+' dB | fark '+x.difference_db.toFixed(2)+' dB | '+(x.pass?'PASS':'FAIL'));
+   $('splSelfTestReport').textContent='A/C/Z yazılım filtresi: '+report.tests_passed+'/'+report.tests_total+' PASS · '+report.tests_failed+' FAIL\n\n'+rows.join('\n')+'\n\n'+report.scope_note;
+  }catch(err){$('splSelfTestReport').textContent='SPL self-test çalıştırılamadı: '+(err.message||String(err));}
+  finally{button.disabled=false;}
+ });
+ $('smaartCompare')?.addEventListener('click',()=>{
+  const report=$('smaartComparisonReport');
+  const snapshot=rtaLastSnapshot;
+  if(!snapshot||!snapshot.ok||!snapshot.ready||snapshot.stream_stale){report.textContent='Güncel RTA ölçümü yok. Önce RTA mikrofonunu başlat ve kararlı veri al.';return;}
+  const measurement=snapshot.spl_measurement;
+  if(!measurement||!measurement.calibrated_spl||measurement.units!=='dB SPL'){report.textContent='SPL kalibrasyonu bulunamadı. Aynı mikrofon zincirini fiziksel 1 kHz kalibratörle kalibre etmeden dB SPL karşılaştırması yapılamaz.';return;}
+  const tolerance=Number($('smaartTolerance').value);
+  if(!Number.isFinite(tolerance)||tolerance<0.1||tolerance>10){report.textContent='Karşılaştırma toleransı 0.1 ile 10 dB arasında olmalı.';return;}
+  const weights=measurement.weightings||{},rows=[];
+  for(const key of ['A','C','Z']){
+   const raw=$( 'smaart'+key ).value;
+   if(raw==='')continue;
+   const reference=Number(raw),stagepulse=Number(weights[key]&&weights[key].leq_db);
+   if(!Number.isFinite(reference)||!Number.isFinite(stagepulse)){rows.push(key+': geçerli SMAART veya Stagepulse değeri yok.');continue;}
+   const delta=stagepulse-reference;
+   rows.push(key+' Leq | Stagepulse '+stagepulse.toFixed(2)+' dB SPL | SMAART '+reference.toFixed(2)+' dB SPL | fark '+(delta>=0?'+':'')+delta.toFixed(2)+' dB | '+(Math.abs(delta)<=tolerance?'PASS':'FAIL'));
+  }
+  if(!rows.length){report.textContent='En az bir SMAART A/C/Z Leq değeri gir.';return;}
+  report.textContent='Giriş: '+(snapshot.device||'seçili aygıt')+' · '+snapshot.sample_rate+' Hz · Stagepulse pencere: '+Number(measurement.window_seconds||0).toFixed(3)+' s · tolerans ±'+tolerance+' dB\n\n'+rows.join('\n')+'\n\nKarşılaştırma yalnızca girilen Leq değerleri içindir. SMAART tarafında aynı fiziksel mikrofon, ses kartı, kazanç, weighting, kalibrasyon ve eşdeğer entegrasyon süresi kullanılmalı. Bu sonuç IEC sınıf doğrulaması değildir.';
+ });
+}
+
 async function refreshRtaDevices(){
  const select=$('rtaDevice');if(!select)return;
  if(!api()){select.innerHTML='<option value="">Mikrofon listesi için masaüstü uygulamasını aç</option>';return;}
@@ -772,6 +847,7 @@ async function tickRta(token){
  try{
   const bounds=rtaBounds();rtaViewMin=bounds[0];rtaViewMax=bounds[1];
   const snapshot=await api().get_rta_snapshot($('rtaBands').value,rtaViewMin,rtaViewMax);
+  rtaLastSnapshot=snapshot||null;
   if(!rtaRunning||token!==rtaGeneration||activeRoute!=='rta')return;
   if(!snapshot||!snapshot.ok){$('rtaStatus').textContent='RTA veri hatası: '+(snapshot&&snapshot.error||'bilinmeyen durum');}
   else{
