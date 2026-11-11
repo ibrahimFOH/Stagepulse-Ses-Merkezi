@@ -168,7 +168,7 @@ def test_ebu_reference_csv_can_produce_pass_only_when_all_available_metrics_matc
     from core.audio_tools import validate_ebu_test_set
 
     rate = 48000
-    t = np.arange(rate * 4, dtype=np.float64) / rate
+    t = np.arange(rate * 5, dtype=np.float64) / rate
     path = tmp_path / "EBU_Full_Reference.wav"
     sf.write(path, 0.18 * np.sin(2 * np.pi * 997 * t), rate, subtype="PCM_24")
     measured = validate_ebu_test_set(tmp_path)
