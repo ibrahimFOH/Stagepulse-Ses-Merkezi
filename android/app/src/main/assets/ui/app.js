@@ -1253,7 +1253,7 @@ function renderWavReport(r){const rows=[['Dosya',r.file],['Kanal sayısı',r.cha
 
 // --- Ortak tarayıcı tabanlı LUFS tahmin/normalizasyon motoru ---
 
-async function stagepulseDeManBiquads(rate){
+function stagepulseDeManBiquads(rate){
  const g=3.99984385397,qShelf=.7071752369554193,fcShelf=1681.9744509555319,qHigh=.5003270373253953,fcHigh=38.13547087613982;
  const k=Math.tan(Math.PI*fcShelf/rate),vh=Math.pow(10,g/20),vb=Math.pow(vh,.499666774155),den=1+k/qShelf+k*k;
  const shelfB=[(vh+vb*k/qShelf+k*k)/den,2*(k*k-vh)/den,(vh-vb*k/qShelf+k*k)/den];
@@ -1352,7 +1352,7 @@ function stagepulseTruePeak4x(channels){
  }
  return peak>0?20*Math.log10(peak):-120;
 }
-function normalizeLoudnessBrowser(file,target,tp){
+async function normalizeLoudnessBrowser(file,target,tp){
  if(!file)throw new Error('Ses dosyası seçilmedi.');
  if(file.size>256*1024*1024)throw new Error('Dosya 256 MB sınırını aşıyor; daha kısa bir kaynak seç.');
  const AudioCtx=window.AudioContext||window.webkitAudioContext;
