@@ -139,6 +139,8 @@ if ($nodeCmd) {
   if ($LASTEXITCODE -ne 0) { throw 'Ana arayüz JavaScript sözdizim kontrolü başarısız.' }
   node --check ui\first_party_tools.js
   if ($LASTEXITCODE -ne 0) { throw 'Özgün yerel araçlar JavaScript sözdizim kontrolü başarısız.' }
+  node --check ui\stereo_scope.js
+  if ($LASTEXITCODE -ne 0) { throw 'Stereo Vectorscope JavaScript sözdizim kontrolü başarısız.' }
   node --check tests\test_first_party_tools.js
   if ($LASTEXITCODE -ne 0) { throw 'Yerel araç test dosyası sözdizim kontrolü başarısız.' }
   node tests\test_first_party_tools.js
