@@ -121,9 +121,12 @@ finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
 $signArgs = @('sign','/fd','SHA256','/a','/f',$CertificatePath,'/p',$plainPassword,'/tr','http://timestamp.digicert.com','/td','SHA256',$packagePath)
 & $signTool.FullName @signArgs
 if ($LASTEXITCODE -ne 0) { throw "SignTool MSIX imzalayamadı. Çıkış kodu: $LASTEXITCODE" }
-Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople' | Out-Null
 if ($signingCert.Subject -eq $signingCert.Issuer) {
-    Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\CurrentUser\Root' | Out-Null
+    $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+        throw 'Kendinden imzalı MSIX sertifikasını güvenilir kılmak için PowerShell Yönetici olarak çalıştırılmalıdır.'
+    }
+    Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
 }
 & $signTool.FullName verify /pa /v $packagePath
 if ($LASTEXITCODE -ne 0) { throw "MSIX imza doğrulaması başarısız. Çıkış kodu: $LASTEXITCODE" }
