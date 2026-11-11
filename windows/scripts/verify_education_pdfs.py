@@ -11,8 +11,8 @@ AND=ROOT/'android'/'app'/'src'/'main'/'assets'/'egitim_paketleri'
 EXPECTED={
 '00_Uygulama_Kullanimi_Ogrenci.pdf':['Öğrenci','RTA','Nyquist','kalibr'],
 '01_Ses_Muhendisligi_Ogrenci_Ders_Kitabi.pdf':['Dalga','dB SPL','polarite','Sabine'],
-'02_Canli_Ses_Live_Sound_Ogrenci_Dersleri.pdf':['FOH','monitör','soundcheck','sub'],
-'03_Studio_Ses_Muhendisligi_Ogrenci_Dersleri.pdf':['DAW','LUFS','true peak','mono'],
+'02_Canli_Ses_Live_Sound_Ogrenci_Dersleri.pdf':['FOH','monitör','soundcheck','sub','intermodülasyon','anten','drop-out'],
+'03_Studio_Ses_Muhendisligi_Ogrenci_Dersleri.pdf':['DAW','LUFS','true peak','mono','mastering','dither'],
 '04_Dijital_Ses_Mikseri_Ogrenci_Calisma_Kitabi.pdf':['routing','DCA','bus','scene'],
 '05_Canli_Ses_Mikseri_Hizli_Basvuru.pdf':['Gain','phantom','IEM','arıza'],
 '06_Ogrenci_Uygulama_Formlari.pdf':['kanıt','eğitmen','ölçüm','rubrik'],
