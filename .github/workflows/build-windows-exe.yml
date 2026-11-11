@@ -68,10 +68,22 @@ jobs:
             echo "PDF çıktıları zaten güncel."
           else
             git commit -m "Eğitim PDF kitaplığını v4.0.0 ile yenile"
-            # Doküman güncellemeleriyle eşzamanlı push yarışını önle.
-            git fetch origin main
-            git rebase origin/main
-            git push origin HEAD:main
+            # Paralel doküman commit'leri sırasında main ilerleyebilir; fetch/rebase/push tekrar dene.
+            pushed=false
+            for attempt in 1 2 3 4 5; do
+              git fetch origin main
+              git rebase origin/main
+              if git push origin HEAD:main; then
+                pushed=true
+                break
+              fi
+              echo "main push yarışı; tekrar denenecek ($attempt/5)"
+              sleep 2
+            done
+            if [ "$pushed" != true ]; then
+              echo "PDF commit'i main dalına yazılamadı."
+              exit 1
+            fi
           fi
 
   build:
