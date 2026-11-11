@@ -289,14 +289,23 @@ def validate_ebu_test_set(folder: str | Path, reference_csv_text: str = "",
                 comparisons.append({"metric": key, "reference": expected, "measured": float(value),
                                     "difference": delta, "tolerance": allowed,
                                     "pass": abs(delta) <= allowed})
-        status = "PASS" if comparisons and all(x["pass"] for x in comparisons) else ("FAIL" if comparisons else "REFERENCE_REQUIRED")
+        expected_metrics = {key for key, value in measured.items() if value is not None}
+        compared_metrics = {item["metric"] for item in comparisons}
+        if comparisons and not all(item["pass"] for item in comparisons):
+            status = "FAIL"
+        elif comparisons and compared_metrics >= expected_metrics:
+            status = "PASS"
+        elif comparisons:
+            status = "PARTIAL_REFERENCE"
+        else:
+            status = "REFERENCE_REQUIRED"
         rows.append({
             "filename": path.name, "sample_rate_hz": int(rate), "channels": int(audio.shape[1]),
             "duration_seconds": len(audio) / int(rate), **measured,
             "true_peak_method": peak_method, "comparisons": comparisons, "status": status,
         })
     counts = {key: sum(1 for row in rows if row["status"] == key)
-              for key in ("PASS", "FAIL", "REFERENCE_REQUIRED", "UNSUPPORTED")}
+              for key in ("PASS", "FAIL", "PARTIAL_REFERENCE", "REFERENCE_REQUIRED", "UNSUPPORTED")}
     return {
         "ok": True, "standard_basis": "ITU-R BS.1770-5 / EBU Tech 3341 / EBU Tech 3342",
         "folder": root.name, "files_total": len(rows), "counts": counts, "tolerance_lu": tolerance,
