@@ -177,6 +177,17 @@ jobs:
           if (-not (Test-Path 'windows/dist/Stagepulse-MSIX-Signing.cer')) { throw 'MSIX test sertifikası eksik.' }
           Write-Host "MSIX CI doğrulaması başarılı: $($msix.Name)" -ForegroundColor Green
 
+      - name: MSIX paketini Windows'a kurup kaldırarak doğrula
+        shell: powershell
+        run: |
+          $msix = Get-ChildItem windows/dist -Filter '*.msix' -File
+          if (@($msix).Count -ne 1) { throw 'Tek bir MSIX paketi bekleniyordu.' }
+          Add-AppxPackage -Path $msix.FullName -ErrorAction Stop
+          $installed = Get-AppxPackage -Name 'Stagepulse.SesMerkezi'
+          if (-not $installed) { throw 'Add-AppxPackage başarılı göründü ancak paket kaydı bulunamadı.' }
+          Remove-AppxPackage -Package $installed.PackageFullName -ErrorAction Stop
+          Write-Host "MSIX_INSTALL_REMOVE_OK $($msix.Name)" -ForegroundColor Green
+
       - uses: actions/upload-artifact@v4
         name: Windows EXE ve MSIX artifact
         with:
