@@ -209,9 +209,17 @@ https://stagepulse.com.tr/downloads/ses-merkezi/$setupName
 https://stagepulse.com.tr/downloads/ses-merkezi/latest.json
 "@ | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'website_release\YAYIN_KONTROL_TR.txt') -Encoding UTF8
 Get-FileHash -Algorithm SHA256 -LiteralPath $setupPath | Format-List
-# Remove the intermediate onedir app package, NSIS compiler/downloads and runtime source.
-# The only EXE left in dist is the customer-facing Setup.exe.
-Remove-Item -Recurse -Force -ErrorAction SilentlyContinue 'build'
+# MSIX needs the same tested PyInstaller payload. Preserve only that payload and the
+# Microsoft-signed WebView2 bootstrapper when the caller explicitly requests it.
+if ($env:STAGEPULSE_KEEP_PAYLOAD -eq '1') {
+  $msixSupport = Join-Path 'build' 'msix-support'
+  New-Item -ItemType Directory -Force -Path $msixSupport | Out-Null
+  Copy-Item -LiteralPath $webview -Destination (Join-Path $msixSupport 'MicrosoftEdgeWebView2RuntimeInstallerX64.exe') -Force
+  Remove-Item -Recurse -Force -ErrorAction SilentlyContinue 'build\pyinstaller'
+  Write-Host 'MSIX payload ve WebView2 yükleyicisi korundu.' -ForegroundColor Green
+} else {
+  Remove-Item -Recurse -Force -ErrorAction SilentlyContinue 'build'
+}
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue 'build_support'
 if ((Get-ChildItem -LiteralPath 'dist' -Filter '*.exe' -File).Count -ne 1) { throw 'Son temizlikten sonra dist klasorunde tam olarak bir kurulum EXE dosyasi bulunmalidir.' }
 Write-Host "BAŞARILI: tek dağıtım dosyası $setupPath" -ForegroundColor Green
