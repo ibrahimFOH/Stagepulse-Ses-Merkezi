@@ -23,7 +23,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: stagepulse-pdf-and-build-${{ github.ref }}
+  group: stagepulse-pdf-and-build-v2-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
