@@ -158,7 +158,7 @@ def test_ebu_reference_pass_is_limited_to_declared_metrics(tmp_path):
     sf.write(path, 0.2 * np.sin(2 * np.pi * 1000 * t), rate, subtype="PCM_24")
     measured = validate_ebu_test_set(tmp_path)
     integrated = measured["results"][0]["integrated_lufs"]
-    reference = "filename,integrated_lufs\\nEBU_Reference_Test.wav," + str(integrated) + "\\n"
+    reference = "filename,integrated_lufs\nEBU_Reference_Test.wav," + str(integrated) + "\n"
     report = validate_ebu_test_set(tmp_path, reference)
     result = report["results"][0]
     assert report["counts"]["PASS"] == 1
@@ -177,8 +177,8 @@ def test_ebu_true_peak_uses_asymmetric_tech3341_tolerance(tmp_path):
     measured = validate_ebu_test_set(tmp_path)
     peak = measured["results"][0]["true_peak_dbtp"]
     reference = (
-        "filename,true_peak_dbtp,true_peak_tolerance_high_db,true_peak_tolerance_low_db\\n"
-        f"{path.name},{peak - 0.35},0.2,0.4\\n"
+        "filename,true_peak_dbtp,true_peak_tolerance_high_db,true_peak_tolerance_low_db\n"
+        f"{path.name},{peak - 0.35},0.2,0.4\n"
     )
     report = validate_ebu_test_set(tmp_path, reference)
     assert report["counts"]["FAIL"] == 1
