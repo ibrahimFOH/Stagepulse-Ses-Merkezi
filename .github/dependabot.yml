@@ -4,28 +4,38 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
 
   - package-ecosystem: gradle
     directory: /android
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
 
   - package-ecosystem: gradle
     directory: /admin-app/android
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 3
 
   - package-ecosystem: pip
     directory: /windows
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
 
   - package-ecosystem: pip
     directory: /admin-app/desktop
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 3
