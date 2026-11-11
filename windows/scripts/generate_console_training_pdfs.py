@@ -58,13 +58,13 @@ def P(text, style='BodySP'):
     return Paragraph(text, styles[style])
 
 def bullet(text):
-    return Paragraph('• ' + text, styles['BulletSP'])
+    return Paragraph('• ' + bilingualize_markup(text), styles['BulletSP'])
 
 def make_table(rows, widths=None):
     cooked=[]
     for ri,row in enumerate(rows):
         sty='TableHeadSP' if ri==0 else 'TableCellSP'
-        cooked.append([Paragraph(str(cell), styles[sty]) for cell in row])
+        cooked.append([Paragraph(bilingualize_markup(str(cell)), styles[sty]) for cell in row])
     t=Table(cooked, colWidths=widths, repeatRows=1, hAlign='LEFT')
     t.setStyle(TableStyle([
         ('BACKGROUND',(0,0),(-1,0),INK), ('TEXTCOLOR',(0,0),(-1,0),WHITE),
