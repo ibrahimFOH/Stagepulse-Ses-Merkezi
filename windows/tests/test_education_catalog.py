@@ -26,3 +26,15 @@ def test_curriculum_ui_has_practice_test_and_single_license_scope():
     assert "'full_master'" in sales_migration
     assert 'bundle_code: valid ? (lic!.bundle_code ?? \"start\") : null' in edge
     assert 'bundle_code text not null' in migration
+
+
+def test_mix_mastering_branch_has_complete_turkish_training_content():
+    catalog = json.loads((ROOT / "egitim_paketleri/stagepulse_egitim_katalogu_v1.json").read_text("utf-8"))
+    track = next(x for x in catalog["tracks"] if x["id"] == "mix_mastering")
+    assert len(track["workflow"]) == 12
+    assert len(track["cards"]) == 72
+    assert len(track["problems"]) == 40
+    assert all(x["title"] and x["principle"] and x["practice"] and x["verification"] for x in track["cards"])
+    assert all(x["symptom"] and x["possible_causes"] and x["diagnosis"] and x["first_action"] for x in track["problems"])
+    for path in (ROOT / "ui/index.html", ROOT / "ui/app.js"):
+        assert "mix_mastering" in path.read_text("utf-8")

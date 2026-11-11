@@ -193,6 +193,978 @@
         "Envanter ve bakım formu oluştur"
       ],
       "master_gate": "Kablo test cihazı sonuçları, güvenli arıza teşhisi ve bakım kayıtları; elektrik panosu/şebeke müdahalesi yalnız yetkili personelde."
+    },
+    {
+      "id": "mix_mastering",
+      "name": "Miks ve Mastering Uzmanlığı",
+      "audience": "Reaper, Logic Pro ve diğer DAW ortamlarında kayıt, düzenleme, miks, referans karşılaştırma ve mastering öğrenmek isteyenler.",
+      "modules": [
+        "12 aşamalı Mix-to-Master iş akışı",
+        "72 uygulamalı miks ve mastering kartı",
+        "40 belirti, teşhis ve ilk müdahale rehberi",
+        "Gain staging, EQ, compressor, gate ve de-esser",
+        "Reverb, delay, stereo, faz ve mono uyumu",
+        "Referans A/B, premaster, LUFS ve true-peak kontrolü"
+      ],
+      "practicals": [
+        "Ham çok kanallı oturumdan düzenli bir proje ve yedek oluştur.",
+        "Vokal, bas ve davul için seviye eşlenmiş EQ/kompresör A/B örnekleri üret.",
+        "Aynı miksin referans karşılaştırmasını ve mono kontrolünü raporla.",
+        "Premaster ve mastering çıktısını LUFS, true-peak ve dinleme notlarıyla teslim et."
+      ],
+      "master_gate": "Öğrenci 12 aşamalı akışı tamamlamalı, 72 karttan seçilen uygulamaları kanıtlamalı, 40 belirti dizininden en az 5 vakayı doğru teşhis etmeli ve eğitmen değerlendirmesinden geçmelidir. Otomatik test tek başına yeterlilik vermez.",
+      "workflow": [
+        {
+          "step": 1,
+          "title": "Teslim şartını ve referansı belirle",
+          "action": "Format, süre, kanal düzeni, hedef platform ve varsa referans parçayı yaz."
+        },
+        {
+          "step": 2,
+          "title": "Oturumu düzenle ve yedekle",
+          "action": "Kaynakları adlandır, routing'i doğrula ve ham dosyaları koru."
+        },
+        {
+          "step": 3,
+          "title": "Kaynakları temizle",
+          "action": "Klik, gürültü, faz, zamanlama ve edit sorunlarını miks işleminden önce çöz."
+        },
+        {
+          "step": 4,
+          "title": "Gain staging kur",
+          "action": "Giriş, eklenti, bus ve master seviyelerinde kırpılma ve headroom kontrolü yap."
+        },
+        {
+          "step": 5,
+          "title": "Static mix oluştur",
+          "action": "Fader, pan ve temel otomasyonla kaynak hiyerarşisini kur."
+        },
+        {
+          "step": 6,
+          "title": "EQ ile maskeleme çöz",
+          "action": "Sorunlu frekansları kaynak ve miks içinde doğrula; küçük müdahaleler uygula."
+        },
+        {
+          "step": 7,
+          "title": "Dinamikleri yönet",
+          "action": "Compressor, gate, de-esser ve paralel işlemleri amaçlı kullan."
+        },
+        {
+          "step": 8,
+          "title": "Alan ve stereo kur",
+          "action": "Reverb, delay, pan ve stereo işlemleri mono uyumuyla kontrol et."
+        },
+        {
+          "step": 9,
+          "title": "Referans ve çeviri testi yap",
+          "action": "Seviye eşlenmiş A/B, düşük ses, mono ve farklı sistem kontrollerini tamamla."
+        },
+        {
+          "step": 10,
+          "title": "Premaster hazırla",
+          "action": "Gereksiz master işlemlerini kaldır, headroom ve dışa aktarma ayarlarını doğrula."
+        },
+        {
+          "step": 11,
+          "title": "Mastering ve ölçüm",
+          "action": "LUFS, true peak, tonal denge ve dinamikleri hedef teslim şartına göre kontrol et."
+        },
+        {
+          "step": 12,
+          "title": "Son QC ve arşiv",
+          "action": "Dosyayı yeniden aç, baştan sona dinle, metadata ve yedekleri doğrula."
+        }
+      ],
+      "cards": [
+        {
+          "id": "MM-01",
+          "stage": "Oturum hazırlığı",
+          "title": "Teslim hedefini tanımla",
+          "principle": "Oturumun teknik olarak tutarlı, geri alınabilir ve düzenli kurulması.",
+          "practice": "Kaynakları ve teslim hedefini belirle; izlenebilir adlandırma, doğru yönlendirme ve yedekli çalışma düzeni kur.",
+          "verification": "Oturumu yeniden aç, yönlendirmeyi doğrula ve ham kaynakların korunduğunu kontrol et."
+        },
+        {
+          "id": "MM-02",
+          "stage": "Oturum hazırlığı",
+          "title": "Oturum şablonu ve örnekleme ayarı",
+          "principle": "Oturumun teknik olarak tutarlı, geri alınabilir ve düzenli kurulması.",
+          "practice": "Kaynakları ve teslim hedefini belirle; izlenebilir adlandırma, doğru yönlendirme ve yedekli çalışma düzeni kur.",
+          "verification": "Oturumu yeniden aç, yönlendirmeyi doğrula ve ham kaynakların korunduğunu kontrol et."
+        },
+        {
+          "id": "MM-03",
+          "stage": "Oturum hazırlığı",
+          "title": "Parça ve kanal adlandırması",
+          "principle": "Oturumun teknik olarak tutarlı, geri alınabilir ve düzenli kurulması.",
+          "practice": "Kaynakları ve teslim hedefini belirle; izlenebilir adlandırma, doğru yönlendirme ve yedekli çalışma düzeni kur.",
+          "verification": "Oturumu yeniden aç, yönlendirmeyi doğrula ve ham kaynakların korunduğunu kontrol et."
+        },
+        {
+          "id": "MM-04",
+          "stage": "Oturum hazırlığı",
+          "title": "Routing ve bus planı",
+          "principle": "Oturumun teknik olarak tutarlı, geri alınabilir ve düzenli kurulması.",
+          "practice": "Kaynakları ve teslim hedefini belirle; izlenebilir adlandırma, doğru yönlendirme ve yedekli çalışma düzeni kur.",
+          "verification": "Oturumu yeniden aç, yönlendirmeyi doğrula ve ham kaynakların korunduğunu kontrol et."
+        },
+        {
+          "id": "MM-05",
+          "stage": "Oturum hazırlığı",
+          "title": "Ham kaynak ve sürüm yedeği",
+          "principle": "Oturumun teknik olarak tutarlı, geri alınabilir ve düzenli kurulması.",
+          "practice": "Kaynakları ve teslim hedefini belirle; izlenebilir adlandırma, doğru yönlendirme ve yedekli çalışma düzeni kur.",
+          "verification": "Oturumu yeniden aç, yönlendirmeyi doğrula ve ham kaynakların korunduğunu kontrol et."
+        },
+        {
+          "id": "MM-06",
+          "stage": "Oturum hazırlığı",
+          "title": "Referans dinleme seviyesi",
+          "principle": "Oturumun teknik olarak tutarlı, geri alınabilir ve düzenli kurulması.",
+          "practice": "Kaynakları ve teslim hedefini belirle; izlenebilir adlandırma, doğru yönlendirme ve yedekli çalışma düzeni kur.",
+          "verification": "Oturumu yeniden aç, yönlendirmeyi doğrula ve ham kaynakların korunduğunu kontrol et."
+        },
+        {
+          "id": "MM-07",
+          "stage": "Gain staging",
+          "title": "Giriş seviyesini ayarla",
+          "principle": "Her aşamada yeterli sinyal-gürültü oranı ve güvenli headroom bırakmak.",
+          "practice": "Giriş, eklenti, bus ve master seviyelerini ayrı izle; tepe ve ortalama seviyeyi birbirine karıştırma.",
+          "verification": "Kırpılma göstergelerini, kazanç değişimlerini ve çıkış headroom'unu kontrol et."
+        },
+        {
+          "id": "MM-08",
+          "stage": "Gain staging",
+          "title": "Peak ve RMS farkı",
+          "principle": "Her aşamada yeterli sinyal-gürültü oranı ve güvenli headroom bırakmak.",
+          "practice": "Giriş, eklenti, bus ve master seviyelerini ayrı izle; tepe ve ortalama seviyeyi birbirine karıştırma.",
+          "verification": "Kırpılma göstergelerini, kazanç değişimlerini ve çıkış headroom'unu kontrol et."
+        },
+        {
+          "id": "MM-09",
+          "stage": "Gain staging",
+          "title": "Headroom bırak",
+          "principle": "Her aşamada yeterli sinyal-gürültü oranı ve güvenli headroom bırakmak.",
+          "practice": "Giriş, eklenti, bus ve master seviyelerini ayrı izle; tepe ve ortalama seviyeyi birbirine karıştırma.",
+          "verification": "Kırpılma göstergelerini, kazanç değişimlerini ve çıkış headroom'unu kontrol et."
+        },
+        {
+          "id": "MM-10",
+          "stage": "Gain staging",
+          "title": "Eklenti giriş/çıkış kazancı",
+          "principle": "Her aşamada yeterli sinyal-gürültü oranı ve güvenli headroom bırakmak.",
+          "practice": "Giriş, eklenti, bus ve master seviyelerini ayrı izle; tepe ve ortalama seviyeyi birbirine karıştırma.",
+          "verification": "Kırpılma göstergelerini, kazanç değişimlerini ve çıkış headroom'unu kontrol et."
+        },
+        {
+          "id": "MM-11",
+          "stage": "Gain staging",
+          "title": "Bus ve grup seviyesi",
+          "principle": "Her aşamada yeterli sinyal-gürültü oranı ve güvenli headroom bırakmak.",
+          "practice": "Giriş, eklenti, bus ve master seviyelerini ayrı izle; tepe ve ortalama seviyeyi birbirine karıştırma.",
+          "verification": "Kırpılma göstergelerini, kazanç değişimlerini ve çıkış headroom'unu kontrol et."
+        },
+        {
+          "id": "MM-12",
+          "stage": "Gain staging",
+          "title": "Master çıkış kontrolü",
+          "principle": "Her aşamada yeterli sinyal-gürültü oranı ve güvenli headroom bırakmak.",
+          "practice": "Giriş, eklenti, bus ve master seviyelerini ayrı izle; tepe ve ortalama seviyeyi birbirine karıştırma.",
+          "verification": "Kırpılma göstergelerini, kazanç değişimlerini ve çıkış headroom'unu kontrol et."
+        },
+        {
+          "id": "MM-13",
+          "stage": "Düzenleme ve temizlik",
+          "title": "Sessizlik ve gürültü temizliği",
+          "principle": "İşlemden önce kaynak sorunlarını düzeltmek ve gereksiz artefakt üretmemek.",
+          "practice": "Dinle, sorunlu bölümü işaretle, en az müdahaleyle düzenle ve A/B karşılaştır.",
+          "verification": "Kesme noktalarını, faz ilişkisini, nefesleri ve sessizlikleri baştan sona dinle."
+        },
+        {
+          "id": "MM-14",
+          "stage": "Düzenleme ve temizlik",
+          "title": "Klik ve pop düzeltme",
+          "principle": "İşlemden önce kaynak sorunlarını düzeltmek ve gereksiz artefakt üretmemek.",
+          "practice": "Dinle, sorunlu bölümü işaretle, en az müdahaleyle düzenle ve A/B karşılaştır.",
+          "verification": "Kesme noktalarını, faz ilişkisini, nefesleri ve sessizlikleri baştan sona dinle."
+        },
+        {
+          "id": "MM-15",
+          "stage": "Düzenleme ve temizlik",
+          "title": "Nefes ve ağız sesi düzenleme",
+          "principle": "İşlemden önce kaynak sorunlarını düzeltmek ve gereksiz artefakt üretmemek.",
+          "practice": "Dinle, sorunlu bölümü işaretle, en az müdahaleyle düzenle ve A/B karşılaştır.",
+          "verification": "Kesme noktalarını, faz ilişkisini, nefesleri ve sessizlikleri baştan sona dinle."
+        },
+        {
+          "id": "MM-16",
+          "stage": "Düzenleme ve temizlik",
+          "title": "Zamanlama ve transient düzenleme",
+          "principle": "İşlemden önce kaynak sorunlarını düzeltmek ve gereksiz artefakt üretmemek.",
+          "practice": "Dinle, sorunlu bölümü işaretle, en az müdahaleyle düzenle ve A/B karşılaştır.",
+          "verification": "Kesme noktalarını, faz ilişkisini, nefesleri ve sessizlikleri baştan sona dinle."
+        },
+        {
+          "id": "MM-17",
+          "stage": "Düzenleme ve temizlik",
+          "title": "Faz ve polarite kontrolü",
+          "principle": "İşlemden önce kaynak sorunlarını düzeltmek ve gereksiz artefakt üretmemek.",
+          "practice": "Dinle, sorunlu bölümü işaretle, en az müdahaleyle düzenle ve A/B karşılaştır.",
+          "verification": "Kesme noktalarını, faz ilişkisini, nefesleri ve sessizlikleri baştan sona dinle."
+        },
+        {
+          "id": "MM-18",
+          "stage": "Düzenleme ve temizlik",
+          "title": "Crossfade ve kesme güvenliği",
+          "principle": "İşlemden önce kaynak sorunlarını düzeltmek ve gereksiz artefakt üretmemek.",
+          "practice": "Dinle, sorunlu bölümü işaretle, en az müdahaleyle düzenle ve A/B karşılaştır.",
+          "verification": "Kesme noktalarını, faz ilişkisini, nefesleri ve sessizlikleri baştan sona dinle."
+        },
+        {
+          "id": "MM-19",
+          "stage": "Ekolayzer",
+          "title": "Yüksek geçiren filtre",
+          "principle": "Maskeleme ve rezonansları kontrol ederek kaynakların anlaşılır olmasını sağlamak.",
+          "practice": "Önce geniş dinleme, sonra küçük ve hedefli filtre hareketleri uygula; her değişikliği seviye eşleştirerek karşılaştır.",
+          "verification": "Solo yerine miks içinde dinle; bypass ve düşük ses seviyesinde sonucu doğrula."
+        },
+        {
+          "id": "MM-20",
+          "stage": "Ekolayzer",
+          "title": "Alt frekans temizliği",
+          "principle": "Maskeleme ve rezonansları kontrol ederek kaynakların anlaşılır olmasını sağlamak.",
+          "practice": "Önce geniş dinleme, sonra küçük ve hedefli filtre hareketleri uygula; her değişikliği seviye eşleştirerek karşılaştır.",
+          "verification": "Solo yerine miks içinde dinle; bypass ve düşük ses seviyesinde sonucu doğrula."
+        },
+        {
+          "id": "MM-21",
+          "stage": "Ekolayzer",
+          "title": "Çamurlu orta-alt bölge",
+          "principle": "Maskeleme ve rezonansları kontrol ederek kaynakların anlaşılır olmasını sağlamak.",
+          "practice": "Önce geniş dinleme, sonra küçük ve hedefli filtre hareketleri uygula; her değişikliği seviye eşleştirerek karşılaştır.",
+          "verification": "Solo yerine miks içinde dinle; bypass ve düşük ses seviyesinde sonucu doğrula."
+        },
+        {
+          "id": "MM-22",
+          "stage": "Ekolayzer",
+          "title": "Presence ve anlaşılabilirlik",
+          "principle": "Maskeleme ve rezonansları kontrol ederek kaynakların anlaşılır olmasını sağlamak.",
+          "practice": "Önce geniş dinleme, sonra küçük ve hedefli filtre hareketleri uygula; her değişikliği seviye eşleştirerek karşılaştır.",
+          "verification": "Solo yerine miks içinde dinle; bypass ve düşük ses seviyesinde sonucu doğrula."
+        },
+        {
+          "id": "MM-23",
+          "stage": "Ekolayzer",
+          "title": "Sert tiz ve sibilans",
+          "principle": "Maskeleme ve rezonansları kontrol ederek kaynakların anlaşılır olmasını sağlamak.",
+          "practice": "Önce geniş dinleme, sonra küçük ve hedefli filtre hareketleri uygula; her değişikliği seviye eşleştirerek karşılaştır.",
+          "verification": "Solo yerine miks içinde dinle; bypass ve düşük ses seviyesinde sonucu doğrula."
+        },
+        {
+          "id": "MM-24",
+          "stage": "Ekolayzer",
+          "title": "Kesme mi yükseltme mi?",
+          "principle": "Maskeleme ve rezonansları kontrol ederek kaynakların anlaşılır olmasını sağlamak.",
+          "practice": "Önce geniş dinleme, sonra küçük ve hedefli filtre hareketleri uygula; her değişikliği seviye eşleştirerek karşılaştır.",
+          "verification": "Solo yerine miks içinde dinle; bypass ve düşük ses seviyesinde sonucu doğrula."
+        },
+        {
+          "id": "MM-25",
+          "stage": "Kompresyon",
+          "title": "Threshold ve çalışma eşiği",
+          "principle": "Dinamik aralığı kaynağın karakterini bozmadan yönetmek.",
+          "practice": "Threshold, ratio, attack, release ve knee ayarlarını tek tek değiştir; gain reduction miktarını dinlemeyle ilişkilendir.",
+          "verification": "Bypass seviyesini eşitle; transient, pompalama ve nefes/gürültü artışını kontrol et."
+        },
+        {
+          "id": "MM-26",
+          "stage": "Kompresyon",
+          "title": "Ratio ve sıkıştırma miktarı",
+          "principle": "Dinamik aralığı kaynağın karakterini bozmadan yönetmek.",
+          "practice": "Threshold, ratio, attack, release ve knee ayarlarını tek tek değiştir; gain reduction miktarını dinlemeyle ilişkilendir.",
+          "verification": "Bypass seviyesini eşitle; transient, pompalama ve nefes/gürültü artışını kontrol et."
+        },
+        {
+          "id": "MM-27",
+          "stage": "Kompresyon",
+          "title": "Attack ve transient",
+          "principle": "Dinamik aralığı kaynağın karakterini bozmadan yönetmek.",
+          "practice": "Threshold, ratio, attack, release ve knee ayarlarını tek tek değiştir; gain reduction miktarını dinlemeyle ilişkilendir.",
+          "verification": "Bypass seviyesini eşitle; transient, pompalama ve nefes/gürültü artışını kontrol et."
+        },
+        {
+          "id": "MM-28",
+          "stage": "Kompresyon",
+          "title": "Release ve ritmik geri dönüş",
+          "principle": "Dinamik aralığı kaynağın karakterini bozmadan yönetmek.",
+          "practice": "Threshold, ratio, attack, release ve knee ayarlarını tek tek değiştir; gain reduction miktarını dinlemeyle ilişkilendir.",
+          "verification": "Bypass seviyesini eşitle; transient, pompalama ve nefes/gürültü artışını kontrol et."
+        },
+        {
+          "id": "MM-29",
+          "stage": "Kompresyon",
+          "title": "Knee ve geçiş yumuşaklığı",
+          "principle": "Dinamik aralığı kaynağın karakterini bozmadan yönetmek.",
+          "practice": "Threshold, ratio, attack, release ve knee ayarlarını tek tek değiştir; gain reduction miktarını dinlemeyle ilişkilendir.",
+          "verification": "Bypass seviyesini eşitle; transient, pompalama ve nefes/gürültü artışını kontrol et."
+        },
+        {
+          "id": "MM-30",
+          "stage": "Kompresyon",
+          "title": "Make-up gain ve seviye eşleme",
+          "principle": "Dinamik aralığı kaynağın karakterini bozmadan yönetmek.",
+          "practice": "Threshold, ratio, attack, release ve knee ayarlarını tek tek değiştir; gain reduction miktarını dinlemeyle ilişkilendir.",
+          "verification": "Bypass seviyesini eşitle; transient, pompalama ve nefes/gürültü artışını kontrol et."
+        },
+        {
+          "id": "MM-31",
+          "stage": "İleri dinamik kontrol",
+          "title": "Paralel kompresyon",
+          "principle": "Birden fazla dinamik işlemi amaçlı ve ölçülü kullanmak.",
+          "practice": "Paralel, sidechain, çok bant ve de-esser işlemlerini yalnızca tanımlı bir sorunu çözmek için devreye al.",
+          "verification": "İşlem sonrası faz, ton, pompalama ve kaynak doğallığını tekrar dinle."
+        },
+        {
+          "id": "MM-32",
+          "stage": "İleri dinamik kontrol",
+          "title": "Sidechain ve frekans tetikleme",
+          "principle": "Birden fazla dinamik işlemi amaçlı ve ölçülü kullanmak.",
+          "practice": "Paralel, sidechain, çok bant ve de-esser işlemlerini yalnızca tanımlı bir sorunu çözmek için devreye al.",
+          "verification": "İşlem sonrası faz, ton, pompalama ve kaynak doğallığını tekrar dinle."
+        },
+        {
+          "id": "MM-33",
+          "stage": "İleri dinamik kontrol",
+          "title": "Çok bantlı kompresyon",
+          "principle": "Birden fazla dinamik işlemi amaçlı ve ölçülü kullanmak.",
+          "practice": "Paralel, sidechain, çok bant ve de-esser işlemlerini yalnızca tanımlı bir sorunu çözmek için devreye al.",
+          "verification": "İşlem sonrası faz, ton, pompalama ve kaynak doğallığını tekrar dinle."
+        },
+        {
+          "id": "MM-34",
+          "stage": "İleri dinamik kontrol",
+          "title": "De-esser ayarı",
+          "principle": "Birden fazla dinamik işlemi amaçlı ve ölçülü kullanmak.",
+          "practice": "Paralel, sidechain, çok bant ve de-esser işlemlerini yalnızca tanımlı bir sorunu çözmek için devreye al.",
+          "verification": "İşlem sonrası faz, ton, pompalama ve kaynak doğallığını tekrar dinle."
+        },
+        {
+          "id": "MM-35",
+          "stage": "İleri dinamik kontrol",
+          "title": "Gate ve expander kullanımı",
+          "principle": "Birden fazla dinamik işlemi amaçlı ve ölçülü kullanmak.",
+          "practice": "Paralel, sidechain, çok bant ve de-esser işlemlerini yalnızca tanımlı bir sorunu çözmek için devreye al.",
+          "verification": "İşlem sonrası faz, ton, pompalama ve kaynak doğallığını tekrar dinle."
+        },
+        {
+          "id": "MM-36",
+          "stage": "İleri dinamik kontrol",
+          "title": "Clip gain ve otomasyon",
+          "principle": "Birden fazla dinamik işlemi amaçlı ve ölçülü kullanmak.",
+          "practice": "Paralel, sidechain, çok bant ve de-esser işlemlerini yalnızca tanımlı bir sorunu çözmek için devreye al.",
+          "verification": "İşlem sonrası faz, ton, pompalama ve kaynak doğallığını tekrar dinle."
+        },
+        {
+          "id": "MM-37",
+          "stage": "Reverb ve delay",
+          "title": "Send ve return düzeni",
+          "principle": "Derinlik ve alan hissi oluştururken netliği korumak.",
+          "practice": "Send/return yapısı kullan; predelay, decay, filtreleme ve ritmik süreyi parçanın temposuna göre seç.",
+          "verification": "Efekt dönüşünü tek başına değil, miks içinde ve mono toplamda dinle."
+        },
+        {
+          "id": "MM-38",
+          "stage": "Reverb ve delay",
+          "title": "Predelay ile ön/arka algısı",
+          "principle": "Derinlik ve alan hissi oluştururken netliği korumak.",
+          "practice": "Send/return yapısı kullan; predelay, decay, filtreleme ve ritmik süreyi parçanın temposuna göre seç.",
+          "verification": "Efekt dönüşünü tek başına değil, miks içinde ve mono toplamda dinle."
+        },
+        {
+          "id": "MM-39",
+          "stage": "Reverb ve delay",
+          "title": "Decay ve oda boyutu",
+          "principle": "Derinlik ve alan hissi oluştururken netliği korumak.",
+          "practice": "Send/return yapısı kullan; predelay, decay, filtreleme ve ritmik süreyi parçanın temposuna göre seç.",
+          "verification": "Efekt dönüşünü tek başına değil, miks içinde ve mono toplamda dinle."
+        },
+        {
+          "id": "MM-40",
+          "stage": "Reverb ve delay",
+          "title": "Reverb filtreleme",
+          "principle": "Derinlik ve alan hissi oluştururken netliği korumak.",
+          "practice": "Send/return yapısı kullan; predelay, decay, filtreleme ve ritmik süreyi parçanın temposuna göre seç.",
+          "verification": "Efekt dönüşünü tek başına değil, miks içinde ve mono toplamda dinle."
+        },
+        {
+          "id": "MM-41",
+          "stage": "Reverb ve delay",
+          "title": "Tempo senkronlu delay",
+          "principle": "Derinlik ve alan hissi oluştururken netliği korumak.",
+          "practice": "Send/return yapısı kullan; predelay, decay, filtreleme ve ritmik süreyi parçanın temposuna göre seç.",
+          "verification": "Efekt dönüşünü tek başına değil, miks içinde ve mono toplamda dinle."
+        },
+        {
+          "id": "MM-42",
+          "stage": "Reverb ve delay",
+          "title": "Duck edilmiş efekt dönüşü",
+          "principle": "Derinlik ve alan hissi oluştururken netliği korumak.",
+          "practice": "Send/return yapısı kullan; predelay, decay, filtreleme ve ritmik süreyi parçanın temposuna göre seç.",
+          "verification": "Efekt dönüşünü tek başına değil, miks içinde ve mono toplamda dinle."
+        },
+        {
+          "id": "MM-43",
+          "stage": "Stereo ve faz",
+          "title": "Pan ve yerleşim",
+          "principle": "Genişlik hissini mono uyumu ve düşük frekans kararlılığını bozmadan kurmak.",
+          "practice": "Pan, çift mikrofon, stereo işlem ve Mid/Side hareketlerini ölçülü uygula; mono kontrolünü düzenli yap.",
+          "verification": "Mono toplamı, korelasyon/faz davranışı ve merkezdeki temel kaynakları dinle."
+        },
+        {
+          "id": "MM-44",
+          "stage": "Stereo ve faz",
+          "title": "Mono uyumluluğu",
+          "principle": "Genişlik hissini mono uyumu ve düşük frekans kararlılığını bozmadan kurmak.",
+          "practice": "Pan, çift mikrofon, stereo işlem ve Mid/Side hareketlerini ölçülü uygula; mono kontrolünü düzenli yap.",
+          "verification": "Mono toplamı, korelasyon/faz davranışı ve merkezdeki temel kaynakları dinle."
+        },
+        {
+          "id": "MM-45",
+          "stage": "Stereo ve faz",
+          "title": "Faz iptali belirtileri",
+          "principle": "Genişlik hissini mono uyumu ve düşük frekans kararlılığını bozmadan kurmak.",
+          "practice": "Pan, çift mikrofon, stereo işlem ve Mid/Side hareketlerini ölçülü uygula; mono kontrolünü düzenli yap.",
+          "verification": "Mono toplamı, korelasyon/faz davranışı ve merkezdeki temel kaynakları dinle."
+        },
+        {
+          "id": "MM-46",
+          "stage": "Stereo ve faz",
+          "title": "Stereo genişlik kontrolü",
+          "principle": "Genişlik hissini mono uyumu ve düşük frekans kararlılığını bozmadan kurmak.",
+          "practice": "Pan, çift mikrofon, stereo işlem ve Mid/Side hareketlerini ölçülü uygula; mono kontrolünü düzenli yap.",
+          "verification": "Mono toplamı, korelasyon/faz davranışı ve merkezdeki temel kaynakları dinle."
+        },
+        {
+          "id": "MM-47",
+          "stage": "Stereo ve faz",
+          "title": "Mid/Side temel mantığı",
+          "principle": "Genişlik hissini mono uyumu ve düşük frekans kararlılığını bozmadan kurmak.",
+          "practice": "Pan, çift mikrofon, stereo işlem ve Mid/Side hareketlerini ölçülü uygula; mono kontrolünü düzenli yap.",
+          "verification": "Mono toplamı, korelasyon/faz davranışı ve merkezdeki temel kaynakları dinle."
+        },
+        {
+          "id": "MM-48",
+          "stage": "Stereo ve faz",
+          "title": "Düşük frekansta merkez kararlılığı",
+          "principle": "Genişlik hissini mono uyumu ve düşük frekans kararlılığını bozmadan kurmak.",
+          "practice": "Pan, çift mikrofon, stereo işlem ve Mid/Side hareketlerini ölçülü uygula; mono kontrolünü düzenli yap.",
+          "verification": "Mono toplamı, korelasyon/faz davranışı ve merkezdeki temel kaynakları dinle."
+        },
+        {
+          "id": "MM-49",
+          "stage": "Miks dengesi",
+          "title": "Static mix ve fader dengesi",
+          "principle": "Tüm kaynakların müzikal ve işlevsel hiyerarşisini kurmak.",
+          "practice": "Önce fader ve pan ile denge kur; işlemciyi yalnızca miks dengesiyle çözülemeyen sorunlarda kullan.",
+          "verification": "Referansla aynı algısal ses seviyesinde karşılaştır; düşük ses ve farklı sistemlerde dinle."
+        },
+        {
+          "id": "MM-50",
+          "stage": "Miks dengesi",
+          "title": "Masking ve kaynak önceliği",
+          "principle": "Tüm kaynakların müzikal ve işlevsel hiyerarşisini kurmak.",
+          "practice": "Önce fader ve pan ile denge kur; işlemciyi yalnızca miks dengesiyle çözülemeyen sorunlarda kullan.",
+          "verification": "Referansla aynı algısal ses seviyesinde karşılaştır; düşük ses ve farklı sistemlerde dinle."
+        },
+        {
+          "id": "MM-51",
+          "stage": "Miks dengesi",
+          "title": "Referans parça A/B",
+          "principle": "Tüm kaynakların müzikal ve işlevsel hiyerarşisini kurmak.",
+          "practice": "Önce fader ve pan ile denge kur; işlemciyi yalnızca miks dengesiyle çözülemeyen sorunlarda kullan.",
+          "verification": "Referansla aynı algısal ses seviyesinde karşılaştır; düşük ses ve farklı sistemlerde dinle."
+        },
+        {
+          "id": "MM-52",
+          "stage": "Miks dengesi",
+          "title": "Otomasyon ve bölüm geçişleri",
+          "principle": "Tüm kaynakların müzikal ve işlevsel hiyerarşisini kurmak.",
+          "practice": "Önce fader ve pan ile denge kur; işlemciyi yalnızca miks dengesiyle çözülemeyen sorunlarda kullan.",
+          "verification": "Referansla aynı algısal ses seviyesinde karşılaştır; düşük ses ve farklı sistemlerde dinle."
+        },
+        {
+          "id": "MM-53",
+          "stage": "Miks dengesi",
+          "title": "Düşük ses seviyesinde kontrol",
+          "principle": "Tüm kaynakların müzikal ve işlevsel hiyerarşisini kurmak.",
+          "practice": "Önce fader ve pan ile denge kur; işlemciyi yalnızca miks dengesiyle çözülemeyen sorunlarda kullan.",
+          "verification": "Referansla aynı algısal ses seviyesinde karşılaştır; düşük ses ve farklı sistemlerde dinle."
+        },
+        {
+          "id": "MM-54",
+          "stage": "Miks dengesi",
+          "title": "Farklı sistemlerde çeviri testi",
+          "principle": "Tüm kaynakların müzikal ve işlevsel hiyerarşisini kurmak.",
+          "practice": "Önce fader ve pan ile denge kur; işlemciyi yalnızca miks dengesiyle çözülemeyen sorunlarda kullan.",
+          "verification": "Referansla aynı algısal ses seviyesinde karşılaştır; düşük ses ve farklı sistemlerde dinle."
+        },
+        {
+          "id": "MM-55",
+          "stage": "Premaster hazırlığı",
+          "title": "Master bus işlem sırası",
+          "principle": "Miks teslimini mastering için teknik olarak temiz ve açık bırakmak.",
+          "practice": "Master bus işlemlerini gözden geçir; gereksiz limiter ve aşırı clipping'i kaldır; istenen formatı doğrula.",
+          "verification": "Dışa aktarılan dosyayı yeniden aç ve oturumla baştan sona karşılaştır."
+        },
+        {
+          "id": "MM-56",
+          "stage": "Premaster hazırlığı",
+          "title": "Premaster headroom",
+          "principle": "Miks teslimini mastering için teknik olarak temiz ve açık bırakmak.",
+          "practice": "Master bus işlemlerini gözden geçir; gereksiz limiter ve aşırı clipping'i kaldır; istenen formatı doğrula.",
+          "verification": "Dışa aktarılan dosyayı yeniden aç ve oturumla baştan sona karşılaştır."
+        },
+        {
+          "id": "MM-57",
+          "stage": "Premaster hazırlığı",
+          "title": "Sample rate ve bit derinliği",
+          "principle": "Miks teslimini mastering için teknik olarak temiz ve açık bırakmak.",
+          "practice": "Master bus işlemlerini gözden geçir; gereksiz limiter ve aşırı clipping'i kaldır; istenen formatı doğrula.",
+          "verification": "Dışa aktarılan dosyayı yeniden aç ve oturumla baştan sona karşılaştır."
+        },
+        {
+          "id": "MM-58",
+          "stage": "Premaster hazırlığı",
+          "title": "Dither ne zaman gerekir?",
+          "principle": "Miks teslimini mastering için teknik olarak temiz ve açık bırakmak.",
+          "practice": "Master bus işlemlerini gözden geçir; gereksiz limiter ve aşırı clipping'i kaldır; istenen formatı doğrula.",
+          "verification": "Dışa aktarılan dosyayı yeniden aç ve oturumla baştan sona karşılaştır."
+        },
+        {
+          "id": "MM-59",
+          "stage": "Premaster hazırlığı",
+          "title": "Dosya başlangıç/bitiş kontrolü",
+          "principle": "Miks teslimini mastering için teknik olarak temiz ve açık bırakmak.",
+          "practice": "Master bus işlemlerini gözden geçir; gereksiz limiter ve aşırı clipping'i kaldır; istenen formatı doğrula.",
+          "verification": "Dışa aktarılan dosyayı yeniden aç ve oturumla baştan sona karşılaştır."
+        },
+        {
+          "id": "MM-60",
+          "stage": "Premaster hazırlığı",
+          "title": "Premaster QC raporu",
+          "principle": "Miks teslimini mastering için teknik olarak temiz ve açık bırakmak.",
+          "practice": "Master bus işlemlerini gözden geçir; gereksiz limiter ve aşırı clipping'i kaldır; istenen formatı doğrula.",
+          "verification": "Dışa aktarılan dosyayı yeniden aç ve oturumla baştan sona karşılaştır."
+        },
+        {
+          "id": "MM-61",
+          "stage": "Mastering",
+          "title": "Integrated LUFS ölçümü",
+          "principle": "Teslim hedefini karşılayan tutarlı ton, dinamik ve algısal ses yüksekliği elde etmek.",
+          "practice": "Ölçümle dinlemeyi birlikte kullan; EQ, dinamik, stereo ve seviye işlemlerini küçük adımlarla uygula.",
+          "verification": "Integrated loudness, true peak, kısa dönem değişim ve müzikal dinamikleri ayrı değerlendir."
+        },
+        {
+          "id": "MM-62",
+          "stage": "Mastering",
+          "title": "True Peak ve örnek tepe farkı",
+          "principle": "Teslim hedefini karşılayan tutarlı ton, dinamik ve algısal ses yüksekliği elde etmek.",
+          "practice": "Ölçümle dinlemeyi birlikte kullan; EQ, dinamik, stereo ve seviye işlemlerini küçük adımlarla uygula.",
+          "verification": "Integrated loudness, true peak, kısa dönem değişim ve müzikal dinamikleri ayrı değerlendir."
+        },
+        {
+          "id": "MM-63",
+          "stage": "Mastering",
+          "title": "Tonal denge ve spektrum",
+          "principle": "Teslim hedefini karşılayan tutarlı ton, dinamik ve algısal ses yüksekliği elde etmek.",
+          "practice": "Ölçümle dinlemeyi birlikte kullan; EQ, dinamik, stereo ve seviye işlemlerini küçük adımlarla uygula.",
+          "verification": "Integrated loudness, true peak, kısa dönem değişim ve müzikal dinamikleri ayrı değerlendir."
+        },
+        {
+          "id": "MM-64",
+          "stage": "Mastering",
+          "title": "Mastering kompresyonu",
+          "principle": "Teslim hedefini karşılayan tutarlı ton, dinamik ve algısal ses yüksekliği elde etmek.",
+          "practice": "Ölçümle dinlemeyi birlikte kullan; EQ, dinamik, stereo ve seviye işlemlerini küçük adımlarla uygula.",
+          "verification": "Integrated loudness, true peak, kısa dönem değişim ve müzikal dinamikleri ayrı değerlendir."
+        },
+        {
+          "id": "MM-65",
+          "stage": "Mastering",
+          "title": "Limiter ve gain reduction",
+          "principle": "Teslim hedefini karşılayan tutarlı ton, dinamik ve algısal ses yüksekliği elde etmek.",
+          "practice": "Ölçümle dinlemeyi birlikte kullan; EQ, dinamik, stereo ve seviye işlemlerini küçük adımlarla uygula.",
+          "verification": "Integrated loudness, true peak, kısa dönem değişim ve müzikal dinamikleri ayrı değerlendir."
+        },
+        {
+          "id": "MM-66",
+          "stage": "Mastering",
+          "title": "Albüm/EP parça tutarlılığı",
+          "principle": "Teslim hedefini karşılayan tutarlı ton, dinamik ve algısal ses yüksekliği elde etmek.",
+          "practice": "Ölçümle dinlemeyi birlikte kullan; EQ, dinamik, stereo ve seviye işlemlerini küçük adımlarla uygula.",
+          "verification": "Integrated loudness, true peak, kısa dönem değişim ve müzikal dinamikleri ayrı değerlendir."
+        },
+        {
+          "id": "MM-67",
+          "stage": "Son kontrol ve teslim",
+          "title": "Teslim formatı ve kanal düzeni",
+          "principle": "Teknik olarak doğrulanmış, doğru adlandırılmış ve arşivlenmiş teslim üretmek.",
+          "practice": "Teslim şartlarını kontrol listesine dönüştür; her formatı ayrı dışa aktar ve doğrula.",
+          "verification": "Dosyaları yeniden aç, başlangıçtan sona dinle, metadata ve arşiv yedeğini kontrol et."
+        },
+        {
+          "id": "MM-68",
+          "stage": "Son kontrol ve teslim",
+          "title": "Metadata ve dosya adları",
+          "principle": "Teknik olarak doğrulanmış, doğru adlandırılmış ve arşivlenmiş teslim üretmek.",
+          "practice": "Teslim şartlarını kontrol listesine dönüştür; her formatı ayrı dışa aktar ve doğrula.",
+          "verification": "Dosyaları yeniden aç, başlangıçtan sona dinle, metadata ve arşiv yedeğini kontrol et."
+        },
+        {
+          "id": "MM-69",
+          "stage": "Son kontrol ve teslim",
+          "title": "Son dinleme ve hata taraması",
+          "principle": "Teknik olarak doğrulanmış, doğru adlandırılmış ve arşivlenmiş teslim üretmek.",
+          "practice": "Teslim şartlarını kontrol listesine dönüştür; her formatı ayrı dışa aktar ve doğrula.",
+          "verification": "Dosyaları yeniden aç, başlangıçtan sona dinle, metadata ve arşiv yedeğini kontrol et."
+        },
+        {
+          "id": "MM-70",
+          "stage": "Son kontrol ve teslim",
+          "title": "Alternatif ve instrumental sürümler",
+          "principle": "Teknik olarak doğrulanmış, doğru adlandırılmış ve arşivlenmiş teslim üretmek.",
+          "practice": "Teslim şartlarını kontrol listesine dönüştür; her formatı ayrı dışa aktar ve doğrula.",
+          "verification": "Dosyaları yeniden aç, başlangıçtan sona dinle, metadata ve arşiv yedeğini kontrol et."
+        },
+        {
+          "id": "MM-71",
+          "stage": "Son kontrol ve teslim",
+          "title": "Revizyon karşılaştırması",
+          "principle": "Teknik olarak doğrulanmış, doğru adlandırılmış ve arşivlenmiş teslim üretmek.",
+          "practice": "Teslim şartlarını kontrol listesine dönüştür; her formatı ayrı dışa aktar ve doğrula.",
+          "verification": "Dosyaları yeniden aç, başlangıçtan sona dinle, metadata ve arşiv yedeğini kontrol et."
+        },
+        {
+          "id": "MM-72",
+          "stage": "Son kontrol ve teslim",
+          "title": "Arşiv ve teslim kaydı",
+          "principle": "Teknik olarak doğrulanmış, doğru adlandırılmış ve arşivlenmiş teslim üretmek.",
+          "practice": "Teslim şartlarını kontrol listesine dönüştür; her formatı ayrı dışa aktar ve doğrula.",
+          "verification": "Dosyaları yeniden aç, başlangıçtan sona dinle, metadata ve arşiv yedeğini kontrol et."
+        }
+      ],
+      "problems": [
+        {
+          "id": "SOR-01",
+          "symptom": "Miks bulanık ve kapalı",
+          "possible_causes": "200–500 Hz birikimi, gereğinden fazla reverb, çok sayıda kaynakta aynı alanın dolması",
+          "diagnosis": "Önce miks bus'ında değil, kaynakları tek tek ve birlikte dinleyerek çakışan kanalı bul",
+          "first_action": "Kaynak önceliğini belirle; küçük ve hedefli EQ veya düzenleme uygula"
+        },
+        {
+          "id": "SOR-02",
+          "symptom": "Kick ve bas birbirini örtüyor",
+          "possible_causes": "Aynı anda benzer temel frekans ve uzun kuyruklar",
+          "diagnosis": "Kick ve bası ayrı, sonra birlikte; özellikle mono ve düşük seviyede dinle",
+          "first_action": "Nota/ritim ilişkisini düzenle; sidechain veya EQ'yu ölçülü kullan"
+        },
+        {
+          "id": "SOR-03",
+          "symptom": "Vokal miks içinde kayboluyor",
+          "possible_causes": "Orta frekans maskelemesi, düşük seviye, fazla reverb veya yanlış otomasyon",
+          "diagnosis": "Vokali efekt dönüşleri kapalıyken miks içinde dinle",
+          "first_action": "Önce fader/otomasyon ve alan açmayı dene; sonra EQ/kompresyon"
+        },
+        {
+          "id": "SOR-04",
+          "symptom": "Vokal ince ve güçsüz",
+          "possible_causes": "Aşırı yüksek geçiren filtre, düşük orta frekans kaybı, faz iptali",
+          "diagnosis": "Filtreleri bypass et ve çift mikrofon/katman fazını kontrol et",
+          "first_action": "Gereksiz filtreyi kaldır; doğal gövdeyi geri getir"
+        },
+        {
+          "id": "SOR-05",
+          "symptom": "Tizler sert ve yorucu",
+          "possible_causes": "2–6 kHz birikimi, agresif transient, aşırı saturation",
+          "diagnosis": "Sertliği hangi kaynak ve bölümün oluşturduğunu bul",
+          "first_action": "Kaynakta küçük EQ veya dinamik kontrol uygula"
+        },
+        {
+          "id": "SOR-06",
+          "symptom": "Sibilans aşırı",
+          "possible_causes": "Vokal kaydında ıslıklı ünsüzler, parlak mikrofon/işlem",
+          "diagnosis": "Sorunlu heceleri dinle ve spektrumda bölgeyi doğrula",
+          "first_action": "De-esser'ı yalnızca gerektiğinde ve kontrollü uygula"
+        },
+        {
+          "id": "SOR-07",
+          "symptom": "Kompresör pompalıyor",
+          "possible_causes": "Aşırı gain reduction, hızlı release, düşük threshold veya kick tetiklemesi",
+          "diagnosis": "Gain reduction hareketini ritimle birlikte izle",
+          "first_action": "Threshold/ratio azalt; attack-release'i kaynağa göre yeniden ayarla"
+        },
+        {
+          "id": "SOR-08",
+          "symptom": "Transient kayboluyor",
+          "possible_causes": "Çok hızlı attack veya aşırı kompresyon/limiting",
+          "diagnosis": "Bypass seviyesini eşitleyip davul/vokal ataklarını karşılaştır",
+          "first_action": "Attack'i yavaşlat veya işlem miktarını azalt"
+        },
+        {
+          "id": "SOR-09",
+          "symptom": "Ses seviyesi sürekli dalgalanıyor",
+          "possible_causes": "Düzensiz kaynak seviyesi, uygunsuz release, otomasyon eksikliği",
+          "diagnosis": "Ham kaynağı ve kompresör gain reduction hareketini karşılaştır",
+          "first_action": "Clip gain/otomasyonla büyük farkları düzelt; kompresörü hafiflet"
+        },
+        {
+          "id": "SOR-10",
+          "symptom": "Reverb miksin önüne geçiyor",
+          "possible_causes": "Decay uzun, send yüksek, predelay kısa veya dönüş filtresiz",
+          "diagnosis": "Reverb dönüşünü kapatıp miks netliğini karşılaştır",
+          "first_action": "Send/decay azalt; dönüşü filtrele ve predelay'i yeniden değerlendir"
+        },
+        {
+          "id": "SOR-11",
+          "symptom": "Delay ritmi bozuyor",
+          "possible_causes": "Tempo eşleşmesi hatalı, feedback yüksek, notaya uygun olmayan süre",
+          "diagnosis": "Delay süresini BPM ve nota bölümüyle karşılaştır",
+          "first_action": "Senkronlu süre seç; feedback ve dönüş seviyesini azalt"
+        },
+        {
+          "id": "SOR-12",
+          "symptom": "Stereo görüntü kararsız",
+          "possible_causes": "Genişlik işlemi aşırı, faz farkı veya dengesiz pan",
+          "diagnosis": "Mono toplamı ve korelasyon davranışını kontrol et",
+          "first_action": "Genişlik işlemini azalt; merkez ve mono uyumunu koru"
+        },
+        {
+          "id": "SOR-13",
+          "symptom": "Mono dinlemede kaynaklar kayboluyor",
+          "possible_causes": "Faz iptali, stereo widener veya ters polarite",
+          "diagnosis": "Mono toplamda kaybolan kaynakları tek tek aç/kapat",
+          "first_action": "Faz/polarite ve stereo işlem zincirini düzelt"
+        },
+        {
+          "id": "SOR-14",
+          "symptom": "Master çıkışında clipping var",
+          "possible_causes": "Master bus seviyesi yüksek veya işlemci çıkışı aşırı",
+          "diagnosis": "Peak metreyi ve işlemci çıkışlarını aşama aşama kontrol et",
+          "first_action": "Master öncesi seviyeyi düşür; kaynakta clipping varsa kaynağa dön"
+        },
+        {
+          "id": "SOR-15",
+          "symptom": "Sample peak güvenli ama true peak yüksek",
+          "possible_causes": "Dijital-analog yeniden yapılandırmada örnekler arası tepe oluşması",
+          "diagnosis": "Oversampled true-peak ölçümü yap",
+          "first_action": "Gerekli teslim tavanına göre limiter/oversampling ayarını doğrula"
+        },
+        {
+          "id": "SOR-16",
+          "symptom": "Hedef LUFS'e ulaşırken miks bozuluyor",
+          "possible_causes": "Aşırı limiter, yüksek crest factor veya dengesiz miks",
+          "diagnosis": "Integrated LUFS ile true peak ve gain reduction'ı birlikte incele",
+          "first_action": "Önce miks dengesini düzelt; loudness hedefini zorla dayatma"
+        },
+        {
+          "id": "SOR-17",
+          "symptom": "Master çok yüksek ama küçük sistemde zayıf",
+          "possible_causes": "Aşırı düşük frekans, transient kaybı veya orta alan eksikliği",
+          "diagnosis": "Düşük seviyede ve küçük hoparlör simülasyonunda dinle",
+          "first_action": "Tonal dengeyi düzelt; sadece LUFS yükseltme"
+        },
+        {
+          "id": "SOR-18",
+          "symptom": "Bas farklı hoparlörlerde değişiyor",
+          "possible_causes": "Oda modu, faz ilişkisi, aşırı sub/alt bas veya kaynak notaları",
+          "diagnosis": "Kulaklık, yakın alan ve mono referansla karşılaştır",
+          "first_action": "Mix translation düzeltmesi yap; oda ölçümünü müzik miksinden ayır"
+        },
+        {
+          "id": "SOR-19",
+          "symptom": "Bir kanalda dip gürültüsü var",
+          "possible_causes": "Kayıt zinciri, preamp, kablo, elektrik veya eklenti gürültüsü",
+          "diagnosis": "Eklentileri bypass edip giriş zincirini tek tek izole et",
+          "first_action": "Kaynağı bul; gürültüyü aşırı gate ile gizlemek yerine düzelt"
+        },
+        {
+          "id": "SOR-20",
+          "symptom": "Klik ve pop duyuluyor",
+          "possible_causes": "Kesme noktası, hatalı crossfade veya dijital edit",
+          "diagnosis": "Sorunun zamanını yakınlaştırıp dalga biçimini incele",
+          "first_action": "Uygun crossfade ve sıfır geçişi kullan"
+        },
+        {
+          "id": "SOR-21",
+          "symptom": "Vokal nefesleri yapay duyuluyor",
+          "possible_causes": "Aşırı gate/expander veya agresif manuel edit",
+          "diagnosis": "Ham kayıt ile düzenlenmiş sürümü karşılaştır",
+          "first_action": "Nefesleri doğal bırak; otomasyonla yumuşat"
+        },
+        {
+          "id": "SOR-22",
+          "symptom": "Davul katmanları zayıf birleşiyor",
+          "possible_causes": "Faz/zaman uyumsuzluğu veya transient farkı",
+          "diagnosis": "Katmanları ayrı ve birlikte, polarity flip ile dinle",
+          "first_action": "Zaman/faz ilişkisini doğrula; yalnızca ölçüme bakarak hizalama yapma"
+        },
+        {
+          "id": "SOR-23",
+          "symptom": "Gitar ve vokal çakışıyor",
+          "possible_causes": "Presence bölgesinde maskeleme veya benzer stereo konum",
+          "diagnosis": "İki kaynağı birlikte ve sırayla dinle",
+          "first_action": "Düzenleme, pan, otomasyon veya küçük EQ ile alan aç"
+        },
+        {
+          "id": "SOR-24",
+          "symptom": "Sanal miks referanstan daha tiz",
+          "possible_causes": "Referans ses seviyesi eşit değil veya spektrum dengesi farklı",
+          "diagnosis": "A/B seviyelerini eşitle ve aynı bölümden karşılaştır",
+          "first_action": "Seviye eşleme sonrası tonal farkı küçük adımlarla düzelt"
+        },
+        {
+          "id": "SOR-25",
+          "symptom": "Referans A/B yanıltıcı",
+          "possible_causes": "Ses seviyeleri eşit değil, farklı master veya farklı bölüm karşılaştırılıyor",
+          "diagnosis": "Aynı bölüm, aynı playback zinciri ve eşlenmiş algısal seviyeyi doğrula",
+          "first_action": "Karşılaştırmayı standartlaştır; loudness farkını tonal fark sanma"
+        },
+        {
+          "id": "SOR-26",
+          "symptom": "Kompresör gain reduction yok",
+          "possible_causes": "Threshold çok yüksek, sinyal çok düşük veya sidechain yönlendirmesi hatalı",
+          "diagnosis": "Giriş seviyesini ve sidechain kaynağını kontrol et",
+          "first_action": "Yönlendirmeyi doğrula; threshold'u kontrollü ayarla"
+        },
+        {
+          "id": "SOR-27",
+          "symptom": "Kompresör sürekli çalışıyor",
+          "possible_causes": "Threshold çok düşük veya giriş kazancı aşırı",
+          "diagnosis": "Giriş metreleri ve gain reduction'ı birlikte izle",
+          "first_action": "Giriş yapısını düzelt; ratio ve threshold'u yeniden ayarla"
+        },
+        {
+          "id": "SOR-28",
+          "symptom": "Gate kelime/nota başlarını kesiyor",
+          "possible_causes": "Attack çok yavaş, threshold yüksek veya hold kısa",
+          "diagnosis": "Ham sinyalde en sessiz başlangıçları dinle",
+          "first_action": "Threshold düşür; attack/hold/release'i kaynağa göre ayarla"
+        },
+        {
+          "id": "SOR-29",
+          "symptom": "Gate kuyrukları kesiyor",
+          "possible_causes": "Release kısa veya range çok derin",
+          "diagnosis": "Sustained notaları ve reverb kuyruklarını dinle",
+          "first_action": "Release uzat; attenuation miktarını azalt"
+        },
+        {
+          "id": "SOR-30",
+          "symptom": "De-esser sesi peltekleştiriyor",
+          "possible_causes": "Fazla geniş bant veya aşırı gain reduction",
+          "diagnosis": "İşlem öncesi/sonrası sibilans ve ünlüleri karşılaştır",
+          "first_action": "Bandı daralt veya işlem miktarını azalt"
+        },
+        {
+          "id": "SOR-31",
+          "symptom": "EQ kesimi kaynağı cansızlaştırıyor",
+          "possible_causes": "Çok sayıda geniş kesim veya gereğinden fazla yüksek geçiren filtre",
+          "diagnosis": "Bypass ve seviye eşlenmiş A/B yap",
+          "first_action": "Öncelikle gereksiz kesimleri geri al"
+        },
+        {
+          "id": "SOR-32",
+          "symptom": "EQ yükseltmesi clipping oluşturuyor",
+          "possible_causes": "Pozitif gain ve ardışık eklenti çıkışlarının birikmesi",
+          "diagnosis": "Eklenti giriş/çıkış metrelerini izle",
+          "first_action": "Çıkış seviyesini dengele; gerekiyorsa daha düşük girişle çalış"
+        },
+        {
+          "id": "SOR-33",
+          "symptom": "Stereo reverb mono'da kayboluyor",
+          "possible_causes": "Reverb dönüşünde faz farkı veya genişlik işlemi",
+          "diagnosis": "Reverb dönüşünü mono dinle",
+          "first_action": "Mono uyumlu dönüş seç veya genişlik miktarını azalt"
+        },
+        {
+          "id": "SOR-34",
+          "symptom": "Miks çok dar duyuluyor",
+          "possible_causes": "Pan dengesi, stereo kaynak eksikliği veya aşırı merkez yığılması",
+          "diagnosis": "Panorama ve kaynak yerleşimini kontrol et",
+          "first_action": "Kaynakları müzikal olarak yerleştir; yapay widener'ı ilk çözüm yapma"
+        },
+        {
+          "id": "SOR-35",
+          "symptom": "Master düşük seviyede detay kaybediyor",
+          "possible_causes": "Dengesiz orta alan, aşırı gürültü veya fazla dinamik işlem",
+          "diagnosis": "Düşük playback seviyesinde kritik öğeleri dinle",
+          "first_action": "Kaynak dengesi ve otomasyonu düzelt"
+        },
+        {
+          "id": "SOR-36",
+          "symptom": "Dışa aktarılan dosya farklı duyuluyor",
+          "possible_causes": "Yanlış bus, sample rate dönüşümü, pan law veya export ayarı",
+          "diagnosis": "Export dosyasını oturumla aynı ses seviyesinde A/B karşılaştır",
+          "first_action": "Export kaynağını ve ayarlarını doğrula"
+        },
+        {
+          "id": "SOR-37",
+          "symptom": "Dosya başında/sonunda kesilme var",
+          "possible_causes": "Yanlış zaman seçimi, tail süresi veya render aralığı",
+          "diagnosis": "Render aralığını ve efekt kuyruklarını kontrol et",
+          "first_action": "Başlangıç/bitiş payı bırakıp yeniden dışa aktar"
+        },
+        {
+          "id": "SOR-38",
+          "symptom": "Metadata veya dosya adı yanlış",
+          "possible_causes": "Şablon/etiketleme hatası veya eski export",
+          "diagnosis": "Dosya özellikleri ve teslim listesini kontrol et",
+          "first_action": "Standart adlandırma ve metadata kontrol listesi uygula"
+        },
+        {
+          "id": "SOR-39",
+          "symptom": "Loudness ölçümleri farklı araçlarda uyuşmuyor",
+          "possible_causes": "Farklı standart sürümü, gating, kanal ağırlığı veya ölçüm ayarı",
+          "diagnosis": "Aynı dosya ve aynı BS.1770/EBU ayarlarıyla karşılaştır",
+          "first_action": "Ölçüm standardını ve araç sürümünü rapora yaz"
+        },
+        {
+          "id": "SOR-40",
+          "symptom": "True-peak tavanı hedefe izin vermiyor",
+          "possible_causes": "Transient tepe seviyesi hedef loudness artışını sınırlıyor",
+          "diagnosis": "Hedef gain ile true-peak limitinin hangisinin baskın olduğunu ölç",
+          "first_action": "Miksi yeniden dengele; limiter'ı aşırı zorlayarak artefakt üretme"
+        }
+      ],
+      "references": [
+        {
+          "name": "NULL JSFX",
+          "url": "https://github.com/koulaxizis/null-jsfx",
+          "license": "MIT",
+          "use": "Reaper için EQ, dinamik, reverb, delay ve ölçüm eklentilerine yönelik dış kaynak rehberi. Eklentiler uygulama içine gömülmez; kullanıcı resmi kaynaktan edinir.",
+          "status": "Dış bağlantı / rehber"
+        },
+        {
+          "name": "LoudScan",
+          "url": "https://github.com/Blaztekk/LoudScan",
+          "license": "MIT",
+          "use": "Toplu LUFS/True Peak raporlaması için karşılaştırma kaynağı. Stagepulse WAV ve loudness araçları mevcut olduğundan kodu ikinci kez kopyalanmaz.",
+          "status": "İncelendi / yinelenen işlev"
+        },
+        {
+          "name": "pyloudnorm",
+          "url": "https://github.com/csteinmetz1/pyloudnorm",
+          "license": "MIT",
+          "use": "ITU-R BS.1770-4 tabanlı Integrated Loudness ölçümü. Windows bağımlılıklarında zaten bulunur ve mevcut normalizasyon motorunda kullanılır.",
+          "status": "Zaten entegre"
+        },
+        {
+          "name": "libebur128",
+          "url": "https://github.com/jiixyj/libebur128",
+          "license": "MIT",
+          "use": "EBU R128 ölçüm motoru. Mevcut pyloudnorm uygulamasına göre bu aşamada ek fayda sağlamadığı için ikinci motor olarak eklenmez.",
+          "status": "İncelendi / şu an eklenmedi"
+        }
+      ]
     }
   ],
   "packages": [

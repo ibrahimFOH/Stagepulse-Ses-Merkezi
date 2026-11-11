@@ -95,6 +95,19 @@ const curriculumQuizBank = {
 };
 
 
+curriculumQuizBank.mix_mastering = [
+ ['Gain staging hangi amaçla yapılır?',['Her kanalı kırmızıya sürmek','Sinyal zincirinde uygun seviye ve headroom korumak','Tüm kanalları aynı EQ ile işlemek'],1],
+ ['Kompresörde attack süresi neyi etkiler?',['Sinyalin transient başlangıcının ne kadar hızlı yakalandığını','Dosyanın örnekleme hızını','Stereo kanal sayısını'],0],
+ ['True Peak ile Sample Peak arasındaki temel fark nedir?',['Aynı ölçümün iki adı olması','True Peak örnekler arası tepeyi de tahmin eder','Sample Peak yalnızca LUFS ölçer'],1],
+ ['Referans A/B karşılaştırmasında ilk yapılması gereken nedir?',['Ses seviyelerini eşlemek','Referansı daha yüksek çalmak','Master bus limiterini kapatmadan karar vermek'],0],
+ ['Reverb predelay neyi etkiler?',['Kuru ses ile erken yansımaların başlangıç aralığını','Kompresör ratio değerini','WAV bit derinliğini'],0],
+ ['Mono kontrolü neden yapılır?',['Stereo dosyayı küçültmek için','Faz iptali ve kaynak kaybını fark etmek için','LUFS hedefini yükseltmek için'],1],
+ ['Gain reduction göstergesi neyi ifade eder?',['Uygulanan kazanç azaltımını','EQ merkez frekansını','Dosya örnek sayısını'],0],
+ ['Premaster tesliminde hangisi önemlidir?',['Ham kaynakları silmek','Teslim formatı, headroom ve export aralığını doğrulamak','Her durumda limiter ile 0 dBFS yapmak'],1],
+ ['De-esser hangi sorunu hedefler?',['Aşırı sibilansı','Alt frekans uğultusunu','Stereo faz farkını'],0],
+ ['Loudness hedefi nasıl seçilmelidir?',['Her iş için sabit tek değer','Teslim şartı ve kullanım bağlamına göre','Sadece dalga biçiminin görünümüne göre'],1]
+];
+
 const extraCurriculumQuestions = {
  live_sound:[
   ['Compressor threshold neyi belirler?',['İşlemcinin ses dosyası adını','Sinyalin sıkıştırmaya girmeye başladığı seviyeyi','Mikrofonun polaritesini'],1],
@@ -194,7 +207,11 @@ async function loadCurriculumWorkshop(){
 function renderCurriculumWorkshop(){
  const id=$('curriculumTrackSelect').value, track=curriculumCatalog?.tracks?.find(x=>x.id===id); if(!track)return;
  const saved=(studentData.practiceTasks||{})[id]||{};
- $('curriculumTrackDetails').innerHTML=`<h3>${safeText(track.name)}</h3><p>${safeText(track.audience)}</p><strong>Modüller</strong><ol>${track.modules.map(x=>`<li>${safeText(x)}</li>`).join('')}</ol><strong>Uygulama görevleri</strong><div class="checklist-items">${track.practicals.map((x,i)=>`<label class="check-item"><input type="checkbox" data-practice-task="${i}" ${saved[i]?'checked':''}><span>${safeText(x)}</span></label>`).join('')}</div><div class="notice"><strong>Usta onay kapısı</strong><span>${safeText(track.master_gate)}</span></div>`;
+ const workflow=Array.isArray(track.workflow)?`<details class="panel"><summary>12 aşamalı Mix-to-Master iş akışı</summary><ol>${track.workflow.map(x=>`<li><strong>${safeText(x.title)}</strong><p>${safeText(x.action)}</p></li>`).join('')}</ol></details>`:'';
+ const cards=Array.isArray(track.cards)?`<details class="panel"><summary>72 uygulama kartı</summary><div class="checklist-items">${track.cards.map(x=>`<details class="panel"><summary>${safeText(x.id)} · ${safeText(x.stage)} · ${safeText(x.title)}</summary><p><strong>Temel ilke:</strong> ${safeText(x.principle)}</p><p><strong>Uygulama:</strong> ${safeText(x.practice)}</p><p><strong>Kontrol:</strong> ${safeText(x.verification)}</p></details>`).join('')}</div></details>`:'';
+ const problems=Array.isArray(track.problems)?`<details class="panel"><summary>40 belirti ve çözüm dizini</summary><div class="checklist-items">${track.problems.map(x=>`<details class="panel"><summary>${safeText(x.id)} · ${safeText(x.symptom)}</summary><p><strong>Olası nedenler:</strong> ${safeText(x.possible_causes)}</p><p><strong>Teşhis:</strong> ${safeText(x.diagnosis)}</p><p><strong>İlk müdahale:</strong> ${safeText(x.first_action)}</p></details>`).join('')}</div></details>`:'';
+ const refs=Array.isArray(track.references)?`<details class="panel"><summary>Ücretsiz kaynaklar ve lisans bilgileri</summary><ul>${track.references.map(x=>`<li><a href="${safeText(x.url)}" target="_blank" rel="noopener">${safeText(x.name)}</a> · ${safeText(x.license)} · ${safeText(x.status)}<p>${safeText(x.use)}</p></li>`).join('')}</ul></details>`:'';
+ $('curriculumTrackDetails').innerHTML=`<h3>${safeText(track.name)}</h3><p>${safeText(track.audience)}</p><strong>Modüller</strong><ol>${track.modules.map(x=>`<li>${safeText(x)}</li>`).join('')}</ol><strong>Uygulama görevleri</strong><div class="checklist-items">${track.practicals.map((x,i)=>`<label class="check-item"><input type="checkbox" data-practice-task="${i}" ${saved[i]?'checked':''}><span>${safeText(x)}</span></label>`).join('')}</div>${workflow}${cards}${problems}${refs}<div class="notice"><strong>Usta onay kapısı</strong><span>${safeText(track.master_gate)}</span></div>`;
  $('curriculumEvidence').value=saved.evidence||'';
 }
 async function saveCurriculumPractice(){
