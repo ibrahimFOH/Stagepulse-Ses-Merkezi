@@ -121,3 +121,29 @@ def test_normalizer_reports_de_man_lra_metrics(tmp_path):
     assert report["output_lra_lu"] is not None
     assert math.isfinite(report["output_lra_lu"])
     assert report["output_true_peak_dbtp_verified"] <= -0.85
+
+
+def test_itu_true_peak_uses_published_bs1770_fir_at_48khz():
+    from core.audio_tools import _true_peak_linear
+
+    rate = 48000
+    t = np.arange(rate, dtype=np.float64) / rate
+    signal = 0.5 * np.sin(2 * np.pi * 1000 * t)
+    peak, method = _true_peak_linear(signal, rate)
+    assert 0.47 <= peak <= 0.52
+    assert "48-tap FIR" in method
+
+
+def test_ebu_test_set_never_marks_files_pass_without_reference_csv(tmp_path):
+    from core.audio_tools import validate_ebu_test_set
+
+    rate = 48000
+    t = np.arange(rate, dtype=np.float64) / rate
+    path = tmp_path / "EBU_Test_01.wav"
+    sf.write(path, 0.2 * np.sin(2 * np.pi * 1000 * t), rate, subtype="PCM_24")
+    report = validate_ebu_test_set(tmp_path)
+    assert report["files_total"] == 1
+    assert report["counts"]["REFERENCE_REQUIRED"] == 1
+    assert report["results"][0]["status"] == "REFERENCE_REQUIRED"
+    assert report["results"][0]["momentary_max_lufs"] is not None
+    assert report["results"][0]["short_term_max_lufs"] is None
