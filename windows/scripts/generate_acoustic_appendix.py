@@ -46,10 +46,10 @@ def table(rows, widths, header=True):
     t.setStyle(TableStyle(cmds)); return t
 
 # Cover
-story += [Spacer(1,27*mm),P('STAGEPULSE','Sub'),P('SPL, ALAN BOYUTLANDIRMA<br/>VE GERÇEK ZAMANLI RTA','Cover'),P('Öğrenci teknik uygulama eki · Sürüm 4.0.0','Sub'),Spacer(1,8*mm)]
+story += [Spacer(1,27*mm),P('STAGEPULSE','Sub'),P('SPL, ALAN BOYUTLANDIRMA<br/>VE GERÇEK ZAMANLI RTA','Cover'),P('Öğrenci teknik uygulama eki · Sürüm 4.0.2','Sub'),Spacer(1,8*mm)]
 cover=Table([[P('<b>NE İÇİN?</b><br/>dB/SPL hesaplarını doğru yorumlamak, dinleyici alanını geometrik olarak değerlendirmek ve RTA grafiğini güvenli kullanmak.','Cell')],[P('<b>NE DEĞİL?</b><br/>Bu belge tek başına sistem tasarım raporu, kalibre edilmiş ses seviyesi ölçer, akustik simülasyon veya mevzuata uygunluk belgesi değildir.','Cell')],[P('<b>KULLANIM SIRASI</b><br/>Dersi oku → örnek hesabı elle kontrol et → uygulamada aynı girdileri kullan → varsayımları kontrol et → gerektiğinde gerçek ölçümle doğrula.','Cell')]],colWidths=[150*mm])
 cover.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),PALE),('BOX',(0,0),(-1,-1),.7,GOLD),('INNERGRID',(0,0),(-1,-1),.4,LIGHT),('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),10),('RIGHTPADDING',(0,0),(-1,-1),10),('TOPPADDING',(0,0),(-1,-1),9),('BOTTOMPADDING',(0,0),(-1,-1),9)]))
-story += [cover,Spacer(1,15*mm),P('Sürüm 4.0.0 · Öğrenci çalışma nüshası · 29 Ekim 2026','Sub'),PageBreak()]
+story += [cover,Spacer(1,15*mm),P('Sürüm 4.0.2 · Öğrenci çalışma nüshası · 29 Ekim 2026','Sub'),PageBreak()]
 
 story += [P('1. dB, ses basıncı ve SPL','H1SP'),P('Desibel logaritmik bir oran gösterimidir. dB tek başına referansı söylemez: dBFS dijital tam ölçeğe, dBu 0,775 V RMS referansına, dB SPL ise havadaki ses basıncı referansına bağlıdır. Birimler birbirinin yerine kullanılamaz.'),P('Ses basıncı seviyesi formülü','H2SP'),P('<b>Lp = 20 × log10(pRMS / p0)</b><br/>Havada standart referans basınç p0 = 20 µPa = 0,00002 Pa RMS. Ters dönüşüm: <b>pRMS = p0 × 10^(Lp/20)</b>.'),table([
 ['Örnek','İşlem','Sonuç'],
@@ -140,7 +140,7 @@ def footer(canvas, doc):
     canvas.saveState(); w,h=A4
     canvas.setStrokeColor(GOLD); canvas.setLineWidth(.6); canvas.line(17*mm,15*mm,w-17*mm,15*mm)
     canvas.setFont(REG,7); canvas.setFillColor(GREY)
-    canvas.drawString(17*mm,9*mm,'STAGEPULSE · SPL / ALAN / RTA · Öğrenci teknik eki · v4.0.0')
+    canvas.drawString(17*mm,9*mm,'STAGEPULSE · SPL / ALAN / RTA · Öğrenci teknik eki · v4.0.2')
     canvas.drawRightString(w-17*mm,9*mm,f'Sayfa {doc.page}')
     canvas.restoreState()
 
