@@ -859,7 +859,102 @@ function initWav(){$('wavChoose').addEventListener('click',async()=>{if(!api()){
 function renderWavReport(r){const rows=[['Dosya',r.file],['Kanal sayısı',r.channels],['Örnekleme',r.sample_rate_hz+' Hz'],['Bit derinliği',r.bits_per_sample+' bit PCM'],['Süre',fmt(r.duration_seconds,3)+' s'],['Sample peak',r.sample_peak_dbfs===null?'Sessiz':fmt(r.sample_peak_dbfs,2)+' dBFS'],['RMS',r.rms_dbfs===null?'Sessiz':fmt(r.rms_dbfs,2)+' dBFS'],['Crest factor',r.crest_factor_db===null?'Hesaplanmadı':fmt(r.crest_factor_db,2)+' dB'],['Tam ölçeğe yakın örnekler',`${r.near_full_sample_count} (${fmt(r.near_full_sample_percent,5)}%)`]];$('wavReport').innerHTML='<div class="report-table">'+rows.map(([a,b])=>`<div>${safeText(a)}</div><div>${safeText(b)}</div>`).join('')+'</div><p style="margin:14px 0 0;color:#8e9baa">'+safeText(r.scope_note)+'</p>';}
 
 // --- Ortak tarayıcı tabanlı LUFS tahmin/normalizasyon motoru ---
-async function normalizeLoudnessBrowser(file,target,tp){
+async function stagepulseDeManBiquads(rate){
+ const g=3.99984385397,qShelf=.7071752369554193,fcShelf=1681.9744509555319,qHigh=.5003270373253953,fcHigh=38.13547087613982;
+ const k=Math.tan(Math.PI*fcShelf/rate),vh=Math.pow(10,g/20),vb=Math.pow(vh,.499666774155),den=1+k/qShelf+k*k;
+ const shelfB=[(vh+vb*k/qShelf+k*k)/den,2*(k*k-vh)/den,(vh-vb*k/qShelf+k*k)/den];
+ const shelfA=[1,2*(k*k-1)/den,(1-k/qShelf+k*k)/den];
+ const kh=Math.tan(Math.PI*fcHigh/rate),dh=1+kh/qHigh+kh*kh;
+ const highB=[1/dh,-2/dh,1/dh],highA=[1,2*(kh*kh-1)/dh,(1-kh/qHigh+kh*kh)/dh];
+ return [{b:shelfB,a:shelfA},{b:highB,a:highA}];
+}
+function stagepulseApplyBiquad(samples,b,a){
+ const out=new Float32Array(samples.length);let x1=0,x2=0,y1=0,y2=0;
+ for(let i=0;i<samples.length;i++){
+  const x=samples[i],y=b[0]*x+b[1]*x1+b[2]*x2-a[1]*y1-a[2]*y2;
+  out[i]=y;x2=x1;x1=x;y2=y1;y1=y;
+ }
+ return out;
+}
+function stagepulseMeasureLoudness(channels,rate){
+ if(!channels.length||channels.length>2)throw new Error('Tarayıcı ölçümü şu anda mono/stereo içindir. Çok kanallı 5.1 dosyayı stereo dışa aktarmadan önce ayrı bir ölçüm zincirinde değerlendirin.');
+ const hop=Math.max(1,Math.round(rate*.1)),hopCount=Math.floor(channels[0].length/hop);
+ if(hopCount<4)throw new Error('Integrated loudness için en az 400 ms ses gerekli.');
+ const biquads=stagepulseDeManBiquads(rate),hopPower=channels.map(()=>new Float64Array(hopCount));
+ for(let c=0;c<channels.length;c++){
+  let stage=channels[c];
+  for(const filter of biquads)stage=stagepulseApplyBiquad(stage,filter.b,filter.a);
+  for(let h=0;h<hopCount;h++){
+   let sum=0,start=h*hop,end=start+hop;
+   for(let i=start;i<end;i++)sum+=stage[i]*stage[i];
+   hopPower[c][h]=sum/hop;
+  }
+ }
+ const windows=[];
+ for(let start=0;start<=hopCount-4;start++){
+  const energy=channels.map((_,c)=>(hopPower[c][start]+hopPower[c][start+1]+hopPower[c][start+2]+hopPower[c][start+3])/4);
+  const total=energy.reduce((a,b)=>a+b,0),loudness=total>0?-0.691+10*Math.log10(total):-Infinity;
+  windows.push({energy,loudness});
+ }
+ const absolute=windows.filter(x=>x.loudness>=-70);
+ if(!absolute.length)throw new Error('Kaynak sessiz veya -70 LUFS mutlak kapısının altında.');
+ const meanByChannel=list=>channels.map((_,c)=>list.reduce((s,x)=>s+x.energy[c],0)/list.length);
+ const preliminaryEnergy=meanByChannel(absolute).reduce((a,b)=>a+b,0);
+ const relativeGate=preliminaryEnergy>0?-0.691+10*Math.log10(preliminaryEnergy)-10:-Infinity;
+ const gated=absolute.filter(x=>x.loudness>=relativeGate&&x.loudness>=-70);
+ if(!gated.length)throw new Error('Göreli loudness kapısından geçen blok bulunamadı.');
+ const measuredEnergy=meanByChannel(gated).reduce((a,b)=>a+b,0);
+ const integrated=-0.691+10*Math.log10(Math.max(measuredEnergy,1e-30));
+ const momentary=windows.map(x=>x.loudness).filter(Number.isFinite);
+ const shortTerm=[];
+ if(hopCount>=30){
+  for(let start=0;start<=hopCount+15-30;start++){
+   let total=0;
+   for(let c=0;c<channels.length;c++){
+    let sum=0;for(let h=start;h<start+30;h++)sum+=h<hopCount?hopPower[c][h]:0;
+    total+=sum/30;
+   }
+   shortTerm.push(total>0?-0.691+10*Math.log10(total):-Infinity);
+  }
+ }
+ const stAbsolute=shortTerm.filter(x=>x>=-70);
+ let lra=null,lraLow=null,lraHigh=null,lraRelativeGate=null;
+ if(stAbsolute.length){
+  const stPower=stAbsolute.reduce((s,x)=>s+Math.pow(10,x/10),0)/stAbsolute.length;
+  const stIntegrated=10*Math.log10(Math.max(stPower,1e-30));
+  lraRelativeGate=stIntegrated-20;
+  const stGated=stAbsolute.filter(x=>x>=lraRelativeGate);
+  if(stGated.length){
+   stGated.sort((a,b)=>a-b);
+   const percentile=p=>{const index=(stGated.length-1)*p,lo=Math.floor(index),hi=Math.ceil(index);return stGated[lo]+(stGated[hi]-stGated[lo])*(index-lo);};
+   lraLow=percentile(.10);lraHigh=percentile(.95);lra=lraHigh-lraLow;
+  }
+ }
+ return {integrated_lufs:integrated,lra_lu:lra,lra_p10_lufs:lraLow,lra_p95_lufs:lraHigh,
+  momentary_max_lufs:momentary.length?Math.max(...momentary):null,
+  short_term_max_lufs:shortTerm.some(Number.isFinite)?Math.max(...shortTerm.filter(Number.isFinite)):null,
+  gate_blocks_total:windows.length,gate_blocks_absolute:absolute.length,gate_blocks_used:gated.length,
+  absolute_gate_lufs:-70,relative_gate_lu:-10,block_ms:400,overlap_percent:75,
+  lra_absolute_gate_lufs:-70,lra_relative_gate_lu:-20,lra_block_seconds:3,lra_step_seconds:.1};
+}
+function stagepulseTruePeak4x(channels){
+ let peak=0;
+ for(const channel of channels){
+  const n=channel.length;
+  for(let i=0;i<n;i++)peak=Math.max(peak,Math.abs(channel[i]));
+  for(let i=1;i<n-2;i++){
+   const p0=channel[i-1],p1=channel[i],p2=channel[i+1],p3=channel[i+2];
+   if(Math.abs(p1)<Math.abs(p0)||Math.abs(p1)<Math.abs(p2))continue;
+   for(let phase=1;phase<=3;phase++){
+    const t=phase*.25,t2=t*t,t3=t2*t;
+    const y=.5*((2*p1)+(-p0+p2)*t+(2*p0-5*p1+4*p2-p3)*t2+(-p0+3*p1-3*p2+p3)*t3);
+    peak=Math.max(peak,Math.abs(y));
+   }
+  }
+ }
+ return peak>0?20*Math.log10(peak):-120;
+}
+function normalizeLoudnessBrowser(file,target,tp){
  if(!file)throw new Error('Ses dosyası seçilmedi.');
  if(file.size>256*1024*1024)throw new Error('Dosya 256 MB sınırını aşıyor; daha kısa bir kaynak seç.');
  const AudioCtx=window.AudioContext||window.webkitAudioContext;
@@ -868,58 +963,48 @@ async function normalizeLoudnessBrowser(file,target,tp){
  try{
   const decoded=await ctx.decodeAudioData(await file.arrayBuffer());
   if(decoded.length>decoded.sampleRate*900)throw new Error('Bu araçta 15 dakikadan uzun dosyalar sınırlandırılmıştır.');
-  const channels=Math.min(2,decoded.numberOfChannels),rate=decoded.sampleRate,frames=decoded.length;
-  const source=Array.from({length:channels},(_,c)=>decoded.getChannelData(c));
-  const weighted=[];
-  for(let c=0;c<channels;c++){
-   const offline=new OfflineAudioContext(1,frames,rate),input=offline.createBuffer(1,frames,rate);
-   input.copyToChannel(source[c],0);
-   const src=offline.createBufferSource();src.buffer=input;
-   const hp=offline.createBiquadFilter();hp.type='highpass';hp.frequency.value=38;hp.Q.value=.5;
-   const shelf=offline.createBiquadFilter();shelf.type='highshelf';shelf.frequency.value=1500;shelf.gain.value=4;
-   src.connect(hp);hp.connect(shelf);shelf.connect(offline.destination);src.start();
-   const rendered=await offline.startRendering();weighted.push(rendered.getChannelData(0));
-  }
-  const block=Math.max(1,Math.round(rate*.4)),blocks=[];
-  for(let start=0;start<frames;start+=block){
-   const end=Math.min(frames,start+block);let sum=0;
-   for(let c=0;c<channels;c++)for(let i=start;i<end;i++)sum+=weighted[c][i]*weighted[c][i];
-   const mean=sum/Math.max(1,(end-start)*channels);
-   blocks.push({loudness:mean>0?-0.691+10*Math.log10(mean):-Infinity,energy:mean});
-  }
-  const absolute=blocks.filter(b=>b.loudness>-70);
-  if(!absolute.length)throw new Error('Kaynak sessiz veya ölçülebilir seviyenin altında.');
-  const meanEnergy=list=>list.reduce((s,b)=>s+b.energy,0)/Math.max(1,list.length);
-  const preliminary=-0.691+10*Math.log10(meanEnergy(absolute));
-  const gated=absolute.filter(b=>b.loudness>=preliminary-10);
-  const measured=-0.691+10*Math.log10(meanEnergy(gated));
-  let peak=0;
-  for(const channel of source)for(let i=0;i<channel.length;i++){
-   peak=Math.max(peak,Math.abs(channel[i]));
-   if(i>0)for(let k=1;k<4;k++)peak=Math.max(peak,Math.abs(channel[i-1]+(channel[i]-channel[i-1])*k/4));
-  }
-  const peakDb=peak>0?20*Math.log10(peak):-Infinity;
-  const desiredGain=target-measured,gainDb=Math.min(desiredGain,tp-peakDb),gain=Math.pow(10,gainDb/20);
-  const outChannels=channels===1?[source[0],source[0]]:[source[0],source[1]];
-  const bytes=44+frames*4,ab=new ArrayBuffer(bytes),view=new DataView(ab);
+  if(decoded.numberOfChannels>2)throw new Error('Bu tarayıcı aracı mono/stereo dosyaları destekler. 5.1/çok kanallı dosyayı stereo downmix yapmadan işleyemez.');
+  const channels=Array.from({length:decoded.numberOfChannels},(_,c)=>decoded.getChannelData(c));
+  const rate=decoded.sampleRate,frames=decoded.length;
+  const input=stagepulseMeasureLoudness(channels,rate),inputTp=stagepulseTruePeak4x(channels);
+  const requestedGain=target-input.integrated_lufs,peakLimitedGain=tp-inputTp,gainDb=Math.min(requestedGain,peakLimitedGain),gain=Math.pow(10,gainDb/20);
+  const outputChannels=channels.map(channel=>{
+   const out=new Float32Array(channel.length);
+   for(let i=0;i<channel.length;i++)out[i]=Math.max(-1,Math.min(1,channel[i]*gain));
+   return out;
+  });
+  const bytes=44+frames*channels.length*3,ab=new ArrayBuffer(bytes),view=new DataView(ab),blockAlign=channels.length*3;
   const write=(off,s)=>{for(let i=0;i<s.length;i++)view.setUint8(off+i,s.charCodeAt(i));};
-  write(0,'RIFF');view.setUint32(4,bytes-8,true);write(8,'WAVE');write(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,2,true);view.setUint32(24,rate,true);view.setUint32(28,rate*4,true);view.setUint16(32,4,true);view.setUint16(34,16,true);write(36,'data');view.setUint32(40,frames*4,true);
-  let offset=44,outPeak=0;
-  for(let i=0;i<frames;i++)for(let c=0;c<2;c++){
-   const v=Math.max(-1,Math.min(1,outChannels[c][i]*gain));outPeak=Math.max(outPeak,Math.abs(v));
-   view.setInt16(offset,v<0?Math.round(v*32768):Math.round(v*32767),true);offset+=2;
+  write(0,'RIFF');view.setUint32(4,bytes-8,true);write(8,'WAVE');write(12,'fmt ');view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,channels.length,true);view.setUint32(24,rate,true);view.setUint32(28,rate*blockAlign,true);view.setUint16(32,blockAlign,true);view.setUint16(34,24,true);write(36,'data');view.setUint32(40,frames*blockAlign,true);
+  let offset=44,samplePeak=0;
+  for(let i=0;i<frames;i++)for(let c=0;c<channels.length;c++){
+   const v=outputChannels[c][i],q=Math.max(-8388608,Math.min(8388607,Math.round(v*8388608)));
+   samplePeak=Math.max(samplePeak,Math.abs(v));
+   const u=q<0?q+0x1000000:q;
+   view.setUint8(offset,u&255);view.setUint8(offset+1,(u>>8)&255);view.setUint8(offset+2,(u>>16)&255);offset+=3;
+   outputChannels[c][i]=q/8388608;
   }
+  const output=stagepulseMeasureLoudness(outputChannels,rate),outputTp=stagepulseTruePeak4x(outputChannels);
+  if(outputTp>tp+.15)throw new Error('Dışa aktarılan WAV true-peak tavanını aşıyor; güvenli çıktı oluşturulmadı.');
   const outName=file.name.replace(/\.[^.]+$/,'')+'_Stagepulse_Loudness.wav';
   const url=URL.createObjectURL(new Blob([ab],{type:'audio/wav'})),a=document.createElement('a');
   a.href=url;a.download=outName;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
-  return {source:file.name,output:outName,duration_seconds:frames/rate,sample_rate_hz:rate,channels_in:decoded.numberOfChannels,measured_loudness_lufs_estimate:measured,target_lufs:target,applied_gain_db:gainDb,requested_gain_db:desiredGain,estimated_true_peak_before_dbtp:peakDb,estimated_sample_peak_after_dbfs:outPeak>0?20*Math.log10(outPeak):-Infinity,gate_blocks_used:gated.length,output_format:'Stereo 16-bit PCM WAV',notes:'Yaklaşık ölçüm: 400 ms blokları, yaklaşık K-weighting ve -70 LUFS / göreli -10 LU kapılama kullanıldı. True-peak 4x doğrusal ara örnekleme tahminidir; EBU/ITU uyumluluk sertifikalı ölçüm değildir. Limiter uygulanmadı; tepe tavanı nedeniyle hedef loudness tutmayabilir.'};
+  return {source:file.name,output:outName,duration_seconds:frames/rate,sample_rate_hz:rate,channels:channels.length,
+   input_lufs_i:input.integrated_lufs,output_lufs_i:output.integrated_lufs,target_lufs_i:target,
+   input_lra_lu:input.lra_lu,output_lra_lu:output.lra_lu,
+   max_momentary_lufs:input.momentary_max_lufs,max_short_term_lufs:input.short_term_max_lufs,
+   input_true_peak_4x_estimate_dbtp:inputTp,output_true_peak_4x_estimate_dbtp:outputTp,
+   applied_gain_db:gainDb,requested_gain_db:requestedGain,target_lufs_limited_by_peak:gainDb<requestedGain-1e-6,
+   output_sample_peak_dbfs:samplePeak>0?20*Math.log10(samplePeak):-120,output_format:'24-bit PCM WAV',
+   measurement:'DeMan K-weighting; 400 ms blocks, 75% overlap, -70 LUFS absolute and -10 LU relative gating; LRA uses 3 s blocks/100 ms step and -20 LU relative gate.',
+   notes:'True Peak, 4x cubic inter-sample estimate. Bu tarayıcı tahminidir; EBU Loudness Test Set ile doğrulanmış veya sertifikalı ölçüm değildir. Çok kanallı 5.1 desteklenmez. Limiter uygulanmaz.'};
  }finally{try{await ctx.close();}catch(_){}}
 }
 function chooseBrowserLufs(target,tp){
  const picker=document.createElement('input');picker.type='file';picker.accept='audio/*,.wav,.mp3,.m4a,.flac,.ogg';picker.style.position='fixed';picker.style.left='-10000px';
  picker.addEventListener('change',async()=>{const file=picker.files&&picker.files[0];picker.remove();if(!file)return;
-  $('runLufs').disabled=true;$('lufsReport').textContent='Ses çözümleniyor, yaklaşık loudness ölçülüyor ve WAV dışa aktarılıyor…';
-  try{const r=await normalizeLoudnessBrowser(file,target,tp);$('lufsReport').textContent=Object.entries(r).map(([k,v])=>k+': '+(typeof v==='number'?fmt(v,3):String(v))).join('\n');setStatus('Yaklaşık loudness işlemi tamamlandı; çıktıyı dinleyerek doğrula.');}
+  $('runLufs').disabled=true;$('lufsReport').textContent='Ses çözümleniyor, K-weighting loudness/LRA ölçülüyor ve 24-bit WAV hazırlanıyor…';
+  try{const r=await normalizeLoudnessBrowser(file,target,tp);$('lufsReport').textContent=Object.entries(r).map(([k,v])=>k+': '+(typeof v==='number'?fmt(v,3):String(v))).join('\n');setStatus('Loudness/LRA ölçümü ve 4x True Peak tahmini tamamlandı; teslim öncesi bağımsız ölçerle doğrula.');}
   catch(err){$('lufsReport').textContent='Normalizasyon başarısız: '+(err.message||String(err));}
   finally{$('runLufs').disabled=false;}
  });
