@@ -193,21 +193,15 @@ jobs:
       - name: Microsoft Store için kimliği eşleşen imzasız MSIX oluştur ve doğrula
         shell: pwsh
         run: |
-          $payload = Join-Path $env:GITHUB_WORKSPACE 'windows\\build\\payload\\StagepulseSesMerkezi'
-          $output = Join-Path $env:GITHUB_WORKSPACE 'windows\\dist'
+          $payload = Join-Path $env:GITHUB_WORKSPACE 'windows\build\payload\StagepulseSesMerkezi'
+          $output = Join-Path $env:GITHUB_WORKSPACE 'windows\dist'
           & ./windows/MSIX_OLUSTUR.ps1 -PayloadPath $payload -OutputDirectory $output -StoreSubmission
           if ($LASTEXITCODE -ne 0) { throw "Store MSIX derlemesi başarısız: $LASTEXITCODE" }
           $packages = @(Get-ChildItem -LiteralPath $output -Filter 'Stagepulse-Ses-Merkezi-Store-*.msix' -File)
           if ($packages.Count -ne 1) { throw 'Tek bir Microsoft Store MSIX paketi bekleniyordu.' }
           if (-not (Test-Path -LiteralPath ($packages[0].FullName + '.sha256'))) { throw 'Store MSIX SHA-256 dosyası eksik.' }
-          $sdkBin = Join-Path ([Environment]::GetEnvironmentVariable('ProgramFiles(x86)')) 'Windows Kits\\10\\bin'
-          $makeAppx = Get-ChildItem -Path $sdkBin -Filter MakeAppx.exe -Recurse | Where-Object { $_.FullName -match '\\\\x64\\\\MakeAppx\\.exe
-        with:
-          name: Stagepulse-Ses-Merkezi-Windows-${{ steps.version.outputs.version }}
-          path: windows/dist/*
-          if-no-files-found: error
-          retention-days: 30
- } | Sort-Object FullName -Descending | Select-Object -First 1
+          $sdkBin = Join-Path ([Environment]::GetEnvironmentVariable('ProgramFiles(x86)')) 'Windows Kits\10\bin'
+          $makeAppx = Get-ChildItem -Path $sdkBin -Filter MakeAppx.exe -Recurse | Where-Object { $_.FullName -match '\\x64\\MakeAppx\.exe$' } | Sort-Object FullName -Descending | Select-Object -First 1
           if (-not $makeAppx) { throw 'MakeAppx.exe bulunamadı.' }
           $unpack = Join-Path $env:RUNNER_TEMP 'stagepulse-store-msix-check'
           & $makeAppx.FullName unpack /o /p $packages[0].FullName /d $unpack
