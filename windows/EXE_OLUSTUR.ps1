@@ -159,7 +159,7 @@ $arguments = @(
   '--collect-all','webview','--collect-all','pythonnet','--collect-all','clr_loader',
   '--collect-all','numpy','--collect-all','sounddevice','--collect-all','_sounddevice_data',
   '--hidden-import','webview.platforms.edgechromium','--hidden-import','cryptography.hazmat.primitives.ciphers.aead',
-  '--add-data',"ui${sep}ui",'--add-data',"araclar${sep}araclar",'--add-data',"egitim_paketleri${sep}egitim_paketleri"
+  '--add-data',"ui${sep}ui",'--add-data',"araclar${sep}araclar",'--add-data',"egitim_paketleri${sep}egitim_paketleri",'--add-data',"references${sep}references"
 )
 $studentDocs = @(
  '00_BASLANGIC_TR.md','01_CANLI_SES_IS_AKISI_TR.md','02_PA_ARRAY_SUB_HIZALAMA_TR.md',
