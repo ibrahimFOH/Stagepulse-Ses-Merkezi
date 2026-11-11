@@ -51,7 +51,7 @@ def bilingualize_markup(value):
     """Metin akışındaki Türkçe teknik terimleri İngilizce karşılığıyla birlikte gösterir."""
     text = str(value)
     for tr, en in sorted(TERMS, key=lambda pair: len(pair[0]), reverse=True):
-        pattern = r"(?<![\wğüşöçıİĞÜŞÖÇ])" + re.escape(tr) + r"(?![\\wğüşöçıİĞÜŞÖÇ])(?!\\s*\\()"
+        pattern = r"(?<![\wğüşöçıİĞÜŞÖÇ])" + re.escape(tr) + r"(?![\wğüşöçıİĞÜŞÖÇ])(?!\s*\()"
         text = re.sub(pattern, lambda match, label=f"{tr} ({en})": label, text, flags=re.IGNORECASE)
     return text
 
