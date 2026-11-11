@@ -50,11 +50,13 @@ def test_mix_mastering_is_fully_wired_on_windows_and_android():
     windows_core = (ROOT / "Merkez.py").read_text("utf-8")
     windows_doc = ROOT / "docs/MIKS_MASTERING_KAYNAK_REHBERI_TR.md"
     android_doc = android / "docs/MIKS_MASTERING_KAYNAK_REHBERI_TR.md"
+    android_docs_list = json.loads((android / "ui/docs-list.json").read_text("utf-8"))
     windows_catalog = ROOT / "egitim_paketleri/stagepulse_egitim_katalogu_v1.json"
     android_catalog = android / "egitim_paketleri/stagepulse_egitim_katalogu_v1.json"
 
     assert "MIKS_MASTERING_KAYNAK_REHBERI_TR.md" in windows_core
     assert windows_doc.is_file() and android_doc.is_file()
+    assert any(item["file"] == "MIKS_MASTERING_KAYNAK_REHBERI_TR.md" for item in android_docs_list)
     assert windows_doc.read_bytes() == android_doc.read_bytes()
     assert windows_catalog.read_bytes() == android_catalog.read_bytes()
     for html in (windows_html, android_html):
