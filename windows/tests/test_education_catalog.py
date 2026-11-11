@@ -68,7 +68,7 @@ def test_mix_mastering_is_fully_wired_on_windows_and_android():
         assert "chooseBrowserLufs(target,tp);return;" in js
     assert "normalize_lufs_dialog(target,tp)" in windows_js
     assert "normalize_lufs_dialog(target,tp)" not in android_js
-    marker = "// --- Multitrack mix lab ---"
+    marker = "function initLufs"
     win_engine = windows_js[windows_js.index("async function normalizeLoudnessBrowser"):windows_js.index(marker)]
     android_engine = android_js[android_js.index("async function normalizeLoudnessBrowser"):android_js.index(marker)]
     assert win_engine == android_engine
