@@ -17,10 +17,12 @@ OUT.mkdir(exist_ok=True)
 FONT_CANDIDATES = [
     '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
     '/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf',
+    'C:/Windows/Fonts/arial.ttf',
 ]
 BOLD_CANDIDATES = [
     '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
     '/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf',
+    'C:/Windows/Fonts/arialbd.ttf',
 ]
 font_path = next((p for p in FONT_CANDIDATES if Path(p).exists()), None)
 bold_path = next((p for p in BOLD_CANDIDATES if Path(p).exists()), None)
