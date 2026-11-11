@@ -1,7 +1,7 @@
-# Stagepulse Ses Mühendisliği Merkezi 3.9.7 · Android
+# Stagepulse Ses Mühendisliği Merkezi 4.0.0 · Android
 
 **Uygulama kimliği:** `com.stagepulse.sesmerkezi`  
-**Sürüm kodu:** `30907`  
+**Sürüm kodu:** `40000`  
 **Minimum Android:** API 26  
 **Hedef Android:** API 35  
 **Derleme:** JDK 17 · Gradle 8.13 · Android Gradle Plugin 8.13.2 · Android SDK 35

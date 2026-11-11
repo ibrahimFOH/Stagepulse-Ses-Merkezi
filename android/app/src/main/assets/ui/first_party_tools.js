@@ -176,8 +176,16 @@
     const ctx = getDynamicsContext();
     if (ctx.state !== 'running') await ctx.resume();
     stopDynamicsSource(type);
-    const buffer = ctx.createBuffer(1, data.length, 44100);
-    buffer.copyToChannel(data, 0);
+    const isFloat32View = data && ArrayBuffer.isView(data) && data.BYTES_PER_ELEMENT === 4;
+    if (!isFloat32View && !Array.isArray(data)) {
+      throw new TypeError('Ses örneği Float32Array veya sayı dizisi olmalı.');
+    }
+    const samples = data instanceof Float32Array ? data : Float32Array.from(data);
+    if (!samples.length || !Array.from(samples).every(Number.isFinite)) {
+      throw new TypeError('Ses örneği boş veya geçersiz değer içeriyor.');
+    }
+    const buffer = ctx.createBuffer(1, samples.length, 44100);
+    buffer.copyToChannel(samples, 0);
     const source = ctx.createBufferSource();
     const gain = ctx.createGain();
     gain.gain.value = 0.34;
@@ -240,7 +248,8 @@
     const playQuizSample = async (type, slot) => {
       const item = dynamicsBuffers[type];
       if (!item || !item.quizOrder) throw new Error('Önce yeni rastgele tur oluştur.');
-      await playProcessed(type, item.quizOrder[slot]);
+      const variant = item.quizOrder[slot];
+      await playProcessed(type, item[variant]);
     };
     const answerQuiz = (type, answer) => {
       const item = dynamicsBuffers[type];
