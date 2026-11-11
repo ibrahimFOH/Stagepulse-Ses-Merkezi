@@ -97,7 +97,7 @@ def test_windows_android_have_same_28_primary_screens():
     win_html = (ROOT / "ui/index.html").read_text("utf-8")
     android_html = (repo / "android/app/src/main/assets/ui/index.html").read_text("utf-8")
     import re
-    win_pages = set(re.findall(r'data-page=["\\']([^"\\']+)["\\']', win_html))
-    android_pages = set(re.findall(r'data-page=["\\']([^"\\']+)["\\']', android_html))
+    win_pages = set(re.findall(r"""data-page=["']([^"']+)["']""", win_html))
+    android_pages = set(re.findall(r"""data-page=["']([^"']+)["']""", android_html))
     assert len(win_pages) == 28
     assert win_pages == android_pages
