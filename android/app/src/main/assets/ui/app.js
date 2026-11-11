@@ -272,6 +272,7 @@ async function loadCurriculumWorkshop(){
  if(!curriculumCatalog){const r=await fetch('../egitim_paketleri/stagepulse_egitim_katalogu_v1.json');if(!r.ok)throw new Error('Katalog HTTP '+r.status);curriculumCatalog=await r.json();}
  const sel=$('curriculumTrackSelect'); if(!sel)return;
  if(!sel.dataset.bound){sel.dataset.bound='1';sel.addEventListener('change',renderCurriculumWorkshop);$('saveCurriculumPractice').addEventListener('click',saveCurriculumPractice);$('curriculumQuizButton').addEventListener('click',renderCurriculumQuiz);}
+ if(!sel.dataset.trackCardsBound){sel.dataset.trackCardsBound='1';document.querySelectorAll('[data-select-track]').forEach(button=>button.addEventListener('click',()=>{sel.value=button.dataset.selectTrack;renderCurriculumWorkshop();$('curriculumTrackDetails').scrollIntoView({behavior:'smooth',block:'start'});}));}
  renderCurriculumWorkshop();
 }
 function renderCurriculumWorkshop(){
@@ -1195,7 +1196,7 @@ function initWav(){
 }
 function renderWavReport(r){const rows=[['Dosya',r.file],['Kanal sayısı',r.channels],['Örnekleme',r.sample_rate_hz+' Hz'],['Bit derinliği',r.bits_per_sample+' bit '+(r.format||'PCM')],['Süre',fmt(r.duration_seconds,3)+' s'],['Sample peak',r.sample_peak_dbfs===null?'Sessiz':fmt(r.sample_peak_dbfs,2)+' dBFS'],['RMS',r.rms_dbfs===null?'Sessiz':fmt(r.rms_dbfs,2)+' dBFS'],['Crest factor',r.crest_factor_db===null?'Hesaplanmadı':fmt(r.crest_factor_db,2)+' dB'],['Tam ölçeğe yakın örnekler',`${r.near_full_sample_count} (${fmt(r.near_full_sample_percent,5)}%)`]];$('wavReport').innerHTML='<div class="report-table">'+rows.map(([a,b])=>`<div>${safeText(a)}</div><div>${safeText(b)}</div>`).join('')+'</div><p style="margin:14px 0 0;color:#8e9baa">'+safeText(r.scope_note)+'</p>';}
 
-// --- Offline LUFS normalization via bundled Python DSP dependencies ---
+// --- Ortak tarayıcı tabanlı LUFS tahmin/normalizasyon motoru ---
 
 async function normalizeLoudnessBrowser(file,target,tp){
  if(!file)throw new Error('Ses dosyası seçilmedi.');
@@ -1267,8 +1268,7 @@ function initLufs(){
  $('runLufs').addEventListener('click',async()=>{
   const target=Number($('lufsTarget').value),tp=Number($('tpTarget').value);
   if(!Number.isFinite(target)||target< -70||target>0||!Number.isFinite(tp)||tp< -20||tp>0){$('lufsReport').textContent='Hedef loudness -70..0, tepe tavanı -20..0 aralığında olmalı.';return;}
-  if(!api()){chooseBrowserLufs(target,tp);return;}
-  try{$('runLufs').disabled=true;$('lufsReport').textContent='Kaynak/çıktı seçimi ve loudness işlemi sürüyor…';const r=await api().normalize_lufs_dialog(target,tp);if(r.cancelled){$('lufsReport').textContent='İşlem iptal edildi.';return;}$('lufsReport').textContent=Object.entries(r).map(([k,v])=>k+': '+(typeof v==='number'?fmt(v,3):typeof v==='object'?JSON.stringify(v):v)).join('\n');setStatus('LUFS işlemi tamamlandı. Çıktıyı tekrar kontrol et.');}catch(err){$('lufsReport').textContent='Normalizasyon başarısız: '+(err.message||String(err));}finally{$('runLufs').disabled=false;}
+  chooseBrowserLufs(target,tp);return;
  });
 }
 
