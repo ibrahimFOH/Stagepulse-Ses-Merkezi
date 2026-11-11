@@ -32,7 +32,8 @@ styles.add(ParagraphStyle(name='Callout',fontName=REG,fontSize=8.6,leading=12,te
 styles.add(ParagraphStyle(name='Danger',fontName=BOLD,fontSize=8.6,leading=12,textColor=RED,backColor=colors.HexColor('#f8eeec'),borderColor=colors.HexColor('#d8a49f'),borderWidth=.65,borderPadding=7,spaceBefore=4,spaceAfter=7))
 styles.add(ParagraphStyle(name='Cell',fontName=REG,fontSize=7.2,leading=9.2,textColor=INK))
 styles.add(ParagraphStyle(name='CellHead',fontName=BOLD,fontSize=7.2,leading=9.2,textColor=INK))
-P=lambda x,s='BodySP': Paragraph(x,styles[s])
+from append_bilingual_glossary import bilingualize_markup
+P=lambda x,s='BodySP': Paragraph(bilingualize_markup(x),styles[s])
 story=[]
 
 def table(rows, widths, header=True):
