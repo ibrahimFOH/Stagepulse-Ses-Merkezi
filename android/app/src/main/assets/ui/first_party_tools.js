@@ -185,7 +185,9 @@
       throw new TypeError('Ses örneği boş veya geçersiz değer içeriyor.');
     }
     const buffer = ctx.createBuffer(1, samples.length, 44100);
-    buffer.copyToChannel(samples, 0);
+    // copyToChannel bazı Android WebView sürümlerinde farklı realm'den gelen Float32Array'i reddedebiliyor.
+    // Web Audio'nun kendi kanal görünümüne kopyalamak aynı Float32 örneklerini güvenli biçimde aktarır.
+    buffer.getChannelData(0).set(samples);
     const source = ctx.createBufferSource();
     const gain = ctx.createGain();
     gain.gain.value = 0.34;
