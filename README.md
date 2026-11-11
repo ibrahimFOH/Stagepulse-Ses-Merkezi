@@ -2,7 +2,7 @@
 
 Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasından oluşan Türkçe ses mühendisliği platformudur. Yönetici hesabı ve yetkileri ana uygulama içindeki giriş/oturum akışıyla yönetilir. Son kullanıcı paketleri ayrı Stagepulse-Releases deposunda üretilir.
 
-## 4.0.0 Sistem tasarım araçları ve mühendislik güncellemeleri
+## 4.0.1 Sistem tasarım araçları ve mühendislik güncellemeleri
 
 - Line Array Designer: kabin sayısı, splay, aiming ve askı yüksekliği için geometrik yan görünüş.
 - SPL Coverage: iki eşit noktasal kaynağa dayalı, serbest alan varsayımlı yaklaşık 2D seviye haritası.
@@ -41,17 +41,17 @@ Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasında
 
 ## Platform sürümleri
 
-Kaynak sürümü 4.0.0'dır. Aşağıdaki sürüm bilgileri kaynak ağacını tanımlar; tek başına Release deposunda imzalı kurulumların yayımlandığını veya fiziksel cihaz kabul testlerinin tamamlandığını göstermez.
+Kaynak sürümü 4.0.1'dır. Aşağıdaki sürüm bilgileri kaynak ağacını tanımlar; tek başına Release deposunda imzalı kurulumların yayımlandığını veya fiziksel cihaz kabul testlerinin tamamlandığını göstermez.
 
 | Bileşen | Kaynak sürümü | Sürümün yönetildiği yer |
 |---|---:|---|
-| Windows Ses Merkezi | 4.0.0 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
-| Android Ses Merkezi | 4.0.0 (40000) | android/app/build.gradle |
+| Windows Ses Merkezi | 4.0.1 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
+| Android Ses Merkezi | 4.0.1 (40001) | android/app/build.gradle |
 | Yönetici girişi | Ana uygulama içinde | Ana uygulamanın kimlik doğrulama ve yetki kontrolü |
 
-4.0.0 kaynak sürümüdür. Windows EXE ve imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır; indirme manifesti ve SHA-256 dosyaları da aynı sürümle üretilir. Android APK kalıcı Stagepulse keystore ile imzalanmıştır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz.
+4.0.1 kaynak sürümüdür. Windows EXE ve imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır; indirme manifesti ve SHA-256 dosyaları da aynı sürümle üretilir. Android APK kalıcı Stagepulse keystore ile imzalanmıştır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz.
 
-## Uygulama ekranları ve araç envanteri (4.0.0)
+## Uygulama ekranları ve araç envanteri (4.0.1)
 
 Windows ve Android arayüzlerinde aynı 28 çalışma ekranı bulunur. Ekran adlarının ortak olması, donanıma bağlı işlevlerin iki platformda birebir aynı olduğu anlamına gelmez; platform farkları aşağıda ayrıca belirtilmiştir.
 
@@ -75,7 +75,7 @@ Windows ve Android arayüzlerinde aynı 28 çalışma ekranı bulunur. Ekran adl
 
 ### Eğitim PDF güncellemesi
 
-4.0.0 öğrenci kitaplığındaki canlı ses PDF'si RF tarama, intermodülasyon, anten ve IEM koordinasyonu; stüdyo PDF'si miks/mastering, LUFS, true peak ve dither konularını kapsar. PDF üretim hattı bu kitapları Windows ve Android varlıklarına aynı dosya içeriğiyle yazar ve doğrular.
+4.0.1 öğrenci kitaplığındaki canlı ses PDF'si RF tarama, intermodülasyon, anten ve IEM koordinasyonu; stüdyo PDF'si miks/mastering, LUFS, true peak ve dither konularını kapsar. PDF üretim hattı bu kitapları Windows ve Android varlıklarına aynı dosya içeriğiyle yazar ve doğrular.
 
 ### Eğitim kataloğu
 
