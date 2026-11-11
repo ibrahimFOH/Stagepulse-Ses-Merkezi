@@ -95,6 +95,21 @@
 - Dosyayı yeniden açıp QC formunu doldur
 **Usta onay kapısı:** Oturum dosyası, ham kaynak, miks, teslim formatı ve kalite kontrol raporu eksiksiz; kör A/B dinleme sınavı.
 
+### Miks ve Mastering Uzmanlığı
+**Hedef kitle:** Müzik prodüktörü, miks mühendisi ve mastering hazırlığı yapanlar
+**Modüller:**
+- Oturum hazırlığı, gain staging, dosya düzeni ve referans parça yönetimi
+- Statik denge, panorama, faz/polarite ve mono uyumluluğu
+- EQ, kompresyon, paralel işlem, saturation ve efekt derinliği
+- Otomasyon, bus routing, headroom ve miks revizyonu
+- LUFS-I, loudness range, sample peak, true peak ve teslim formatları
+**Uygulama ve sınav görevleri:**
+- Çok kanallı bir oturumu temizle, isimlendir ve yeniden açılabilir şekilde arşivle
+- Referans parçayla seviye eşlenmiş A/B miks karşılaştırması yap
+- Mono, faz, korelasyon ve düşük frekans kontrol raporu üret
+- Streaming ve yüksek çözünürlüklü teslim için ayrı master çıktıları ve QC formu hazırla
+**Usta onay kapısı:** Ham oturum, miks sürümleri, ölçüm raporu, teknik teslim dosyaları ve seviye eşlenmiş kör dinleme değerlendirmesi.
+
 ### SPL / Akustik / Gürültü Ölçümü
 **Hedef kitle:** Saha ölçümü, raporlama, mekan ve çevresel gürültü işi
 **Modüller:**
