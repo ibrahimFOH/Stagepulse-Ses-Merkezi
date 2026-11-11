@@ -1096,6 +1096,17 @@ function initLufs(){
  $('runLufs').addEventListener('click',async()=>{
   const target=Number($('lufsTarget').value),tp=Number($('tpTarget').value);
   if(!Number.isFinite(target)||target< -70||target>0||!Number.isFinite(tp)||tp< -20||tp>0){$('lufsReport').textContent='Hedef loudness -70..0, tepe tavanı -20..0 aralığında olmalı.';return;}
+  if(api()&&typeof api().normalize_lufs_dialog==='function'){
+   const button=$('runLufs');button.disabled=true;$('lufsReport').textContent='Windows yerel ölçüm motoru çalışıyor: DeMan K-weighting, LRA ve ITU BS.1770-5 True Peak FIR…';
+   try{
+    const result=await api().normalize_lufs_dialog(target,tp);
+    if(result&&result.cancelled){$('lufsReport').textContent='İşlem kullanıcı tarafından iptal edildi.';return;}
+    $('lufsReport').textContent=Object.entries(result||{}).map(([k,v])=>k+': '+(typeof v==='number'?fmt(v,3):Array.isArray(v)?v.join(' | '):String(v))).join('\n');
+    setStatus('Windows yerel LUFS normalizasyonu ve ITU True Peak FIR ölçümü tamamlandı.');
+   }catch(err){$('lufsReport').textContent='Yerel LUFS işlemi başarısız: '+(err.message||String(err));}
+   finally{button.disabled=false;}
+   return;
+  }
   chooseBrowserLufs(target,tp);return;
  });
 }
