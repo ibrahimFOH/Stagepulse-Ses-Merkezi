@@ -1,5 +1,7 @@
 # Stagepulse Ses Mühendisliği Merkezi 3.9.8
 
+Paylaşılan arayüz/araç modülleri Android ve Windows tarafında aynı 3.9.8 sürümünde tutulur.
+
 **Tek Windows kurulum dosyası · tek pencere uygulama · lisanssız yerel demo · çevrimiçi lisans, satış ve öğretmen kontrolü**
 
 ## 3.9.7 yeni araçlar
