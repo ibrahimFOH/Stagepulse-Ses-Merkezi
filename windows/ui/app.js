@@ -859,7 +859,7 @@ function initWav(){$('wavChoose').addEventListener('click',async()=>{if(!api()){
 function renderWavReport(r){const rows=[['Dosya',r.file],['Kanal sayısı',r.channels],['Örnekleme',r.sample_rate_hz+' Hz'],['Bit derinliği',r.bits_per_sample+' bit PCM'],['Süre',fmt(r.duration_seconds,3)+' s'],['Sample peak',r.sample_peak_dbfs===null?'Sessiz':fmt(r.sample_peak_dbfs,2)+' dBFS'],['RMS',r.rms_dbfs===null?'Sessiz':fmt(r.rms_dbfs,2)+' dBFS'],['Crest factor',r.crest_factor_db===null?'Hesaplanmadı':fmt(r.crest_factor_db,2)+' dB'],['Tam ölçeğe yakın örnekler',`${r.near_full_sample_count} (${fmt(r.near_full_sample_percent,5)}%)`]];$('wavReport').innerHTML='<div class="report-table">'+rows.map(([a,b])=>`<div>${safeText(a)}</div><div>${safeText(b)}</div>`).join('')+'</div><p style="margin:14px 0 0;color:#8e9baa">'+safeText(r.scope_note)+'</p>';}
 
 // --- Ortak tarayıcı tabanlı LUFS tahmin/normalizasyon motoru ---
-async function stagepulseDeManBiquads(rate){
+function stagepulseDeManBiquads(rate){
  const g=3.99984385397,qShelf=.7071752369554193,fcShelf=1681.9744509555319,qHigh=.5003270373253953,fcHigh=38.13547087613982;
  const k=Math.tan(Math.PI*fcShelf/rate),vh=Math.pow(10,g/20),vb=Math.pow(vh,.499666774155),den=1+k/qShelf+k*k;
  const shelfB=[(vh+vb*k/qShelf+k*k)/den,2*(k*k-vh)/den,(vh-vb*k/qShelf+k*k)/den];
@@ -958,7 +958,7 @@ function stagepulseTruePeak4x(channels){
  }
  return peak>0?20*Math.log10(peak):-120;
 }
-function normalizeLoudnessBrowser(file,target,tp){
+async function normalizeLoudnessBrowser(file,target,tp){
  if(!file)throw new Error('Ses dosyası seçilmedi.');
  if(file.size>256*1024*1024)throw new Error('Dosya 256 MB sınırını aşıyor; daha kısa bir kaynak seç.');
  const AudioCtx=window.AudioContext||window.webkitAudioContext;
