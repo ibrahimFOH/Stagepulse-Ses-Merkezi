@@ -112,7 +112,7 @@ Windows derleme testi `tests/test_visual_assets.py` dosyasında `fitz` modülü 
 
 ## EBU Tech 3341 V4.0 ve OAA çapraz kontrol notu
 
-Kaynak: EBU Tech 3341 V4.0, Kasım 2023, Tablo 1 (özellikle PDF sayfa 8-9). Referans eşlemeleri `windows/references/ebu_tech3341_reference.csv` dosyasındadır. Bu CSV, ZIP içindeki WAV dosya adları ile standartta açıkça verilen beklenen değerleri eşler; test sinyallerinin kendisini içermez.
+Kaynak: EBU Tech 3341 V4.0, Kasım 2023, Tablo 1 (özellikle PDF sayfa 8-9). Referans eşlemeleri `windows/references/ebu_tech3341_reference.csv` dosyasındadır. Bu CSV, ZIP içindeki WAV dosya adları ile standartta açıkça verilen beklenen değerleri eşler; test sinyallerinin kendisini içermez. CSV, Windows EXE paketine `references/` dizini olarak dahil edilir ve `validate_ebu_test_set()` tarafından otomatik yüklenir. Kullanıcının CSV dosyası seçmesi/yüklemesi gerekmez; yalnızca EBU WAV test klasörü seçilir.
 
 - Dosya-temelli referans eşlemesi: test 1-10, 12-13 ve 15-23.
 - Test 11 ve 14: canlı ölçer için art arda 20 Short-term/Momentary değer gerektirir. Mevcut toplu dosya ölçümü bu zaman dizisini doğrulamadığından bu testler kapsam dışıdır.
