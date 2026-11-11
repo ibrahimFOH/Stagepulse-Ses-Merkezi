@@ -51,7 +51,7 @@ def bilingualize_markup(value):
     """Metin akışındaki Türkçe teknik terimleri İngilizce karşılığıyla birlikte gösterir."""
     text = str(value)
     for tr, en in sorted(TERMS, key=lambda pair: len(pair[0]), reverse=True):
-        pattern = r"(?<![\\wğüşöçıİĞÜŞÖÇ])" + re.escape(tr) + r"(?![\\wğüşöçıİĞÜŞÖÇ])(?!\\s*\\()"
+        pattern = r"(?<![\wğüşöçıİĞÜŞÖÇ])" + re.escape(tr) + r"(?![\\wğüşöçıİĞÜŞÖÇ])(?!\\s*\\()"
         text = re.sub(pattern, lambda match, label=f"{tr} ({en})": label, text, flags=re.IGNORECASE)
     return text
 
@@ -75,7 +75,7 @@ def append_glossary(path: Path) -> None:
     top, row_h = 88, 29
     page.draw_rect((x0, top, x3, top + row_h*22), color=(0.82,0.84,0.87), width=0.5)
     page.draw_line((x1, top, x1, top + row_h*22), color=(0.82,0.84,0.87), width=0.5)
-    page.draw_line((x2, top, x2, top + 2*row_h*22), color=(0.82,0.84,0.87), width=0.5)
+    page.draw_line((x2, top, x2, top + row_h*22), color=(0.82,0.84,0.87), width=0.5)
     page.insert_text((x0+6, top+15), "Türkçe", fontfile=str(FONT), fontsize=8, color=(0.12,0.14,0.17))
     page.insert_text((x1+6, top+15), "English", fontfile=str(FONT), fontsize=8, color=(0.12,0.14,0.17))
     page.insert_text((x2+6, top+15), "Türkçe", fontfile=str(FONT), fontsize=8, color=(0.12,0.14,0.17))
