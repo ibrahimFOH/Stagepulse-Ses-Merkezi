@@ -30,10 +30,17 @@ $versionMatch = [regex]::Match((Get-Content -LiteralPath (Join-Path $root 'Merke
 if (-not $versionMatch.Success -or $versionMatch.Groups[1].Value -notmatch '^\d+\.\d+\.\d+$') { throw 'Merkez.py içindeki APP_VERSION X.Y.Z biçiminde bulunamadı.' }
 $version = $versionMatch.Groups[1].Value + '.0'
 
-if (-not (Test-Path -LiteralPath $CertificatePath)) { & (Join-Path $root 'MSIX_SERTIFIKA_OLUSTUR.ps1') }
+if ($CertificatePassword) {
+    $securePassword = ConvertTo-SecureString -String $CertificatePassword -AsPlainText -Force
+} else {
+    $securePassword = Read-Host 'MSIX PFX parolasını girin veya yeni sertifika için belirleyin' -AsSecureString
+}
+if (-not $securePassword -or $securePassword.Length -lt 12) { throw 'PFX parolası en az 12 karakter olmalıdır.' }
+
+if (-not (Test-Path -LiteralPath $CertificatePath)) {
+    & (Join-Path $root 'MSIX_SERTIFIKA_OLUSTUR.ps1') -Password $securePassword
+}
 if (-not (Test-Path -LiteralPath $CertificatePath)) { throw "MSIX imza sertifikası bulunamadı: $CertificatePath" }
-if (-not $CertificatePassword) { $securePassword = Read-Host 'MSIX PFX parolasını girin' -AsSecureString }
-else { $securePassword = ConvertTo-SecureString -String $CertificatePassword -AsPlainText -Force }
 $pfxData = Get-PfxData -FilePath $CertificatePath -Password $securePassword
 $signingCert = @($pfxData.EndEntityCertificates)[0]
 if ($signingCert.Subject -ne 'CN=Stagepulse') { throw "Sertifika Publisher eşleşmiyor. Beklenen CN=Stagepulse, bulunan: $($signingCert.Subject)" }
