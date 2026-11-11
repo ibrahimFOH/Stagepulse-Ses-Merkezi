@@ -195,6 +195,49 @@ Lisans yetkisi içeriğe erişimi belirler; yeterlilik veya mesleki yetki vermez
 9. Portföy ve sözlü savunma.
 10. Usta onayı yalnızca yetkili eğitmen tarafından verilir.
 
+## Eğitmen uygulama ve değerlendirme standardı
+
+### Ders öncesi hazırlık
+- Öğrenme hedefi, ön koşul, gerekli ekipman, bağlantı şeması ve güvenlik durdurma koşulu ders başlamadan açıklanır.
+- Ses sistemi, konsol, RF, elektrik ve rigging uygulamalarında öğrenciye enerjili veya mekanik yük altındaki donanıma yetkisiz müdahale yaptırılmaz.
+- Test sinyali ve ses seviyesi düşükten başlatılır; kulaklık/IEM ve PA seviyeleri kontrollü yükseltilir.
+- Kullanılan cihazın tam model, donanım revizyonu, firmware ve üretici dokümanı not edilir.
+
+### Uygulama akışı
+1. Eğitmen görevi ve başarı ölçütünü gösterir.
+2. Eğitmen işlemi yavaş ve açıklamalı biçimde örnekler.
+3. Öğrenci gözetimli tekrar yapar; eğitmen kritik güvenlik adımlarını kontrol eder.
+4. Öğrenci farklı bir senaryoda bağımsız uygular.
+5. Ham kanıt, sonuç ve hata/iyileştirme notu teslim edilir.
+6. Eğitmen rubriği doldurur; başarısız maddeler için tekrar görevi tanımlar.
+
+### Standart 100 puanlık uygulama rubriği
+
+| Ölçüt | Puan | Kanıt |
+|---|---:|---|
+| Teknik doğruluk ve sonuç | 30 | Doğru bağlantı, hesap, routing veya ölçüm sonucu |
+| İş akışı ve tekrar edilebilirlik | 20 | Sıralı işlem, doğru test noktaları, geri alınabilir adımlar |
+| Güvenlik ve risk yönetimi | 20 | Elektrik, işitme, RF, rigging ve ekipman güvenliği |
+| Arıza teşhisi ve karar gerekçesi | 15 | Belirti/neden/test ayrımı, en az bir alternatif hipotez |
+| Kayıt ve teslim kalitesi | 15 | Dosya, fotoğraf, ölçüm metaverisi, rapor ve sürüm bilgisi |
+
+**Geçiş kuralı:** Genel puan en az 80/100 olmalı ve hiçbir kritik güvenlik hatası yapılmamalıdır. L5 usta/eğitmen onayı için en az 85/100, iki farklı senaryoda başarılı uygulama, sözlü savunma ve yetkili eğitmen onayı gerekir. Güvenlikte kritik hata puanla telafi edilemez.
+
+### Kanıt dosyası standardı
+- Canlı ses/konsol: input list, patch, show dosyası, bus/monitor planı, line-check ve arıza günlüğü.
+- RF/IEM: cihaz/bant bilgisi, ham tarama, koordinasyon tablosu, anten krokisi ve prova/drop-out kaydı.
+- PA/DSP: üretici veri/preset referansı, geometri, ölçüm noktaları, ham TF/IR kayıtları, önce/sonra karşılaştırması ve belirsizlik notu.
+- SPL/akustik: cihaz ve kalibratör modeli/seri numarası, kalibrasyon tarihi, ölçüm konumu/yüksekliği/süresi, ağırlıklandırma ve ham veri.
+- Stüdyo/miks-mastering: ham kaynak, DAW oturumu, miks sürümleri, referans A/B, LUFS/sample peak/true peak raporu ve teslim QC.
+- Bakım/kablolama: pinout, test cihazı sonucu, arıza fotoğrafı, onarım ve tekrar test kaydı.
+
+### Öğretmen ve öğrenci yetki sınırı
+- Öğrenci kendi çalışmasını yerel profiline kaydedebilir; bu kayıt resmî yeterlilik veya öğretmen onayı değildir.
+- Resmî aşama tamamlamayı yalnızca sunucu tarafından yetkilendirilmiş öğretmen/yönetici rolü yapabilir.
+- Öğretmen, öğrenci kimliği, değerlendirme notu, kanıt referansı ve karar gerekçesini kaydetmelidir.
+- Yetki, ağ isteği/Edge Function tarafında doğrulanmalıdır; yalnızca arayüzde buton gizlemek güvenlik değildir.
+- Katılım belgesi, eğitim kaydı ve uygulama rubriği akreditasyon, mesleki lisans veya yasal yetki belgesi değildir.
+
 ## Stagepulse.com.tr iş akışlarıyla eşleştirme
 
 | İş / hizmet alanı | Uygulamadaki eğitim çıktısı |
