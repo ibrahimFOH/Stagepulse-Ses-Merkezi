@@ -74,8 +74,8 @@ def append_glossary(path: Path) -> None:
     x0, x1, x2, x3 = 42, 292, 303, 553
     top, row_h = 88, 29
     page.draw_rect((x0, top, x3, top + row_h*22), color=(0.82,0.84,0.87), width=0.5)
-    page.draw_line((x1, top, x1, top + row_h*22), color=(0.82,0.84,0.87), width=0.5)
-    page.draw_line((x2, top, x2, top + row_h*22), color=(0.82,0.84,0.87), width=0.5)
+    page.draw_line((x1, top), (x1, top + row_h*22), color=(0.82,0.84,0.87), width=0.5)
+    page.draw_line((x2, top), (x2, top + row_h*22), color=(0.82,0.84,0.87), width=0.5)
     page.insert_text((x0+6, top+15), "Türkçe", fontfile=str(FONT), fontsize=8, color=(0.12,0.14,0.17))
     page.insert_text((x1+6, top+15), "English", fontfile=str(FONT), fontsize=8, color=(0.12,0.14,0.17))
     page.insert_text((x2+6, top+15), "Türkçe", fontfile=str(FONT), fontsize=8, color=(0.12,0.14,0.17))
@@ -91,7 +91,7 @@ def append_glossary(path: Path) -> None:
             page.insert_text((left+6, yy+15), tr, fontfile=str(FONT), fontsize=7.1, color=(0.12,0.14,0.17))
             page.insert_text((left+6, yy+25), en, fontfile=str(FONT), fontsize=6.8, color=(0.35,0.38,0.42))
             if i < half-1:
-                page.draw_line((left, yy+row_h, right, yy+row_h), color=(0.9,0.91,0.93), width=0.35)
+                page.draw_line((left, yy+row_h), (right, yy+row_h), color=(0.9,0.91,0.93), width=0.35)
     page.insert_text((42, 812), "STAGEPULSE · Eğitim terminolojisi / Training terminology", fontfile=str(FONT), fontsize=7, color=(0.4,0.42,0.45))
     temp = path.with_suffix(".bilingual.tmp.pdf")
     doc.save(temp, garbage=4, deflate=True)
