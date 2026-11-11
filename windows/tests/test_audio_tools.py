@@ -162,3 +162,27 @@ def test_ebu_partial_reference_is_not_reported_as_pass(tmp_path):
     report = validate_ebu_test_set(tmp_path, reference)
     assert report["counts"]["PARTIAL_REFERENCE"] == 1
     assert report["results"][0]["status"] == "PARTIAL_REFERENCE"
+
+
+def test_ebu_reference_csv_can_produce_pass_only_when_all_available_metrics_match(tmp_path):
+    from core.audio_tools import validate_ebu_test_set
+
+    rate = 48000
+    t = np.arange(rate * 4, dtype=np.float64) / rate
+    path = tmp_path / "EBU_Full_Reference.wav"
+    sf.write(path, 0.18 * np.sin(2 * np.pi * 997 * t), rate, subtype="PCM_24")
+    measured = validate_ebu_test_set(tmp_path)
+    row = measured["results"][0]
+    reference = (
+        "filename,integrated_lufs,lra_lu,momentary_max_lufs,short_term_max_lufs,true_peak_dbtp\\n"
+        + path.name + ","
+        + ",".join(str(row[key]) for key in (
+            "integrated_lufs", "lra_lu", "momentary_max_lufs",
+            "short_term_max_lufs", "true_peak_dbtp"
+        ))
+        + "\\n"
+    )
+    result = validate_ebu_test_set(tmp_path, reference, tolerance_lu=0.01)
+    assert result["counts"]["PASS"] == 1
+    assert result["results"][0]["status"] == "PASS"
+    assert len(result["results"][0]["comparisons"]) == 5
