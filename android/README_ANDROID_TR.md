@@ -23,7 +23,7 @@ Kaynak sürümü 4.0.0'dır. Özellik listesi kaynak kodda tanımlı kapsamı ö
 - Ses Katmanı Atölyesi ve Sanal Mikser Laboratuvarı: çok katmanlı ses çalışma alanı ve dört kanallı sanal mikser pratikleri.
 - Cue/Video Notları, saha kontrol listeleri ve öğrenci çalışma profili.
 - WAV kalite analizi: desteklenen WAV biçimlerinde peak/RMS ve dosya temel özellikleri. Windows masaüstündeki A/C/Z Leq, Fast/Slow ve L10/L50/L90 analiz kapsamıyla aynı değildir.
-- Yaklaşık LUFS düzeyleme ve stereo PCM WAV dışa aktarma. EBU/ITU sertifikalı ölçüm veya profesyonel mastering limiteri değildir.
+- Tarayıcı tabanlı yaklaşık LUFS/LRA düzeyleme ve stereo PCM WAV dışa aktarma; Windows masaüstündeki DeMan K-weighting motoru ve EBU Loudness Test Set toplu referans karşılaştırması Android'de bulunmaz. EBU/ITU sertifikalı ölçüm veya profesyonel mastering limiteri değildir.
 - Video Ders Kütüphanesi: video ders senaryosu/storyboard ve oynatıcı arayüzü. Ekranın bulunması, bütün ders videolarının yayımlanmış olduğu anlamına gelmez.
 - Eğitim Müfredatı: dokuz uzmanlık dalı, L0–L5 öğrenme basamakları, uygulama görevleri ve kısa bilgi sınavları. Yerel görev tikleri kişisel takiptir; resmî usta onayı değildir.
 - Öğrenci ilerlemesi, öğretmen değerlendirmesi ve PDF katılım belgesi. Katılım belgesi resmî yeterlilik veya akreditasyon sağlamaz.
