@@ -151,9 +151,9 @@ Gerçek mikrofon/ses kartı saha testi, izlenebilir kalibrasyon, ölçüm mikrof
 
 ## EBU Tech 3341 doğrulaması ve bağımsız OAA karşılaştırması
 
-Stagepulse Windows loudness test aracı, EBU Tech 3341 V4.0 (Kasım 2023) Tablo 1'de açıkça tanımlanan ölçütleri CSV'deki dolu referans alanları üzerinden karşılaştırır. Referans CSV'de 59 dosya/kriter eşlemesi bulunur: test 1-10, 12-13 ve 15-23. Test 11 ve 14 canlı ölçerde art arda 20 değer üretmeyi gerektirir; mevcut dosya-temelli toplu ölçüm yalnızca maksimum değer çıkardığı için bu iki test PASS sayılmaz. Test 6 için 5.0 kanal dosyası kullanılır; sessiz LFE kanalı eklenmiş 6 kanallı WAVEEX varyantı mevcut ölçüm kapsamına dahil değildir.
+Stagepulse Windows loudness test aracı, EBU Tech 3341 V4.0 (Kasım 2023) Tablo 1'de açıkça tanımlanan ölçütleri uygulama paketine gömülü referans CSV'sinden otomatik okuyarak karşılaştırır. Kullanıcının referans CSV yüklemesi gerekmez; yalnızca resmî EBU WAV test setini indirip çıkarması ve klasörü seçmesi gerekir. Referans CSV'de 59 dosya/kriter eşlemesi bulunur: test 1-10, 12-13 ve 15-23. Test 11 ve 14 canlı ölçerde art arda 20 değer üretmeyi gerektirir; mevcut dosya-temelli toplu ölçüm yalnızca maksimum değer çıkardığı için bu iki test PASS sayılmaz. Test 6 için 5.0 kanal dosyası kullanılır; sessiz LFE kanalı eklenmiş 6 kanallı WAVEEX varyantı mevcut ölçüm kapsamına dahil değildir.
 
-- Referans dosyası: `windows/references/ebu_tech3341_reference.csv`
+- Referans dosyası: `windows/references/ebu_tech3341_reference.csv`; Windows EXE içine `references/` olarak paketlenir ve uygulama tarafından otomatik yüklenir.
 - Test motoru: `windows/core/audio_tools.py` içindeki `validate_ebu_test_set()`
 - Loudness toleransı: Tech 3341 Tablo 1'de belirtilen ±0.1 LU.
 - True Peak toleransı: +0.2 / −0.4 dBTP; kod bu toleransı asimetrik uygular.
