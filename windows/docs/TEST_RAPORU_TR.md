@@ -1,4 +1,16 @@
-# Stagepulse Ses Mühendisliği Merkezi 3.7.1 - Test Raporu
+# Tarihsel test raporu · Stagepulse 3.7.1 ve önceki sürümler
+
+> Bu dosyadaki 117/117 test sonucu ve 3.7.1/3.6.2 açıklamaları tarihsel kayıttır; 4.0.0 için güncel CI sonucu olarak yorumlanmamalıdır. Güncel doğrulama, `main` dalındaki `.github/workflows/android-quality.yml`, `.github/workflows/build-windows-exe.yml` ve güvenlik iş akışlarının ilgili commit için verdiği sonuçlardan okunmalıdır.
+
+## 4.0.0 için ayrı doğrulama kapsamı
+
+- 13 özgün eğitim PDF'sinin açılabilirliği, metin kapsamı, sayfa içeriği ve Android/Windows byte eşitliği.
+- Dokuz eğitim dalının katalogda bulunması; katalog JSON'unun iki platformda byte eşitliği.
+- Windows ve Android arayüzlerinde 28 birincil ekranın aynı olması.
+- Android Gradle Wrapper sürümünün kalite CI sürümüyle eşleşmesi.
+- RF koordinasyonu ve miks/mastering anahtar konularının ilgili öğrenci PDF'lerinde bulunması.
+
+Bu maddelerin başarılı olduğu ancak ilgili 4.0.0 commit'inin GitHub Actions koşuları tamamlandığında söylenebilir.
 
 
 ## 3.7.1 doğrulama kapsamı
