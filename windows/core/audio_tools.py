@@ -207,6 +207,17 @@ def _loudness_window_maxima(audio: Any, sample_rate: int, meter: Any) -> tuple[f
     return maximum(0.4), maximum(3.0)
 
 
+def _load_bundled_ebu_reference_csv() -> str:
+    """Load the versioned Tech 3341 reference table shipped with the application."""
+    reference_path = Path(__file__).resolve().parents[1] / "references" / "ebu_tech3341_reference.csv"
+    if not reference_path.is_file():
+        raise FileNotFoundError(
+            "Uygulama içindeki EBU referans tablosu bulunamadı: "
+            "references/ebu_tech3341_reference.csv"
+        )
+    return reference_path.read_text(encoding="utf-8-sig")
+
+
 def validate_ebu_test_set(folder: str | Path, reference_csv_text: str = "",
                           tolerance_lu: float = 0.2) -> dict[str, Any]:
     """Measure EBU WAV sequences against only the reference metrics explicitly supplied.
@@ -235,9 +246,13 @@ def validate_ebu_test_set(folder: str | Path, reference_csv_text: str = "",
     if not math.isfinite(default_tolerance) or not 0.01 <= default_tolerance <= 2.0:
         raise ValueError("LU toleransı 0.01 ile 2.0 arasında olmalı.")
 
+    reference_source = "provided" if reference_csv_text.strip() else "bundled"
+    if not reference_csv_text.strip():
+        reference_csv_text = _load_bundled_ebu_reference_csv()
+
     references: dict[str, dict[str, str]] = {}
     if reference_csv_text.strip():
-        reader = csv.DictReader(io.StringIO(reference_csv_text.lstrip("\ufeff")))
+        reader = csv.DictReader(io.StringIO(reference_csv_text.lstrip("\\ufeff")))
         if not reader.fieldnames or "filename" not in reader.fieldnames:
             raise ValueError("Referans CSV başlığı en az filename içermeli.")
         for row in reader:
@@ -351,7 +366,10 @@ def validate_ebu_test_set(folder: str | Path, reference_csv_text: str = "",
         "ok": True, "standard_basis": "ITU-R BS.1770 / EBU Tech 3341 / EBU Tech 3342",
         "folder": root.name, "files_total": len(rows), "counts": counts,
         "default_tolerance_lu": default_tolerance,
-        "reference_csv_loaded": bool(references), "results": rows,
+        "reference_csv_loaded": bool(references),
+        "reference_csv_source": reference_source,
+        "reference_csv_rows": len(references),
+        "results": rows,
         "scope_note": "PASS yalnızca CSV'de açıkça doldurulmuş referans metriklerinin tolerans içinde olduğunu belirtir. Boş bırakılan metrikler test edilmemiştir. Bu rapor EBU/ITU sertifikası veya tam uygunluk beyanı değildir.",
     }
 
