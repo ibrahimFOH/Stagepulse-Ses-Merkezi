@@ -6,7 +6,7 @@ Set-Location $PSScriptRoot
 # Remove an older student-delivery ZIP before tests; build products must never be mistaken for source assets.
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $PSScriptRoot 'ogrenciye_gonder')
 
-$version = '4.0.3'
+$version = '4.0.4'
 $appIcon = Join-Path $PSScriptRoot 'ui\assets\stagepulse.ico'
 if (-not (Test-Path -LiteralPath $appIcon)) { throw 'Stagepulse uygulama simgesi eksik: ui\assets\stagepulse.ico' }
 $pythonCmd = Get-Command python -ErrorAction SilentlyContinue
