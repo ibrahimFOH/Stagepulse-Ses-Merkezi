@@ -376,8 +376,11 @@ def test_first_party_tools_are_local_and_every_direct_dom_reference_exists():
     soup = BeautifulSoup(html, 'html.parser')
     ids = {node.get('id') for node in soup.find_all(id=True)}
     referenced = set(re.findall(r"byId\(['\"]([A-Za-z][A-Za-z0-9_-]*)['\"]\)", tools))
-    missing = sorted(referenced - ids)
-    assert not missing, f'Yeni araçlarda HTML öğesi eksik: {missing}'
+    # System Designer is injected by the shared local UI module, so validate its
+    # generated IDs alongside the IDs that are present in static HTML.
+    dynamic_ids = set(re.findall(r"id\s*=\s*['\"]([A-Za-z][A-Za-z0-9_-]*)['\"]", tools))
+    missing = sorted(referenced - ids - dynamic_ids)
+    assert not missing, f'Yeni araçlarda HTML veya dinamik arayüz öğesi eksik: {missing}'
     assert re.search(r'<script src="/ui/first_party_tools.js" defer></script>', html)
     assert html.index('first_party_tools.js') < html.index('/ui/app.js')
     assert not re.search(r"https?://|\bfetch\s*\(|XMLHttpRequest|WebSocket|import\s*\(", tools)
