@@ -65,8 +65,8 @@ Windows ve Android arayüzlerinde aynı 28 çalışma ekranı bulunur. Ekran adl
 
 ### Platforma göre doğrulanmış kapsam sınırları
 
-- Windows: yerel ses girişinden RTA; oturumluk 1 kHz kalibratör referansıyla Z gösterimi; stereo WAV analizinde A/C/Z Leq, Fast/Slow maksimum, Peak ve L10/L50/L90; aynı ses kartının iki girişinden canlı H1 Transfer Function; yerel Ollama ve isteğe bağlı Groq.
-- Android: WebAudio mikrofon akışından RTA; 1 kHz kalibratörle oturumluk Z/RMS düzeltmesi; aynı USB ses kartının iki girişinden stereo H1 Transfer Function; WAV analizinde desteklenen biçimlerde peak/RMS; Groq sağlayıcısı.
+- Windows: yerel ses girişinden RTA; oturumluk 1 kHz kalibratör referansıyla Z gösterimi; stereo WAV analizinde A/C/Z Leq, Fast/Slow maksimum, Peak ve L10/L50/L90; aynı ses kartının iki girişinden canlı H1 Transfer Function; DeMan K-weighting ile BS.1770 tabanlı LUFS/LRA normalizasyonu ve 48 kHz için BS.1770-5 Annex 2 4-faz FIR true-peak ölçümü; EBU Loudness Test Set klasörünü ve operatörün referans CSV'sini kullanarak toplu karşılaştırma; yerel Ollama ve isteğe bağlı Groq.
+- Android: WebAudio mikrofon akışından RTA; 1 kHz kalibratörle oturumluk Z/RMS düzeltmesi; aynı USB ses kartının iki girişinden stereo H1 Transfer Function; WAV analizinde desteklenen biçimlerde peak/RMS; tarayıcı tabanlı yaklaşık LUFS/LRA ve 4x true-peak tahmini; EBU Loudness Test Set toplu doğrulaması Windows masaüstüne özeldir; Groq sağlayıcısı.
 - Her iki platform: sahne/AV planlama, patch raporu, RF ön koordinasyon, 70/100 V hesabı, oda SPL haritası, hoparlör/DSP ön hesabı, dalga/faz laboratuvarı, OSC gönderimi ve MIDI Type 0 üretimi.
 - OSC/UDP gönderimi tek yönlüdür; mikserden durum/yanıt veya komutun uygulandığına dair teyit sağlamaz.
 - RF aracı koordinasyon ön çalışmasıdır; spektrum analizörü veya yasal frekans tahsis belgesi değildir. PA/SPL haritaları üretici polar/GLL verisi ve gerçek saha ölçümünün yerine geçmez.
