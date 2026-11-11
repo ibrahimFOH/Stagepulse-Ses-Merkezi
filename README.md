@@ -73,6 +73,10 @@ Windows ve Android arayüzlerinde aynı 28 çalışma ekranı bulunur. Ekran adl
 - RTA/FFT ve oturumluk kalibrasyon IEC 61672 veya IEC 61260 sınıf uygunluğu sağlamaz. Transfer Function sonuçları da tek başına sistemin doğru hizalandığını kanıtlamaz.
 - Eğitim/video kütüphanesindeki içerik ve ekranların bulunması, bütün videoların yayımlandığı veya her eğitim görevinin gerçek donanımda tamamlandığı anlamına gelmez.
 
+### Eğitim PDF güncellemesi
+
+4.0.0 öğrenci kitaplığındaki canlı ses PDF'si RF tarama, intermodülasyon, anten ve IEM koordinasyonu; stüdyo PDF'si miks/mastering, LUFS, true peak ve dither konularını kapsar. PDF üretim hattı bu kitapları Windows ve Android varlıklarına aynı dosya içeriğiyle yazar ve doğrular.
+
 ### Eğitim kataloğu
 
 Eğitim sistemi dokuz dal içerir: Canlı Ses/FOH/Monitör, RF/Kablosuz Mikrofon ve IEM, PA Sistem Tasarımı/DSP/Array, Stüdyo/Kayıt/Düzenleme/Miks, SPL/Akustik/Gürültü Ölçümü, Dijital Konsol, Konuşma/Podcast/Yayın, Kablolama/Bakım/Arıza Teşhisi ve Miks/Mastering. Yeterlilik basamakları L0–L5'tir. Öğrenci kitaplığında 13 özgün PDF bulunur; uygulama içindeki 12 konu kılavuzu bunlardan ayrı dokümanlardır. Katalog dosyası Windows ve Android varlıklarında byte düzeyinde aynı tutulur.
