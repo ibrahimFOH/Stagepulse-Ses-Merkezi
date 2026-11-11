@@ -147,3 +147,18 @@ def test_ebu_test_set_never_marks_files_pass_without_reference_csv(tmp_path):
     assert report["results"][0]["status"] == "REFERENCE_REQUIRED"
     assert report["results"][0]["momentary_max_lufs"] is not None
     assert report["results"][0]["short_term_max_lufs"] is None
+
+
+def test_ebu_partial_reference_is_not_reported_as_pass(tmp_path):
+    from core.audio_tools import validate_ebu_test_set
+
+    rate = 48000
+    t = np.arange(rate, dtype=np.float64) / rate
+    path = tmp_path / "EBU_Reference_Test.wav"
+    sf.write(path, 0.2 * np.sin(2 * np.pi * 1000 * t), rate, subtype="PCM_24")
+    measured = validate_ebu_test_set(tmp_path)
+    integrated = measured["results"][0]["integrated_lufs"]
+    reference = "filename,integrated_lufs\nEBU_Reference_Test.wav," + str(integrated) + "\n"
+    report = validate_ebu_test_set(tmp_path, reference)
+    assert report["counts"]["PARTIAL_REFERENCE"] == 1
+    assert report["results"][0]["status"] == "PARTIAL_REFERENCE"
