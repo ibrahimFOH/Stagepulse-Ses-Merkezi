@@ -160,8 +160,7 @@ jobs:
           Export-PfxCertificate -Cert $cert -FilePath $pfx -Password (ConvertTo-SecureString -String $password -AsPlainText -Force) | Out-Null
           Export-Certificate -Cert $cert -FilePath (Join-Path $env:RUNNER_TEMP 'Stagepulse-CI-MSIX.cer') -Type CERT | Out-Null
           $testCer = Join-Path $env:RUNNER_TEMP 'Stagepulse-CI-MSIX.cer'
-          Import-Certificate -FilePath $testCer -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople' | Out-Null
-          Import-Certificate -FilePath $testCer -CertStoreLocation 'Cert:\CurrentUser\Root' | Out-Null
+          Import-Certificate -FilePath $testCer -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
           "MSIX_TEST_PFX=$pfx" >> $env:GITHUB_ENV
           "MSIX_TEST_PASSWORD=$password" >> $env:GITHUB_ENV
 
