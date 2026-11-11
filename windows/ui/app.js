@@ -1527,3 +1527,72 @@ async function loadAppInfo(){if(!api())return;try{const info=await api().app_inf
 
 // Keyboard shortcut: Ctrl+K focuses current module (future-proof, no network calls).
 document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();const route=prompt('Araç adı gir: '+Object.values(routes).join(', '));if(!route)return;const entry=Object.entries(routes).find(([,label])=>label.toLocaleLowerCase('tr').includes(route.toLocaleLowerCase('tr')));if(entry)setPage(entry[0]);}});
+
+
+// Stagepulse global bilingual audio-engineering terminology.
+(function installBilingualTechnicalLabels(){
+  const terms = [
+    ["Kompresör","Kompresör (Compressor)"],["Gürültü kapısı","Gürültü kapısı (Noise Gate)"],
+    ["Eşik","Eşik (Threshold)"],["Oran","Oran (Ratio)"],["Diz","Diz (Knee)"],
+    ["Atak","Atak (Attack)"],["Bırakma","Bırakma (Release)"],
+    ["Çıkış kazancı","Çıkış kazancı (Makeup Gain)"],["Kısma aralığı","Kısma aralığı (Range)"],
+    ["Bekletme","Bekletme (Hold)"],["Konuşma benzeri sinyal","Konuşma benzeri sinyal (Speech-like Signal)"],
+    ["Rastgele dinleme sınavı","Rastgele dinleme sınavı (Randomized Listening Test)"],
+    ["Ham sinyal","Ham sinyal (Dry Signal)"],["Kompresörlü","Kompresörlü (Compressed)"],
+    ["Ses düzeyini eşitle","Ses düzeyini eşitle (Level Match)"],["Ayarları uygula","Ayarları uygula (Apply Settings)"],
+    ["Frekans yanıtı","Frekans yanıtı (Frequency Response)"],["Sinyal akışı","Sinyal akışı (Signal Flow)"],
+    ["Kazanç yapısı","Kazanç yapısı (Gain Staging)"],["Giriş seviyesi","Giriş seviyesi (Input Level)"],
+    ["Çıkış seviyesi","Çıkış seviyesi (Output Level)"],["Ana çıkış","Ana çıkış (Main Output)"],
+    ["Ses basınç seviyesi","Ses basınç seviyesi (Sound Pressure Level)"],
+    ["Gerçek zamanlı analiz","Gerçek zamanlı analiz (Real-Time Analysis)"],
+    ["Gürültü tabanı","Gürültü tabanı (Noise Floor)"],["Örnekleme hızı","Örnekleme hızı (Sample Rate)"],
+    ["Faz","Faz (Phase)"],["Polarite","Polarite (Polarity)"],
+    ["Dinamik aralık","Dinamik aralık (Dynamic Range)"],["Sıkıştırma","Sıkıştırma (Compression)"],
+    ["Ses yüksekliği","Ses yüksekliği (Loudness)"],["Tepe seviyesi","Tepe seviyesi (Peak Level)"],
+    ["Gerçek tepe","Gerçek tepe (True Peak)"],["A/B karşılaştırma","A/B karşılaştırma (A/B Comparison)"],
+    ["Referans sinyal","Referans sinyal (Reference Signal)"],["Kulak eğitimi","Kulak eğitimi (Ear Training)"],
+    ["Mikrofon","Mikrofon (Microphone)"],["Kablosuz sistem","Kablosuz sistem (Wireless System)"],
+    ["Dijital sinyal işleme","Dijital sinyal işleme (Digital Signal Processing)"],
+    ["Hoparlör","Hoparlör (Loudspeaker)"],["Gecikme","Gecikme (Delay)"],
+    ["Süzgeç","Süzgeç (Filter)"],["Kesim frekansı","Kesim frekansı (Crossover Frequency)"],
+    ["Monitör","Monitör (Monitor)"]
+  ];
+  const escapeRegExp = value => value.replace(/[.*+?^\${}()|[\]\\]/g, "\\$&");
+  const patterns = terms.map(([tr,bilingual]) => ({
+    regex:new RegExp("(^|[^\\p{L}\\p{N}_])("+escapeRegExp(tr)+")(?!\\s*\\()", "giu"),
+    bilingual
+  }));
+  const excluded = new Set(["SCRIPT","STYLE","NOSCRIPT","TEXTAREA","INPUT","CODE","PRE","OPTION"]);
+  function translateText(node){
+    if(!node || !node.nodeValue || !node.nodeValue.trim()) return;
+    let value=node.nodeValue;
+    for(const item of patterns) value=value.replace(item.regex,(match,prefix)=>prefix+item.bilingual);
+    if(value!==node.nodeValue) node.nodeValue=value;
+  }
+  function translate(root){
+    if(!root) return;
+    if(root.nodeType===Node.TEXT_NODE){translateText(root);return;}
+    if(root.nodeType!==Node.ELEMENT_NODE || excluded.has(root.tagName) || root.closest?.("[data-no-translate]")) return;
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+    const nodes=[]; while(walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(translateText);
+    for(const attr of ["placeholder","title","aria-label"]){
+      if(root.hasAttribute?.(attr)){
+        let value=root.getAttribute(attr);
+        for(const item of patterns) value=value.replace(item.regex,(match,prefix)=>prefix+item.bilingual);
+        root.setAttribute(attr,value);
+      }
+    }
+  }
+  function start(){
+    translate(document.body);
+    const observer=new MutationObserver(records=>{
+      for(const record of records){
+        if(record.type==="characterData") translateText(record.target);
+        else record.addedNodes.forEach(translate);
+      }
+    });
+    observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+  }
+  if(document.body) start(); else document.addEventListener("DOMContentLoaded",start,{once:true});
+})();
