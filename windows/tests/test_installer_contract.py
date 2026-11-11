@@ -75,6 +75,11 @@ def test_setup_installs_webview_only_if_missing_and_copies_complete_onedir_paylo
     assert not any("--add-data" in line and "MicrosoftEdgeWebView2RuntimeInstallerX64.exe" in line for line in ps.splitlines())
 
 
+def test_windows_installer_bundles_ebu_reference_table():
+    ps = (ROOT / "EXE_OLUSTUR.ps1").read_text("utf-8-sig")
+    assert '"references${sep}references"' in ps
+
+
 def test_build_creates_student_zip_with_only_setup_exe_after_tests():
     ps = (ROOT / "EXE_OLUSTUR.ps1").read_text("utf-8-sig")
     assert "ogrenciye_gonder" in ps
