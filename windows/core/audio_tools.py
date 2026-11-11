@@ -400,7 +400,8 @@ def normalize_lufs(source: str | Path, output: str | Path, target_lufs: float = 
         "applied_gain_db": applied_gain,
         "target_lufs_limited_by_peak": applied_gain < requested_gain - 1e-6,
         "output_sample_peak_dbfs": actual_sample_peak,
-        "output_true_peak_dbtp_verified": verified_tp,\n        "true_peak_method": true_peak_method,
+        "output_true_peak_dbtp_verified": verified_tp,
+        "true_peak_method": true_peak_method,
         "output_subtype": "PCM_24",
         "notes": [
             "LUFS integrated ve LRA ölçümleri pyloudnorm DeMan K-weighting filtresiyle hesaplandı.",
