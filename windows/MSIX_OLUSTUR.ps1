@@ -122,6 +122,9 @@ $signArgs = @('sign','/fd','SHA256','/a','/f',$CertificatePath,'/p',$plainPasswo
 & $signTool.FullName @signArgs
 if ($LASTEXITCODE -ne 0) { throw "SignTool MSIX imzalayamadı. Çıkış kodu: $LASTEXITCODE" }
 Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\CurrentUser\TrustedPeople' | Out-Null
+if ($signingCert.Subject -eq $signingCert.Issuer) {
+    Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\CurrentUser\Root' | Out-Null
+}
 & $signTool.FullName verify /pa /v $packagePath
 if ($LASTEXITCODE -ne 0) { throw "MSIX imza doğrulaması başarısız. Çıkış kodu: $LASTEXITCODE" }
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $packagePath).Hash.ToLowerInvariant()
