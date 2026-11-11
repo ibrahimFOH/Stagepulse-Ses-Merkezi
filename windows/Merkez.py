@@ -1303,6 +1303,29 @@ def webview2_installed() -> bool:
         pass
     return False
 
+def ensure_webview2_runtime() -> bool:
+    """Install the bundled Microsoft WebView2 bootstrapper when an MSIX device lacks the runtime."""
+    if webview2_installed():
+        return True
+    if os.name != "nt":
+        return True
+    installer = APP_HOME / "Runtime" / "MicrosoftEdgeWebView2RuntimeInstallerX64.exe"
+    if not installer.is_file():
+        return False
+    try:
+        flags = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+        result = subprocess.run(
+            [str(installer), "/silent", "/install"],
+            check=False,
+            timeout=240,
+            creationflags=flags,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return result.returncode in (0, 3010) and webview2_installed()
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+
 
 def show_native_error(title: str, message: str) -> None:
     if os.name == "nt":
@@ -1344,12 +1367,12 @@ def main() -> int:
     if missing_student_pdfs:
         show_native_error(APP_NAME, "Öğrenci eğitim PDF'leri eksik:\n" + "\n".join(missing_student_pdfs))
         return 2
-    if not webview2_installed():
+    if not ensure_webview2_runtime():
         show_native_error(
             APP_NAME,
-            "Microsoft WebView2 Runtime bulunamadı. Uygulama, Stagepulse_Kurulum.exe ile kurulmalıdır. "
-            "Kurulum dosyası bu bileşeni gerekiyorsa sessizce yükler.\n\n"
-            "Kurulum dosyası zaten kullanıldıysa Windows'u yeniden başlatıp uygulamayı tekrar açın.\n"
+            "Microsoft WebView2 Runtime bulunamadı veya kurulamadı. Windows için Stagepulse kurulumunu tamamlayın. "
+            "MSIX paketinde Microsoft'un çevrimdışı yükleyicisi bulunur ve eksikse ilk açılışta çalıştırılır.\n\n"
+            "Kurulumdan sonra Windows'u yeniden başlatıp uygulamayı tekrar açın.\n"
             "Destek: https://stagepulse.com.tr/"
         )
         return 3
