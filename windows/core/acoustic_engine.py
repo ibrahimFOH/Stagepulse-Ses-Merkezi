@@ -311,6 +311,62 @@ def _weighting_filter(samples: np.ndarray, sample_rate: float, weighting: str) -
     return lfilter(digital_b, digital_a, samples)
 
 
+
+def run_spl_filter_self_test() -> dict[str, Any]:
+    """Check the implemented A/C/Z digital filters against IEC nominal curves.
+
+    This is a software response check only; it does not test a microphone,
+    preamplifier, ADC, acoustic calibrator, or IEC 61672 instrument class.
+    """
+    import numpy as np
+
+    rate = 48000
+    frequencies = (31.5, 63.0, 125.0, 250.0, 500.0, 1000.0, 2000.0,
+                   4000.0, 8000.0, 10000.0, 12500.0)
+    duration = 2.0
+    count = int(rate * duration)
+    t = np.arange(count, dtype=np.float64) / rate
+    rows = []
+
+    def expected_response(freq: float, weighting: str) -> float:
+        if weighting == "Z":
+            return 0.0
+        f2 = freq * freq
+        if weighting == "A":
+            numerator = (12200.0 ** 2) * (f2 ** 2)
+            denominator = ((f2 + 20.6 ** 2) *
+                           math.sqrt((f2 + 107.7 ** 2) * (f2 + 737.9 ** 2)) *
+                           (f2 + 12200.0 ** 2))
+            return 20.0 * math.log10(numerator / denominator) + 2.0
+        numerator = (12200.0 ** 2) * f2
+        denominator = (f2 + 20.6 ** 2) * (f2 + 12200.0 ** 2)
+        return 20.0 * math.log10(numerator / denominator) + 0.06
+
+    for weighting in ("A", "C", "Z"):
+        for freq in frequencies:
+            signal = 0.1 * np.sin(2.0 * np.pi * freq * t)
+            filtered = _weighting_filter(signal, rate, weighting)
+            # Ignore the filter's startup transient before measuring steady-state RMS.
+            start = int(rate * 0.25)
+            input_rms = float(np.sqrt(np.mean(np.square(signal[start:]))))
+            output_rms = float(np.sqrt(np.mean(np.square(filtered[start:]))))
+            measured = 20.0 * math.log10(max(output_rms, 1e-15) / max(input_rms, 1e-15))
+            expected = expected_response(freq, weighting)
+            error = measured - expected
+            rows.append({
+                "weighting": weighting, "frequency_hz": freq,
+                "expected_db": expected, "measured_db": measured,
+                "difference_db": error, "tolerance_db": 0.5,
+                "pass": abs(error) <= 0.5,
+            })
+    failed = sum(1 for row in rows if not row["pass"])
+    return {
+        "ok": failed == 0, "sample_rate_hz": rate,
+        "tests_total": len(rows), "tests_passed": len(rows) - failed,
+        "tests_failed": failed, "results": rows,
+        "scope_note": "Yalnızca yazılım A/C/Z filtre frekans cevabı kontrolüdür. Mikrofon, ses kartı, kalibrasyon, zaman ağırlıkları veya IEC 61672 Class 1/2 uygunluğunu doğrulamaz.",
+    }
+
 def measure_spl(samples: Any, sample_rate: Any,
                 calibration_offset_db: float | None = None) -> dict[str, Any]:
     """A/C/Z Leq, Fast/Slow maxima, peak and 1-second L10/L50/L90.
