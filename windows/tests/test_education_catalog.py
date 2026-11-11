@@ -109,3 +109,14 @@ def test_android_gradle_wrapper_matches_quality_ci():
     workflow = (repo / ".github/workflows/android-quality.yml").read_text("utf-8")
     assert "gradle-8.13-bin.zip" in wrapper
     assert 'gradle-version: "8.13"' in workflow
+
+
+def test_curriculum_catalog_fetch_paths_resolve_on_both_platforms():
+    repo = ROOT.parent
+    windows_js = (ROOT / "ui/app.js").read_text("utf-8")
+    android_js = (repo / "android/app/src/main/assets/ui/app.js").read_text("utf-8")
+    windows_catalog = ROOT / "egitim_paketleri/stagepulse_egitim_katalogu_v1.json"
+    android_catalog = repo / "android/app/src/main/assets/egitim_paketleri/stagepulse_egitim_katalogu_v1.json"
+    assert "fetch('/egitim_paketleri/stagepulse_egitim_katalogu_v1.json')" in windows_js
+    assert "fetch('../egitim_paketleri/stagepulse_egitim_katalogu_v1.json')" in android_js
+    assert windows_catalog.is_file() and android_catalog.is_file()
