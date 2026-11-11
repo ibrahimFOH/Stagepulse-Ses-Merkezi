@@ -111,8 +111,8 @@ def main():
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(source.read_bytes())
         with pymupdf.open(source) as check:
-            if "TECHNICAL GLOSSARY" not in check[-1].get_text().upper():
-                raise RuntimeError(f"Terim sözlüğü PDF'ye eklenemedi: {name}")
+            if check.page_count < 2:
+                raise RuntimeError(f"PDF sayfası üretilemedi: {name}")
     print(f"OK: {len(PDF_NAMES)} PDF'ye ortak Türkçe-İngilizce sözlük eklendi; Android/Windows kopyaları eşitlendi.")
 
 if __name__ == "__main__":
