@@ -44,7 +44,9 @@ def test_student_visual_atlas_is_renderable_four_page_pdf_with_technical_limits(
     path = ROOT / 'egitim_paketleri/09_SPL_dB_3D_Gorsel_Atlasi.pdf'
     assert path.read_bytes().startswith(b'%PDF-')
     pdf = fitz.open(path)
-    assert len(pdf) == 4
+    assert len(pdf) == 5
+    glossary_text = pdf[-1].get_text()
+    assert 'Compressor' in glossary_text and 'Noise Gate' in glossary_text
     content = '\n'.join(page.get_text() for page in pdf)
     for phrase in ('SPL, dB ve 3D Görsel Atlası', 'Hesaplanan SPL alan haritası', 'Basınç genliği oranı', 'IEC 61672-1', 'konsept illüstrasyonudur'):
         assert phrase.lower() in content.lower(), phrase
