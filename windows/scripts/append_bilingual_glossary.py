@@ -123,6 +123,18 @@ TERMS = [
     ("Ölçüm mikrofonu", "Measurement Microphone"),
     ("Yankılanma süresi", "Reverberation Time"),
 ]
+def bilingualize_markup(value):
+    """Metindeki Türkçe teknik terimleri İngilizce endüstri karşılığıyla birlikte yazar."""
+    text = str(value)
+    for tr, en in sorted(TERMS, key=lambda pair: len(pair[0]), reverse=True):
+        pattern = r"(?<![\\wğüşöçıİĞÜŞÖÇ])" + re.escape(tr) + r"(?![\\wğüşöçıİĞÜŞÖÇ])(?!\\s*\\()"
+        text = re.sub(pattern, lambda match, label=f"{tr} ({en})": label, text, flags=re.IGNORECASE)
+    return text
+
+FONT_CANDIDATES = [
+    Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+    Path("C:/Windows/Fonts/arial.ttf"),
+]
 FONT = next((p for p in FONT_CANDIDATES if p.exists()), None)
 if FONT is None:
     raise RuntimeError("PDF terminoloji eki için Türkçe karakter destekli font bulunamadı.")
