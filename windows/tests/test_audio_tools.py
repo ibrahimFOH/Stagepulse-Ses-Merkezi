@@ -149,7 +149,7 @@ def test_ebu_test_set_never_marks_files_pass_without_reference_csv(tmp_path):
     assert report["results"][0]["short_term_max_lufs"] is None
 
 
-def test_ebu_partial_reference_is_not_reported_as_pass(tmp_path):
+def test_ebu_reference_pass_is_limited_to_declared_metrics(tmp_path):
     from core.audio_tools import validate_ebu_test_set
 
     rate = 48000
@@ -158,10 +158,33 @@ def test_ebu_partial_reference_is_not_reported_as_pass(tmp_path):
     sf.write(path, 0.2 * np.sin(2 * np.pi * 1000 * t), rate, subtype="PCM_24")
     measured = validate_ebu_test_set(tmp_path)
     integrated = measured["results"][0]["integrated_lufs"]
-    reference = "filename,integrated_lufs\nEBU_Reference_Test.wav," + str(integrated) + "\n"
+    reference = "filename,integrated_lufs\\nEBU_Reference_Test.wav," + str(integrated) + "\\n"
     report = validate_ebu_test_set(tmp_path, reference)
-    assert report["counts"]["PARTIAL_REFERENCE"] == 1
-    assert report["results"][0]["status"] == "PARTIAL_REFERENCE"
+    result = report["results"][0]
+    assert report["counts"]["PASS"] == 1
+    assert result["status"] == "PASS"
+    assert result["reference_metrics"] == ["integrated_lufs"]
+    assert "yalnızca CSV'de" in report["scope_note"]
+
+
+def test_ebu_true_peak_uses_asymmetric_tech3341_tolerance(tmp_path):
+    from core.audio_tools import validate_ebu_test_set
+
+    rate = 48000
+    t = np.arange(rate, dtype=np.float64) / rate
+    path = tmp_path / "EBU_TP_Test.wav"
+    sf.write(path, 0.2 * np.sin(2 * np.pi * 1000 * t), rate, subtype="PCM_24")
+    measured = validate_ebu_test_set(tmp_path)
+    peak = measured["results"][0]["true_peak_dbtp"]
+    reference = (
+        "filename,true_peak_dbtp,true_peak_tolerance_high_db,true_peak_tolerance_low_db\\n"
+        f"{path.name},{peak - 0.35},0.2,0.4\\n"
+    )
+    report = validate_ebu_test_set(tmp_path, reference)
+    assert report["counts"]["FAIL"] == 1
+    comparison = report["results"][0]["comparisons"][0]
+    assert comparison["tolerance_high_db"] == 0.2
+    assert comparison["tolerance_low_db"] == 0.4
 
 
 def test_ebu_reference_csv_can_produce_pass_only_when_all_available_metrics_match(tmp_path):
