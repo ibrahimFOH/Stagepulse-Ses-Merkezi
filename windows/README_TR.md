@@ -91,6 +91,14 @@ Arayüz yerel Ollama ve isteğe bağlı GroqCloud yedeğini destekler. Ollama g�
 
 Uygulama güncellemeleri Supabase `ses-merkezi-updates` Edge Function üzerinden alınır. İşlev yalnızca `stable` kanalını okur; kaynak manifest `Stagepulse-Releases` deposundaki `latest.json` dosyasıdır. Yayın hattı Windows EXE ve imzalı Android APK'nın SHA-256 özetlerini üretir, Release varlıklarını yayımlar ve manifesti otomatik olarak günceller. Windows ve Android istemcileri yeni sürümü bu manifestten kontrol eder; APK imzası ve paket özeti kurulmadan önce doğrulanır. Manifest henüz yayımlanmamışsa uygulama bunu açıkça `yayımlanmadı` olarak gösterir; eski veya test kanalı kullanılmaz. Ücretli geniş dağıtım öncesinde Stagepulse adına bir Windows Authenticode kod-imzalama sertifikası kullanılması gerekir; bu depo içinde imzalama sertifikası/özel anahtar yoktur ve SmartScreen uyarısı görülebilir. HTTPS ve SHA-256 doğrulaması kod imzasının yerine geçmez.
 
+## LUFS / EBU Loudness Test Set
+
+Windows masaüstünde yerel ses işleme motoru DeMan K-weighting ile integrated LUFS ve Loudness Range (LRA) hesaplar; 48 kHz için ITU-R BS.1770-5 Annex 2 4-faz FIR true-peak ölçümü uygular ve PCM 24-bit WAV dışa aktarımını yeniden okuyup kontrol eder. True-peak tavanı hedef LUFS'e erişimi sınırlayabilir; limiter uygulanmaz.
+
+EBU doğrulama aracı çıkarılmış EBU Loudness Test Set WAV klasörünü tarar. Referans CSV şu alanları destekler: `filename`, `integrated_lufs`, `lra_lu`, `momentary_max_lufs`, `short_term_max_lufs`, `true_peak_dbtp`. Referans değeri bulunmayan dosya PASS sayılmaz. EBU klasörü ve beklenen referans CSV kullanıcı tarafından sağlanmalıdır; resmi test seti uygulama paketine gömülü değildir. Bu araç raporu sertifika veya EBU onayı değildir.
+
+Android sürümünde tarayıcı tabanlı yaklaşık LUFS/LRA normalizasyonu bulunur; Windows yerel ölçüm motoru ve EBU test klasörü karşılaştırma aracı Android'de yoktur. Android sonuçları aynı referans uygunluğu olarak sunulmamalıdır.
+
 ## RTA ve teknik sınırlar
 
 RTA, bilgisayarın yerel ses girişinden FFT ve göreli dBFS bant seviyeleri alır. Windows masaüstünde 94/114 dB SPL, 1 kHz fiziksel ses kalibratörüyle oturumluk referans kalibrasyonu yapılabilir; uygulama yeniden başlatıldığında kalibrasyon sıfırlanır. Bu işlem mikrofon frekans cevabı düzeltmesi, A/C ağırlıklandırması veya IEC sınıfı 1/2 uygunluğu sağlamaz. Kalibrasyon yapılmadan mutlak dB SPL iddiasında bulunulmaz. Canlı stereo TF magnitude/faz/coherence verir; bu, mikrofon kalibrasyonu veya üreticiye özel line-array tahmini değildir. Otomatik optimizasyon sadece öneridir ve EQ'yu miksere kendiliğinden uygulamaz. RTA ve ses kayıtları için Windows mikrofon izni/cihaz seçimi gerekir.
