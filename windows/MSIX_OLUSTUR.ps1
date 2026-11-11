@@ -144,7 +144,7 @@ if ($verifyExit -ne 0) {
     if (-not $selfSignedTrustOnly) {
         throw "MSIX imza doğrulaması başarısız oldu: $verifyOutput"
     }
-    Write-Warning 'Self-signed sertifikanın zincir güveni SignTool tarafından kabul edilmedi. CI Add-AppxPackage testi, TrustedPeople deposuyla gerçek Windows kurulumunu doğrular.'
+    Write-Warning 'Self-signed sertifikanın zincir güveni SignTool tarafından varsayılan olarak kabul edilmedi. Paket güvenini, sertifika TrustedPeople deposundayken Add-AppxPackage kurulumu doğrular.'
 } else {
     Write-Host 'MSIX imza doğrulaması başarılı.' -ForegroundColor Green
 }
