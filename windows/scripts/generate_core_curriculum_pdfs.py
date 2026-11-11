@@ -41,7 +41,7 @@ def table(rows,widths):
  return t
 def lesson(n,title,goal,explain,practice,checks,case,question):
  out=[P(f'{n}. {title}','H1x'),P('<b>Öğrenme hedefi:</b> '+goal),P('Teknik anlatım','H2x'),P(explain),P('Uygulama görevi','H2x')]
- out += [P('• '+x) for x in practice]
+ out += [P('• '+practice)]
  out += [P('Kontrol listesi','H2x')]+[P('□ '+x) for x in checks]
  out += [P('Saha vakası','H2x'),P(case),P('<b>Kendini değerlendir:</b> '+question,'Callx')]
  return out
