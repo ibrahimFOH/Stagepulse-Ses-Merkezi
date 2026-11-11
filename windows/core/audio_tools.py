@@ -146,8 +146,10 @@ def _true_peak_linear(audio: Any, sample_rate: int) -> tuple[float, str]:
         else:
             oversampled = resample_poly(x, factor, 1, axis=0, window=("kaiser", 8.6))
             method = f"BS.1770-5 Annex 2 yaklaşımı · Kaiser FIR {factor}x"
-    peak = float(np.max(np.abs(oversampled))) if oversampled.size else 0.0
-    return peak, method
+    interpolated_peak = float(np.max(np.abs(oversampled))) if oversampled.size else 0.0
+    # Interpolation must never report a peak below an actual input sample.
+    sample_peak = float(np.max(np.abs(x))) if x.size else 0.0
+    return max(interpolated_peak, sample_peak), method
 
 
 def _measure_true_peak(audio: Any, sample_rate: int, chunk_seconds: float = 8.0) -> tuple[float, str]:
