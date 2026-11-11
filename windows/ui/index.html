@@ -230,6 +230,40 @@
       </div>
       <div class="notice"><strong>SPL kalibrasyonu için fiziksel referans gerekir</strong><span>Mikrofon kapsülüne uygun 1 kHz akustik ses kalibratörünü tak. Kalibratörün üzerinde yazan 94 veya 114 dB SPL değerini seçip kalibrasyonu başlat. Hoparlörden çalınan test tonu bu kalibrasyonun yerine geçmez. Kalibrasyon yalnızca mevcut oturum ve giriş aygıtı için saklanır.</span></div>
       <div class="panel rta-diagnostics"><div class="chart-header"><h3>Giriş seviyesi</h3><small class="muted">Canlı peak / RMS · dBFS</small></div><div class="rta-meter-row"><span>PEAK</span><div class="rta-meter-track"><i id="rtaPeakMeterFill"></i></div><strong id="rtaPeakMeterValue">−∞ dBFS</strong></div><div class="rta-meter-row"><span>RMS</span><div class="rta-meter-track rms"><i id="rtaRmsMeterFill"></i></div><strong id="rtaRmsMeterValue">−∞ dBFS</strong></div><div id="rtaInputMeter" class="rta-input-meter">Giriş seviyesi: henüz ölçülmedi.</div><div id="rtaCaptureInfo" class="rta-capture-info">Aygıt, örnekleme hızı, FFT ve ölçüm sınırları burada gösterilir. Fiziksel 1 kHz ses kalibratörüyle oturumluk dB SPL kalibrasyonu yapılabilir.</div></div>
+      <section class="panel measurement-validation" id="measurementValidation">
+        <div class="panel-head"><div><span class="eyebrow">REFERANS / UYGUNLUK KONTROLÜ</span><h3>EBU / ITU ve SMAART doğrulama merkezi</h3></div><span class="chip">Yerel test</span></div>
+        <div class="notice"><strong>EBU test materyali</strong><span>Resmî <a href="https://tech.ebu.ch/publications/ebu_loudness_test_set" target="_blank" rel="noopener">EBU Loudness Test Set v5.0</a> ZIP dosyasını indir, bilgisayarında çıkar ve klasörünü seç. Test dosyaları uygulamaya kopyalanmaz. Referans CSV olmadan sonuçlar ölçülür ancak PASS verilmez.</span></div>
+        <div class="validation-grid">
+          <div class="validation-card">
+            <h4>1 · EBU Loudness Test Set</h4>
+            <p class="muted">Integrated, LRA, Momentary Max, Short-term Max ve True Peak ölçümleri. Referans CSV sütunları: filename, integrated_lufs, lra_lu, momentary_max_lufs, short_term_max_lufs, true_peak_dbtp.</p>
+            <div class="row-actions"><button class="btn btn-secondary" id="ebuSelectFolder" type="button">EBU klasörünü seç</button><button class="btn btn-gold" id="ebuRun" type="button">Testleri çalıştır</button><button class="btn btn-secondary" id="ebuExport" type="button" disabled>JSON raporu dışa aktar</button></div>
+            <div class="field"><label for="ebuReferenceCsv">EBU referans sonuç CSV (isteğe bağlı)</label><input id="ebuReferenceCsv" type="file" accept=".csv,text/csv"></div>
+            <div class="field"><label for="ebuTolerance">LU toleransı</label><input id="ebuTolerance" type="number" min="0.01" max="2" step="0.01" value="0.2"></div>
+            <div id="ebuFolderStatus" class="feedback">Henüz EBU test klasörü seçilmedi.</div>
+            <div id="ebuReport" class="report-box">Test henüz çalıştırılmadı. Referans olmadan ölçüm sonucu PASS sayılmaz.</div>
+          </div>
+          <div class="validation-card">
+            <h4>2 · SPL algoritma kontrolü</h4>
+            <p class="muted">A/C/Z filtrelerinin 31,5 Hz–12,5 kHz nominal frekans cevabını 48 kHz sentetik sinyallerle kontrol eder. Mikrofon veya ses kartı ölçümü değildir.</p>
+            <button class="btn btn-secondary" id="splFilterSelfTest" type="button">A/C/Z filtre testini çalıştır</button>
+            <div id="splSelfTestReport" class="report-box">Yazılım filtresi testi henüz çalıştırılmadı.</div>
+          </div>
+        </div>
+        <div class="validation-card validation-smaart">
+          <h4>3 · SMAART ile SPL karşılaştırması</h4>
+          <p class="muted">Önce RTA'yı başlat ve fiziksel 1 kHz kalibratörle kalibre et. Aynı mikrofon, ses kartı, giriş kazancı, konum, weighting ve ölçüm penceresini kullan. SMAART değerlerini aşağıya gir. Stagepulse'un canlı penceresi ekranda belirtilen süre kadardır.</p>
+          <div class="smaart-input-grid">
+            <div class="field"><label for="smaartA">SMAART LAeq / dBA</label><input id="smaartA" type="number" step="0.1" placeholder="Örn. 94.2"></div>
+            <div class="field"><label for="smaartC">SMAART LCeq / dBC</label><input id="smaartC" type="number" step="0.1" placeholder="Örn. 96.1"></div>
+            <div class="field"><label for="smaartZ">SMAART LZeq / dBZ</label><input id="smaartZ" type="number" step="0.1" placeholder="Örn. 95.0"></div>
+            <div class="field"><label for="smaartTolerance">Karşılaştırma toleransı (dB)</label><input id="smaartTolerance" type="number" min="0.1" max="10" step="0.1" value="1.0"></div>
+          </div>
+          <div class="row-actions"><button class="btn btn-gold" id="smaartCompare" type="button">Son canlı ölçümle karşılaştır</button></div>
+          <div id="smaartComparisonReport" class="report-box">Karşılaştırma için canlı RTA verisi ve kalibrasyon gerekir.</div>
+        </div>
+        <p class="muted">Bu araçlar yazılım algoritmalarını ve operatörün karşılaştırma kayıtlarını doğrular. EBU/ITU sertifikası, IEC 61672 Class 1/2 uygunluğu veya laboratuvar kalibrasyonu iddiası oluşturmaz.</p>
+      </section>
       <div class="panel"><div class="chart-header"><div><h3>Spektrum</h3><small id="rtaStatus" class="muted">Başlatılmadı.</small></div><div class="legend"><span><i class="legend-live"></i> Canlı spektrum</span><span><i class="legend-peak"></i> Tepe tutma</span></div></div><canvas id="rtaCanvas" height="360" aria-label="Göreli ses spektrum grafiği"></canvas><div class="chart-footer"><span id="rtaAxisMin">20 Hz</span><span>Logaritmik frekans ekseni · bant gücü</span><span id="rtaAxisMax">20 kHz</span></div></div>
       <div class="panel rta-optimizer"><div class="panel-head"><div><span class="eyebrow">YARDIMCI ANALİZ</span><h3>Canlı spektrumdan EQ adayları</h3></div><label class="toggle-label"><input type="checkbox" id="rtaOptimizeEnabled" checked> Canlı önerileri güncelle</label></div>
         <label class="toggle-label rta-test-signal-confirm"><input type="checkbox" id="rtaOptimizerTestSignalConfirm"> Pembe gürültü veya sabit bantlı test sinyali kullanıyorum (müzik/konuşma sırasında EQ önerisi üretme)</label>
