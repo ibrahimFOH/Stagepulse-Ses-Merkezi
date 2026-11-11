@@ -72,3 +72,32 @@ def test_mix_mastering_is_fully_wired_on_windows_and_android():
     win_engine = windows_js[windows_js.index("async function normalizeLoudnessBrowser"):windows_js.index(marker)]
     android_engine = android_js[android_js.index("async function normalizeLoudnessBrowser"):android_js.index(marker)]
     assert win_engine == android_engine
+
+
+def test_catalogue_is_current_and_identical_across_platforms():
+    repo = ROOT.parent
+    android_catalog = repo / "android/app/src/main/assets/egitim_paketleri/stagepulse_egitim_katalogu_v1.json"
+    windows_catalog = ROOT / "egitim_paketleri/stagepulse_egitim_katalogu_v1.json"
+    win_data = json.loads(windows_catalog.read_text("utf-8"))
+    android_data = json.loads(android_catalog.read_text("utf-8"))
+    assert windows_catalog.read_bytes() == android_catalog.read_bytes()
+    assert win_data["catalog_version"] == "4.0.0"
+    assert win_data["active_commercial_model"] == "FULL_PACKAGE_ONLY"
+    assert "yalnızca FULL PAKET" in win_data["pricing_status"]
+    assert len(win_data["tracks"]) == 9
+    assert {x["id"] for x in win_data["tracks"]} >= {
+        "live_sound", "rf_wireless", "pa_system", "studio_post",
+        "spl_acoustics", "digital_console", "speech_broadcast",
+        "maintenance", "mix_mastering"
+    }
+
+
+def test_windows_android_have_same_28_primary_screens():
+    repo = ROOT.parent
+    win_html = (ROOT / "ui/index.html").read_text("utf-8")
+    android_html = (repo / "android/app/src/main/assets/ui/index.html").read_text("utf-8")
+    import re
+    win_pages = set(re.findall(r'data-page=["\\']([^"\\']+)["\\']', win_html))
+    android_pages = set(re.findall(r'data-page=["\\']([^"\\']+)["\\']', android_html))
+    assert len(win_pages) == 28
+    assert win_pages == android_pages
