@@ -1815,7 +1815,7 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLower
     ["Dijital sinyal işleme","Dijital sinyal işleme (Digital Signal Processing)"],
     ["Hoparlör","Hoparlör (Loudspeaker)"],["Gecikme","Gecikme (Delay)"],
     ["Süzgeç","Süzgeç (Filter)"],["Kesim frekansı","Kesim frekansı (Crossover Frequency)"],
-    ["Monitör","Monitör (Monitor)"]
+    ["Monitör","Monitör (Monitor)"],["Alt frekans hoparlörü","Alt frekans hoparlörü (Subwoofer)"]
   ];
   const escapeRegExp = value => value.replace(/[.*+?^\${}()|[\]\\]/g, "\\$&");
   const patterns = terms.map(([tr,bilingual]) => ({
