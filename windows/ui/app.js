@@ -65,7 +65,6 @@ let mixerPreviewSource = null;
 let videoObjectUrl = null;
 let rtaPollTimer = 0;
 let rtaLastSnapshot = null;
-let ebuReferenceCsvText = '';
 let lastEbuValidationReport = null;
 let rtaRunning = false;
 let rtaBusy = false;
@@ -707,17 +706,9 @@ function initMeasurementValidation(){
  if(folderButton)folderButton.addEventListener('click',async()=>{
   if(!api()||typeof api().select_ebu_test_folder!=='function'){$('ebuFolderStatus').textContent='EBU klasör seçimi Windows masaüstü sürümünde kullanılabilir.';return;}
   folderButton.disabled=true;
-  try{const result=await api().select_ebu_test_folder();$('ebuFolderStatus').textContent=result.ok?'Seçilen klasör: '+result.folder_name:'Klasör seçimi iptal edildi.';}
+  try{const result=await api().select_ebu_test_folder();$('ebuFolderStatus').textContent=result.ok?'Seçilen klasör: '+result.folder_name+' · Yerleşik EBU referansı hazır':'Klasör seçimi iptal edildi.';}
   catch(err){$('ebuFolderStatus').textContent='Klasör seçilemedi: '+(err.message||String(err));}
   finally{folderButton.disabled=false;}
- });
- $('ebuReferenceCsv')?.addEventListener('change',async event=>{
-  const file=event.target.files&&event.target.files[0];
-  ebuReferenceCsvText='';
-  if(!file){$('ebuFolderStatus').textContent='Referans CSV seçilmedi; ölçüm yapılabilir ancak PASS üretilemez.';return;}
-  if(file.size>1000000){event.target.value='';$('ebuFolderStatus').textContent='Referans CSV 1 MB sınırını aşıyor.';return;}
-  try{ebuReferenceCsvText=await file.text();$('ebuFolderStatus').textContent='Referans CSV yüklendi: '+file.name;}
-  catch(err){$('ebuFolderStatus').textContent='CSV okunamadı: '+(err.message||String(err));}
  });
  if(runButton)runButton.addEventListener('click',async()=>{
   if(!api()||typeof api().run_ebu_loudness_validation!=='function'){$('ebuReport').textContent='EBU test motoru Windows masaüstü sürümünde kullanılabilir.';return;}
@@ -725,14 +716,14 @@ function initMeasurementValidation(){
   if(!Number.isFinite(tolerance)||tolerance<0.01||tolerance>2){$('ebuReport').textContent='LU toleransı 0.01 ile 2.0 arasında olmalı.';return;}
   runButton.disabled=true;$('ebuReport').textContent='EBU WAV dosyaları analiz ediliyor. Dosya sayısına göre işlem sürebilir…';
   try{
-   const report=await api().run_ebu_loudness_validation(ebuReferenceCsvText,tolerance);
+   const report=await api().run_ebu_loudness_validation(tolerance);
    lastEbuValidationReport=report;if(exportButton)exportButton.disabled=false;
    const c=report.counts||{};
    const lines=(report.results||[]).map(row=>{
     const value=v=>v===null||v===undefined?'—':Number(v).toFixed(2);
     return row.filename+' | '+row.status+' | I '+value(row.integrated_lufs)+' LUFS | LRA '+value(row.lra_lu)+' LU | Mmax '+value(row.momentary_max_lufs)+' LUFS | Smax '+value(row.short_term_max_lufs)+' LUFS | TP '+value(row.true_peak_dbtp)+' dBTP'+(row.error?' | '+row.error:'');
    });
-   $('ebuReport').textContent='Standart temeli: '+report.standard_basis+'\nDosya: '+report.files_total+' | PASS: '+(c.PASS||0)+' | FAIL: '+(c.FAIL||0)+' | Kısmi referans: '+(c.PARTIAL_REFERENCE||0)+' | Referans bekliyor: '+(c.REFERENCE_REQUIRED||0)+' | Desteklenmiyor: '+(c.UNSUPPORTED||0)+'\nTolerans: ±'+report.tolerance_lu+' LU\n\n'+lines.join('\n')+'\n\n'+report.scope_note;
+   $('ebuReport').textContent='Standart temeli: '+report.standard_basis+'\nDosya: '+report.files_total+' | PASS: '+(c.PASS||0)+' | FAIL: '+(c.FAIL||0)+' | Kısmi referans: '+(c.PARTIAL_REFERENCE||0)+' | Referans bekliyor: '+(c.REFERENCE_REQUIRED||0)+' | Desteklenmiyor: '+(c.UNSUPPORTED||0)+'\nTolerans: ±'+report.default_tolerance_lu+' LU\n\n'+lines.join('\n')+'\n\n'+report.scope_note;
   }catch(err){$('ebuReport').textContent='EBU doğrulama başarısız: '+(err.message||String(err));}
   finally{runButton.disabled=false;}
  });
