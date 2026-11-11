@@ -110,7 +110,8 @@ styles.add(ParagraphStyle(name='BodySP',parent=styles['BodyText'],fontName=REG,f
 styles.add(ParagraphStyle(name='SmallSP',parent=styles['BodyText'],fontName=REG,fontSize=7.4,leading=10.5,textColor=GRAY,spaceAfter=4))
 styles.add(ParagraphStyle(name='CalloutSP',parent=styles['BodyText'],fontName=BOLD,fontSize=8.5,leading=12,textColor=colors.HexColor('#3F3420'),backColor=colors.HexColor('#FBF4DF'),borderColor=GOLD,borderWidth=.6,borderPadding=8,spaceBefore=5,spaceAfter=8))
 styles.add(ParagraphStyle(name='WhiteSP',parent=styles['BodyText'],fontName=REG,fontSize=9,leading=14,textColor=colors.white,spaceAfter=8))
-P=lambda x,style='BodySP':Paragraph(x,styles[style])
+from append_bilingual_glossary import bilingualize_markup
+P=lambda x,style='BodySP':Paragraph(bilingualize_markup(x),styles[style])
 
 def footer(canvas,doc):
     canvas.saveState(); w,h=A4
