@@ -6,6 +6,13 @@ Stagepulse ölçüm altyapısını profesyonel ses sistemi analizi için gelişt
 
 Smaart Suite'in yayımlanmış özellikleri işlevsel referans alınır; arayüzü veya özel algoritmaları kopyalanmaz. Hedeflenen ana başlıklar RTA/spektrogram, çift kanallı Transfer Function, magnitude/faz/coherence, delay, impulse response ve SPL kayıt/raporlamadır.
 
+## Mevcut yazılım testleri ve saha testinin ayrımı
+
+- RTA sentetik ton, bant merkezi, Nyquist, FFT güç normalizasyonu ve SPL A/C/Z eğrileri için otomatik testlere sahiptir.
+- Canlı H1 Transfer Function için sentetik bilinen kazanç/faz/coherence testi eklenmiştir. Bu test ses kartı sürücüsünü veya gerçek hoparlör-mikrofon yolunu sınamaz.
+- EBU validator için referanssız dosyanın PASS olmaması, kısmi referansın PASS sayılmaması ve tam referans CSV ile PASS akışı otomatik test edilir.
+- Fiziksel SMAART karşılaştırması, resmi EBU Loudness Test Set dosyalarının gerçek referans CSV'siyle çalıştırılması ve mikrofon/kalibratör/ses kartı saha testi hâlâ kullanıcı donanımında yapılması gereken kabul testleridir.
+
 ## SMAART ve EBU/ITU referans doğrulama protokolü
 
 Bu bölüm Stagepulse sonuçlarının bağımsız referans araçlarıyla karşılaştırılması içindir. Karşılaştırma tamamlanmadan "SMAART ile aynı", "EBU/ITU uyumlu" veya "sertifikalı" ifadesi kullanılmaz.
