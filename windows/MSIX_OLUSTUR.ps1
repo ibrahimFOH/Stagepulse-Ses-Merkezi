@@ -127,6 +127,7 @@ if ($signingCert.Subject -eq $signingCert.Issuer) {
         throw 'Kendinden imzalı MSIX sertifikasını güvenilir kılmak için PowerShell Yönetici olarak çalıştırılmalıdır.'
     }
     Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
+    Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\LocalMachine\Root' | Out-Null
 }
 & $signTool.FullName verify /pa /v $packagePath
 if ($LASTEXITCODE -ne 0) { throw "MSIX imza doğrulaması başarısız. Çıkış kodu: $LASTEXITCODE" }
