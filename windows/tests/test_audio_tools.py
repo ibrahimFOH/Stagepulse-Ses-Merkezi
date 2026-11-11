@@ -109,3 +109,15 @@ def test_analyze_wav_reports_independent_stereo_channel_metrics(tmp_path):
     assert abs(right_report["dc_offset_percent"] - 5.0) < 0.1
     assert report["sample_values"] == rate * 2
 
+
+
+def test_normalizer_reports_de_man_lra_metrics(tmp_path):
+    source = tmp_path / "program.wav"
+    output = tmp_path / "program_out.wav"
+    make_pcm16(source, amplitude=0.15, seconds=5)
+    report = normalize_lufs(source, output, -23.0, -1.0)
+    assert report["input_lra_lu"] is not None
+    assert math.isfinite(report["input_lra_lu"])
+    assert report["output_lra_lu"] is not None
+    assert math.isfinite(report["output_lra_lu"])
+    assert report["output_true_peak_dbtp_verified"] <= -0.85
