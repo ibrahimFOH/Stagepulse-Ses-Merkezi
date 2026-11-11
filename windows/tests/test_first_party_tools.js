@@ -58,7 +58,7 @@ assert.ok(gated.openPercent >= 0 && gated.openPercent <= 100);
 assert.ok(Array.from(gated.data).every(Number.isFinite));
 assert.ok(source.includes('const variant = item.quizOrder[slot];'), 'Rastgele tur seçilen A/B varyantını çözmeli.');
 assert.ok(source.includes('await playProcessed(type, item[variant]);'), 'Rastgele A/B turu anahtar metnini değil, ses tamponunu oynatmalı.');
-assert.match(source, /buffer\.copyToChannel\(samples, 0\)/, 'Web Audio kanalına doğrulanmış Float32Array kopyalanmalı.');
+assert.match(source, /buffer\.getChannelData\(0\)\.set\(samples\)/, 'Web Audio kanalına Float32Array verileri kanal görünümü üzerinden kopyalanmalı.');
 assert.match(source, /Ses örneği Float32Array veya sayı dizisi olmalı/, 'Geçersiz ses tamponu anlaşılır hata vermeli.');
 
 
