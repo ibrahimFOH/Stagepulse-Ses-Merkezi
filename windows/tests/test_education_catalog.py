@@ -103,6 +103,14 @@ def test_windows_android_have_same_28_primary_screens():
     assert win_pages == android_pages
 
 
+def test_instructor_assessment_standard_is_documented():
+    guide = (ROOT / "docs/EGITIM_DALLARI_USTA_YOLU_VE_FIYATLANDIRMA_TR.md").read_text("utf-8")
+    assert "Standart 100 puanlık uygulama rubriği" in guide
+    assert "Kanıt dosyası standardı" in guide
+    assert "Öğretmen ve öğrenci yetki sınırı" in guide
+    assert "kritik güvenlik hatası" in guide.casefold()
+
+
 def test_android_gradle_wrapper_matches_quality_ci():
     repo = ROOT.parent
     wrapper = (repo / "android/gradle/wrapper/gradle-wrapper.properties").read_text("utf-8")
