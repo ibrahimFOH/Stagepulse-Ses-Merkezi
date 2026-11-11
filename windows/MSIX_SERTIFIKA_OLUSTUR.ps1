@@ -17,6 +17,7 @@ $cert = New-SelfSignedCertificate -Type Custom -Subject 'CN=Stagepulse' -Friendl
 Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $password | Out-Null
 Export-Certificate -Cert $cert -FilePath $cerPath -Type CERT | Out-Null
 Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
+Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\LocalMachine\Root' | Out-Null
 Write-Host ''
 Write-Host 'SERTİFİKA HAZIR' -ForegroundColor Green
 Write-Host "PFX: $pfxPath"
