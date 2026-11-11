@@ -27,7 +27,8 @@ EDU=ROOT/'egitim_paketleri'
 OUT=EDU/'09_SPL_dB_3D_Gorsel_Atlasi.pdf'
 ASSETS.mkdir(parents=True,exist_ok=True)
 GOLD=colors.HexColor('#B99442'); GOLD2=colors.HexColor('#E6CC86'); DARK=colors.HexColor('#11151B')
-FONT_REG='/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'; FONT_BOLD='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+FONT_REG=next((str(p) for p in [Path('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'),Path('C:/Windows/Fonts/arial.ttf')] if p.exists()), '')
+FONT_BOLD=next((str(p) for p in [Path('/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'),Path('C:/Windows/Fonts/arialbd.ttf')] if p.exists()), '')
 if Path(FONT_REG).exists() and Path(FONT_BOLD).exists():
     pdfmetrics.registerFont(TTFont('SP', FONT_REG)); pdfmetrics.registerFont(TTFont('SP-Bold', FONT_BOLD)); REG='SP'; BOLD='SP-Bold'
 else: REG='Helvetica'; BOLD='Helvetica-Bold'
@@ -114,7 +115,7 @@ P=lambda x,style='BodySP':Paragraph(x,styles[style])
 def footer(canvas,doc):
     canvas.saveState(); w,h=A4
     canvas.setStrokeColor(GOLD);canvas.setLineWidth(.7);canvas.line(17*mm,15*mm,w-17*mm,15*mm)
-    canvas.setFont(REG,7);canvas.setFillColor(GRAY);canvas.drawString(17*mm,9*mm,'STAGEPULSE  |  Öğrenci görsel atlası  |  v3.5.1')
+    canvas.setFont(REG,7);canvas.setFillColor(GRAY);canvas.drawString(17*mm,9*mm,'STAGEPULSE  |  Öğrenci görsel atlası  |  v4.0.0')
     canvas.drawRightString(w-17*mm,9*mm,f'Sayfa {doc.page}')
     canvas.restoreState()
 
@@ -124,7 +125,7 @@ def img(path,width):
 
 story=[]
 # Cover page
-story += [Image(str(logo_png),width=155*mm,height=34.6*mm),Spacer(1,10*mm),P('SPL, dB ve 3D Görsel Atlası','CoverTitleSP'),P('Ses Mühendisliği Merkezi için görselleştirme rehberi · Öğrenci sürümü 3.5.1','SubSP'),HRFlowable(width='100%',thickness=1,color=GOLD,spaceBefore=2,spaceAfter=8),Spacer(1,3*mm)]
+story += [Image(str(logo_png),width=155*mm,height=34.6*mm),Spacer(1,10*mm),P('SPL, dB ve 3D Görsel Atlası','CoverTitleSP'),P('Ses Mühendisliği Merkezi için görselleştirme rehberi · Öğrenci sürümü 4.0.0','SubSP'),HRFlowable(width='100%',thickness=1,color=GOLD,spaceBefore=2,spaceAfter=8),Spacer(1,3*mm)]
 photo_path=ASSETS/'spl-3d-konsept.png'
 with PILImage.open(photo_path) as photo_source:
     photo_ratio=photo_source.height/photo_source.width
