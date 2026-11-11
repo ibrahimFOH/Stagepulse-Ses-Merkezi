@@ -149,6 +149,24 @@ assert.equal((androidEarPage.match(/class="section-heading dynamics-heading"/g) 
 
 
 
+
+const arrayGeometry = tools.calculateArrayGeometry({ cabinetCount: 4, splayDeg: 2, aimDeg: 0, hangHeightM: 7 });
+assert.equal(arrayGeometry.anglesDeg.length, 4);
+assert.deepEqual(Array.from(arrayGeometry.anglesDeg), [-3, -1, 1, 3]);
+assert.equal(arrayGeometry.totalCurvatureDeg, 6);
+assert.throws(() => tools.calculateArrayGeometry({ cabinetCount: 1, splayDeg: 2, aimDeg: 0, hangHeightM: 7 }), /2–24/);
+const coverage = tools.estimateSystemCoverage({ xM: 12, yM: 11, widthM: 24, depthM: 35, referenceDbSpl: 100 });
+assert.ok(Number.isFinite(coverage.levelDbSpl) && coverage.levelDbSpl > 60 && coverage.levelDbSpl < 120);
+assert.equal(coverage.sourceLevels.length, 2);
+assert.throws(() => tools.estimateSystemCoverage({ xM: 30, yM: 11, widthM: 24, depthM: 35, referenceDbSpl: 100 }), /geçersiz/);
+const alignment = tools.calculateSubTopAlignment({ subDistanceM: 22, topDistanceM: 18, crossoverHz: 100, temperatureC: 20 });
+assert.equal(alignment.delayTarget, 'Top');
+assert.ok(Math.abs(alignment.delayMs - (4 / 343.42 * 1000)) < 1e-10);
+assert.ok(alignment.phaseDifferenceDeg >= 0 && alignment.phaseDifferenceDeg < 360);
+assert.throws(() => tools.calculateSubTopAlignment({ subDistanceM: 0, topDistanceM: 18, crossoverHz: 100, temperatureC: 20 }), /geçersiz/);
+assert.match(source, /data-sd-panel="coverage"/);
+assert.match(source, /data-sd-panel="alignment"/);
+
 const oscPacket = tools.buildOscPacket({address:'/ch/01/mix/fader',value:'0.75',valueType:'float'});
 assert.equal(oscPacket.length % 4, 0, 'OSC paketi dört bayt hizalı olmalı.');
 const oscTagOffset = 20;

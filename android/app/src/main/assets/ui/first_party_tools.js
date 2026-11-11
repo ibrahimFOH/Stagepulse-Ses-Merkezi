@@ -1653,6 +1653,135 @@
     });
   }
 
+
+  // Hafif 2B sistem tasarımcısı. Akustik polar/GLL tahmini değildir.
+  function calculateArrayGeometry(input) {
+    const count=Number(input.cabinetCount),splay=Number(input.splayDeg),aim=Number(input.aimDeg),hang=Number(input.hangHeightM);
+    if(!Number.isInteger(count)||count<2||count>24)throw new Error('Kabin sayısı 2–24 arasında tam sayı olmalı.');
+    if(!Number.isFinite(splay)||splay<0||splay>15)throw new Error('Splay 0–15° arasında olmalı.');
+    if(!Number.isFinite(aim)||aim< -45||aim>45)throw new Error('Aiming -45° ile +45° arasında olmalı.');
+    if(!Number.isFinite(hang)||hang<2||hang>30)throw new Error('Askı yüksekliği 2–30 m arasında olmalı.');
+    const anglesDeg=Array.from({length:count},(_,i)=>aim+(i-(count-1)/2)*splay);
+    return {cabinetCount:count,splayDeg:splay,aimDeg:aim,hangHeightM:hang,anglesDeg,totalCurvatureDeg:(count-1)*splay,
+      note:'Geometrik yan görünüş; akustik array/polar tahmini değildir.'};
+  }
+  function estimateSystemCoverage(input) {
+    const x=Number(input.xM),y=Number(input.yM),width=Number(input.widthM),depth=Number(input.depthM),reference=Number(input.referenceDbSpl);
+    if(![x,y,width,depth,reference].every(Number.isFinite)||width<4||width>200||depth<4||depth>300||x<0||x>width||y<0||y>depth||reference<60||reference>140)
+      throw new Error('Kapsama hesabı girdileri geçersiz.');
+    const levels=[width*.28,width*.72].map(sx=>{const distance=Math.max(1,Math.hypot(x-sx,y-1.5));return {distanceM:distance,levelDbSpl:reference-20*Math.log10(distance)};});
+    const peak=Math.max(...levels.map(v=>v.levelDbSpl));
+    return {levelDbSpl:peak+10*Math.log10(levels.reduce((sum,v)=>sum+Math.pow(10,(v.levelDbSpl-peak)/10),0)),
+      sourceLevels:levels,method:'Serbest alan noktasal kaynak ve enerji toplamı',
+      assumptions:['İki eşit kaynak, her biri için girilen 1 m referans seviyesi.','Faz, polar/yönlülük, oda yansımaları, hava soğurması ve limiter hesaba katılmaz.']};
+  }
+  function calculateSubTopAlignment(input) {
+    const sub=Number(input.subDistanceM),top=Number(input.topDistanceM),frequency=Number(input.crossoverHz),temperature=Number(input.temperatureC);
+    if(![sub,top,frequency,temperature].every(Number.isFinite)||sub<.1||sub>10000||top<.1||top>10000||frequency<20||frequency>20000||temperature< -30||temperature>50)
+      throw new Error('Mesafeler, crossover frekansı veya sıcaklık geçersiz.');
+    const speedMps=331.3+.606*temperature,distanceDifferenceM=Math.abs(sub-top),delayMs=distanceDifferenceM/speedMps*1000;
+    return {subDistanceM:sub,topDistanceM:top,speedMps,distanceDifferenceM,delayMs,delayTarget:sub<top?'Sub':top<sub?'Top':'Yok',
+      crossoverHz:frequency,phaseDifferenceDeg:(delayMs*frequency*.36)%360,
+      note:'Geometrik yol farkı kestirimidir. Nihai hizalama için aynı referans noktada Transfer Function/Impulse Response ölçümü gerekir.'};
+  }
+  function systemDesignerMarkup() {
+    return [
+      '<div class="sp-sd-head"><div><span class="eyebrow">PA / ARRAY / SPL / HİZALAMA</span><h3>System Designer</h3><p>Hafif 2B tasarım ve ön hesap. Üretici verisi veya saha ölçümünün yerine geçmez.</p></div><button class="btn btn-secondary btn-small" id="spSystemExport" type="button">Sistem taslağını JSON kaydet</button></div>',
+      '<div class="sp-sd-tabs" role="tablist" aria-label="Sistem tasarım araçları"><button class="sp-sd-tab active" type="button" data-sd-tab="array" role="tab" aria-selected="true">Line Array</button><button class="sp-sd-tab" type="button" data-sd-tab="coverage" role="tab" aria-selected="false">SPL Coverage</button><button class="sp-sd-tab" type="button" data-sd-tab="alignment" role="tab" aria-selected="false">Sub-Top Alignment</button></div>',
+      '<section class="sp-sd-panel active" data-sd-panel="array" role="tabpanel"><div class="sp-sd-layout"><div class="sp-sd-controls">',
+      '<div class="field-row"><label for="spArrayCount">Kabin sayısı</label><input id="spArrayCount" type="number" min="2" max="24" step="1" value="8"></div><div class="field-row"><label for="spArrayHang">Askı yüksekliği (m)</label><input id="spArrayHang" type="number" min="2" max="30" step="0.5" value="7"></div>',
+      '<div class="field-row"><label for="spArraySplay">Kabinler arası splay (°)</label><input id="spArraySplay" type="number" min="0" max="15" step="0.1" value="2"></div><div class="field-row"><label for="spArrayAim">Dikey aiming (°)</label><input id="spArrayAim" type="number" min="-45" max="45" step="0.5" value="5"></div><div class="result-line" id="spArraySummary">Array geometrisi hazırlanıyor.</div></div>',
+      '<div class="sp-sd-visual"><canvas id="spArrayCanvas" class="sp-sd-canvas" width="900" height="430" aria-label="Line array geometrik yan görünüşü"></canvas><p class="sp-sd-caption">Kabin çizimi ve ışınlar geometrik gösterimdir; gerçek dikey polar kapsama veya SPL tahmini değildir.</p></div></div></section>',
+      '<section class="sp-sd-panel" data-sd-panel="coverage" role="tabpanel" hidden><div class="sp-sd-layout"><div class="sp-sd-controls">',
+      '<div class="field-row"><label for="spCoverageWidth">Dinleyici alanı genişliği (m)</label><input id="spCoverageWidth" type="number" min="4" max="200" step="0.5" value="24"></div><div class="field-row"><label for="spCoverageDepth">Dinleyici alanı derinliği (m)</label><input id="spCoverageDepth" type="number" min="4" max="300" step="0.5" value="35"></div>',
+      '<div class="field-row"><label for="spCoverageLevel">Referans seviye (dB SPL @ 1 m)</label><input id="spCoverageLevel" type="number" min="60" max="140" step="0.5" value="100"></div><div class="field-row"><label for="spCoverageAngle">Nominal yatay açı (°)</label><input id="spCoverageAngle" type="number" min="30" max="150" step="1" value="90"></div><div class="result-line" id="spCoverageSummary">Kapsama haritası hazırlanıyor.</div></div>',
+      '<div class="sp-sd-visual"><canvas id="spCoverageCanvas" class="sp-sd-canvas" width="900" height="480" aria-label="Tahmini SPL ısı haritası ve nominal açı sınırları"></canvas><p class="sp-sd-caption">Renkler serbest alan noktasal kaynak enerji toplamı kestirimidir. Kesikli çizgiler yalnızca nominal açı geometrisidir; polar veri uygulanmaz.</p></div></div></section>',
+      '<section class="sp-sd-panel" data-sd-panel="alignment" role="tabpanel" hidden><div class="sp-sd-layout"><div class="sp-sd-controls">',
+      '<div class="field-row"><label for="spSubDistance">Sub → referans nokta mesafesi (m)</label><input id="spSubDistance" type="number" min="0.1" max="10000" step="0.1" value="22"></div><div class="field-row"><label for="spTopDistance">Top → referans nokta mesafesi (m)</label><input id="spTopDistance" type="number" min="0.1" max="10000" step="0.1" value="18"></div>',
+      '<div class="field-row"><label for="spCrossover">Crossover frekansı (Hz)</label><input id="spCrossover" type="number" min="20" max="20000" step="1" value="100"></div><div class="field-row"><label for="spTemperature">Hava sıcaklığı (°C)</label><input id="spTemperature" type="number" min="-30" max="50" step="0.5" value="20"></div><div class="result-line" id="spAlignmentSummary">Hizalama hesabı hazırlanıyor.</div></div>',
+      '<div class="sp-sd-visual"><canvas id="spAlignmentCanvas" class="sp-sd-canvas" width="900" height="300" aria-label="Sub ve top ses yolları karşılaştırması"></canvas><p class="sp-sd-caption">Gecikme yakın olan kaynağın geometrik yolunu uzatmak içindir. Polarite/faz tepkisi ölçümle doğrulanmalıdır.</p></div></div></section>',
+      '<div class="sp-sd-disclaimer"><strong>Model sınırları</strong><span>Rigging yükü, üretici GLL/polar verisi, gerçek line-array toplamı, oda yansımaları veya sertifikalı SPL kapsaması hesaplanmaz. Değerleri üretici dokümanı ve saha ölçümüyle doğrula.</span></div>'
+    ].join('');
+  }
+  function systemDesignerCanvas(id) {
+    const canvas=byId(id),ctx=canvas&&canvas.getContext('2d');
+    return canvas&&ctx?{ctx,width:canvas.width,height:canvas.height}:null;
+  }
+  function drawSystemArray() {
+    const c=systemDesignerCanvas('spArrayCanvas');if(!c)return;
+    const p=calculateArrayGeometry({cabinetCount:number('spArrayCount'),splayDeg:number('spArraySplay'),aimDeg:number('spArrayAim'),hangHeightM:number('spArrayHang')});
+    const ctx=c.ctx,w=c.width,h=c.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#0b1016';ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=1;
+    for(let x=30;x<w;x+=45){ctx.beginPath();ctx.moveTo(x,25);ctx.lineTo(x,h-45);ctx.stroke();}
+    for(let y=35;y<h-35;y+=35){ctx.beginPath();ctx.moveTo(25,y);ctx.lineTo(w-25,y);ctx.stroke();}
+    const floorY=h-55;ctx.strokeStyle='#d8b45d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(30,floorY);ctx.lineTo(w-30,floorY);ctx.stroke();
+    ctx.fillStyle='#b9c3cf';ctx.font='13px Segoe UI, Arial';ctx.textAlign='left';ctx.fillText('SAHNE / ZEMİN',34,floorY-10);
+    let cx=235,cy=82;ctx.strokeStyle='#8995a4';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(cx,24);ctx.lineTo(cx,60);ctx.stroke();ctx.fillStyle='#d8b45d';ctx.fillRect(cx-17,18,34,7);
+    p.anglesDeg.forEach((angle,index)=>{const rad=angle*Math.PI/180;ctx.save();ctx.translate(cx,cy);ctx.rotate(rad);ctx.fillStyle='#343b46';ctx.fillRect(-25,-9,50,18);ctx.strokeStyle=index===0||index===p.anglesDeg.length-1?'#f1d38a':'#aab4c0';ctx.lineWidth=2;ctx.strokeRect(-25,-9,50,18);ctx.restore();
+      const ax=cx+Math.cos(rad)*28,ay=cy+Math.sin(rad)*28;ctx.strokeStyle='rgba(216,180,93,.58)';ctx.lineWidth=1.5;ctx.setLineDash([6,5]);ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ax+Math.cos(rad)*210,ay+Math.sin(rad)*210);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='#e8edf3';ctx.font='11px Segoe UI, Arial';ctx.textAlign='left';ctx.fillText(fmt(angle,1)+'°',ax+6,ay-6);cx+=Math.sin(rad)*13;cy+=23;});
+    ctx.fillStyle='#d8b45d';ctx.font='bold 14px Segoe UI, Arial';ctx.fillText('DİKEY YAN GÖRÜNÜŞ',30,28);ctx.fillStyle='#9ca7b5';ctx.font='12px Segoe UI, Arial';ctx.fillText('Askı yüksekliği: '+fmt(p.hangHeightM,1)+' m',30,50);
+    text('spArraySummary',p.cabinetCount+' kabin · toplam geometrik eğrilik '+fmt(p.totalCurvatureDeg,1)+'° · splay '+fmt(p.splayDeg,1)+'°/kabin. '+p.note);
+  }
+  function systemCoverageColor(level,min,max) {
+    const stops=[[30,55,140],[0,126,190],[0,177,168],[83,183,104],[224,205,58],[235,125,45],[190,48,42]];
+    const t=clamp((level-min)/Math.max(1,max-min),0,1)*(stops.length-1),index=Math.min(stops.length-2,Math.floor(t)),part=t-index;
+    return 'rgb('+stops[index].map((v,i)=>Math.round(v+(stops[index+1][i]-v)*part)).join(',')+')';
+  }
+  function drawSystemCoverage() {
+    const c=systemDesignerCanvas('spCoverageCanvas');if(!c)return;
+    const width=number('spCoverageWidth'),depth=number('spCoverageDepth'),reference=number('spCoverageLevel'),angle=number('spCoverageAngle');
+    if(![width,depth,reference,angle].every(Number.isFinite)||width<4||width>200||depth<4||depth>300||reference<60||reference>140||angle<30||angle>150)
+      throw new Error('Alan 4–200 × 4–300 m, referans 60–140 dB SPL ve açı 30–150° aralığında olmalı.');
+    const ctx=c.ctx,w=c.width,h=c.height,pad={l:62,r:30,t:38,b:48},plotW=w-pad.l-pad.r,plotH=h-pad.t-pad.b,cols=72,rows=38,values=[];
+    for(let j=0;j<rows;j++)for(let i=0;i<cols;i++)values.push(estimateSystemCoverage({xM:(i+.5)/cols*width,yM:(j+.5)/rows*depth,widthM:width,depthM:depth,referenceDbSpl:reference}).levelDbSpl);
+    const min=Math.floor(Math.min(...values)/5)*5,max=Math.ceil(Math.max(...values)/5)*5;
+    ctx.clearRect(0,0,w,h);ctx.fillStyle='#0b1016';ctx.fillRect(0,0,w,h);ctx.fillStyle='#d8b45d';ctx.font='bold 13px Segoe UI, Arial';ctx.textAlign='left';ctx.fillText('TAHMİNİ SPL · SERBEST ALAN MODELİ',pad.l,22);
+    const cellW=plotW/cols,cellH=plotH/rows;
+    for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){ctx.fillStyle=systemCoverageColor(values[j*cols+i],min,max);ctx.fillRect(pad.l+i*cellW,pad.t+j*cellH,Math.ceil(cellW+.4),Math.ceil(cellH+.4));}
+    ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=1;
+    for(let i=0;i<=4;i++){const x=pad.l+plotW*i/4;ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,pad.t+plotH);ctx.stroke();ctx.fillStyle='#c5cfda';ctx.font='10px Segoe UI, Arial';ctx.textAlign='center';ctx.fillText(fmt(width*i/4,1)+' m',x,h-22);}
+    for(let i=0;i<=5;i++){const y=pad.t+plotH*i/5;ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+plotW,y);ctx.stroke();ctx.fillStyle='#c5cfda';ctx.textAlign='right';ctx.fillText(fmt(depth*i/5,0)+' m',pad.l-8,y+3);}
+    const px=x=>pad.l+x/width*plotW,py=y=>pad.t+y/depth*plotH,half=angle*Math.PI/360,sourceY=1.5;
+    [width*.28,width*.72].forEach((sx,i)=>{ctx.strokeStyle='#fff2c9';ctx.lineWidth=2;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(px(sx),py(sourceY));ctx.lineTo(px(sx-Math.tan(half)*depth),py(depth));ctx.moveTo(px(sx),py(sourceY));ctx.lineTo(px(sx+Math.tan(half)*depth),py(depth));ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle='#10151d';ctx.beginPath();ctx.arc(px(sx),py(sourceY),8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#f1d38a';ctx.lineWidth=2;ctx.stroke();ctx.fillStyle='#fff';ctx.font='bold 10px Segoe UI, Arial';ctx.textAlign='center';ctx.fillText(i===0?'L PA':'R PA',px(sx),py(sourceY)-13);});
+    ctx.fillStyle='#30291d';ctx.fillRect(pad.l,pad.t-13,plotW,10);ctx.fillStyle='#f1d38a';ctx.textAlign='center';ctx.font='bold 10px Segoe UI, Arial';ctx.fillText('SAHNE',pad.l+plotW/2,pad.t-4);
+    const rear=estimateSystemCoverage({xM:width/2,yM:depth,widthM:width,depthM:depth,referenceDbSpl:reference}).levelDbSpl;
+    text('spCoverageSummary',fmt(width*depth,1)+' m² alan · uzak merkezde yaklaşık '+fmt(rear,1)+' dB SPL. İki eşit noktasal kaynağın enerji toplamı; '+fmt(angle,0)+'° açı yalnızca kesikli çizgilerde gösterilir.');
+  }
+  function drawSystemAlignment() {
+    const c=systemDesignerCanvas('spAlignmentCanvas');if(!c)return;
+    const p=calculateSubTopAlignment({subDistanceM:number('spSubDistance'),topDistanceM:number('spTopDistance'),crossoverHz:number('spCrossover'),temperatureC:number('spTemperature')});
+    const ctx=c.ctx,w=c.width,h=c.height;ctx.clearRect(0,0,w,h);ctx.fillStyle='#0b1016';ctx.fillRect(0,0,w,h);
+    const maxDistance=Math.max(p.subDistanceM,p.topDistanceM,1),x0=75,x1=w-105;
+    ctx.fillStyle='#d8b45d';ctx.font='bold 13px Segoe UI, Arial';ctx.fillText('ORTAK DİNLEME REFERANS NOKTASI',w-315,28);
+    [[p.subDistanceM,105,'#55c4d0','SUB'],[p.topDistanceM,190,'#f1d38a','TOP']].forEach(([distance,y,color,label])=>{const endX=x0+(x1-x0)*Number(distance)/maxDistance;ctx.strokeStyle=color;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(endX,y);ctx.stroke();ctx.fillStyle=color;ctx.font='bold 13px Segoe UI, Arial';ctx.fillText(label+' · '+fmt(distance,1)+' m',x0,y-14);ctx.beginPath();ctx.arc(endX,y,5,0,Math.PI*2);ctx.fill();});
+    ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x1,65);ctx.lineTo(x1,235);ctx.stroke();ctx.fillStyle='#e7edf5';ctx.font='12px Segoe UI, Arial';ctx.fillText('Yol farkı: '+fmt(p.distanceDifferenceM,2)+' m',x0,255);
+    text('spAlignmentSummary',(p.delayTarget==='Yok'?'Mesafe farkı yok.':p.delayTarget+' kanalına '+fmt(p.delayMs,3)+' ms geometrik gecikme')+' · crossover '+fmt(p.crossoverHz,0)+' Hz · faz farkı yaklaşık '+fmt(p.phaseDifferenceDeg,1)+'° · ses hızı '+fmt(p.speedMps,1)+' m/s. '+p.note);
+  }
+  function renderSystemDesigner(active) {
+    try { if(active==='array')drawSystemArray();else if(active==='coverage')drawSystemCoverage();else if(active==='alignment')drawSystemAlignment(); }
+    catch(error){showError(active==='array'?'spArraySummary':active==='coverage'?'spCoverageSummary':'spAlignmentSummary',error);}
+  }
+  function initSystemDesigner() {
+    const page=document.querySelector('[data-page="systemplan"]'),anchor=page&&page.querySelector('.table-panel');
+    if(!anchor||byId('spSystemDesigner'))return;
+    const section=document.createElement('section');section.className='panel sp-system-designer';section.id='spSystemDesigner';section.innerHTML=systemDesignerMarkup();anchor.insertAdjacentElement('afterend',section);
+    section.querySelectorAll('[data-sd-tab]').forEach(button=>button.addEventListener('click',()=>{const tab=button.dataset.sdTab;
+      section.querySelectorAll('[data-sd-tab]').forEach(item=>{const active=item===button;item.classList.toggle('active',active);item.setAttribute('aria-selected',String(active));});
+      section.querySelectorAll('[data-sd-panel]').forEach(panel=>{const active=panel.dataset.sdPanel===tab;panel.classList.toggle('active',active);panel.hidden=!active;});renderSystemDesigner(tab);}));
+    ['spArrayCount','spArrayHang','spArraySplay','spArrayAim','spCoverageWidth','spCoverageDepth','spCoverageLevel','spCoverageAngle','spSubDistance','spTopDistance','spCrossover','spTemperature'].forEach(id=>byId(id).addEventListener('input',()=>renderSystemDesigner(section.querySelector('[data-sd-panel].active')?.dataset.sdPanel||'array')));
+    byId('spSystemExport').addEventListener('click',()=>{try{
+      const array=calculateArrayGeometry({cabinetCount:number('spArrayCount'),splayDeg:number('spArraySplay'),aimDeg:number('spArrayAim'),hangHeightM:number('spArrayHang')});
+      const coverage={widthM:number('spCoverageWidth'),depthM:number('spCoverageDepth'),referenceDbSpl:number('spCoverageLevel'),nominalHorizontalAngleDeg:number('spCoverageAngle')};
+      const alignment=calculateSubTopAlignment({subDistanceM:number('spSubDistance'),topDistanceM:number('spTopDistance'),crossoverHz:number('spCrossover'),temperatureC:number('spTemperature')});
+      downloadText('stagepulse_system_taslagi.json',JSON.stringify({version:1,array,coverage,alignment,stageItems},null,2),'application/json;charset=utf-8');
+      text('spArraySummary','Sistem taslağı JSON olarak dışa aktarıldı.');
+    }catch(error){showError('spArraySummary',error);}});
+    renderSystemDesigner('array');renderSystemDesigner('coverage');renderSystemDesigner('alignment');
+    section.querySelectorAll('[data-sd-panel]').forEach((panel,index)=>{if(index)panel.hidden=true;});
+  }
+
   function initAll() {
     const steps = [
       ['Kompresör ve gate kulak eğitimi', initDynamicsEarTraining],
@@ -1662,6 +1791,7 @@
       ['Oda SPL haritası', initRoomMap],
       ['Hoparlör kabini ve filtre hesabı', initSpeakerTools],
       ['Sahne ve AV planı', initStagePlanner],
+      ['Hafif 2B sistem tasarımcısı', initSystemDesigner],
       ['Dalga, faz ve ses gecikmesi laboratuvarı', initWaveLab],
       ['OSC / MIDI kontrol araçları', initOscMidiTools]
     ];
@@ -1673,6 +1803,9 @@
 
   window.StagepulseFirstPartyTools = {
     initAll,
+    calculateArrayGeometry,
+    estimateSystemCoverage,
+    calculateSubTopAlignment,
     parseM32Scene,
     calculatePowerLine,
     processCompressor,
