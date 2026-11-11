@@ -38,7 +38,7 @@ $pfxData = Get-PfxData -FilePath $CertificatePath -Password $securePassword
 $signingCert = @($pfxData.EndEntityCertificates)[0]
 if ($signingCert.Subject -ne 'CN=Stagepulse') { throw "Sertifika Publisher eşleşmiyor. Beklenen CN=Stagepulse, bulunan: $($signingCert.Subject)" }
 
-$sdkBin = Join-Path \${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
+$sdkBin = Join-Path ([Environment]::GetEnvironmentVariable('ProgramFiles(x86)')) 'Windows Kits\10\bin'
 $makeAppx = Get-ChildItem -Path $sdkBin -Filter MakeAppx.exe -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '\\x64\\MakeAppx\.exe$' } | Sort-Object FullName -Descending | Select-Object -First 1
 $signTool = Get-ChildItem -Path $sdkBin -Filter SignTool.exe -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match '\\x64\\SignTool\.exe$' } | Sort-Object FullName -Descending | Select-Object -First 1
 if (-not $makeAppx -or -not $signTool) { throw 'Windows SDK MakeAppx.exe veya SignTool.exe bulunamadı. Windows 10/11 SDK kurulu olmalıdır.' }
