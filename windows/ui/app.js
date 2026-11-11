@@ -1559,7 +1559,7 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLower
   ];
   const escapeRegExp = value => value.replace(/[.*+?^\${}()|[\]\\]/g, "\\$&");
   const patterns = terms.map(([tr,bilingual]) => ({
-    regex:new RegExp("(^|[^\\p{L}\\p{N}_])("+escapeRegExp(tr)+")(?!\\s*\\()", "giu"),
+    regex:new RegExp("(^|[^\\p{L}\\p{N}_])("+escapeRegExp(tr)+")(?![^\\p{L}\\p{N}_])(?!\\s*\\()", "giu"),
     bilingual
   }));
   const excluded = new Set(["SCRIPT","STYLE","NOSCRIPT","TEXTAREA","INPUT","CODE","PRE","OPTION"]);
