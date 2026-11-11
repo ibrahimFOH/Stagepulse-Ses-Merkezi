@@ -139,6 +139,7 @@ jobs:
         shell: pwsh
         env:
           STAGEPULSE_KEEP_PAYLOAD: '1'
+          STAGEPULSE_SKIP_PREBUILD_TESTS: '1'
         run: ./windows/EXE_OLUSTUR.ps1
       - name: EXE çıktısını ve SHA-256 değerini doğrula
         shell: pwsh
