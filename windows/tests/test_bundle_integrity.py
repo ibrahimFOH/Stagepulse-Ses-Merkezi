@@ -14,6 +14,16 @@ def test_ui_has_no_external_script_or_stylesheet_dependencies():
         assert not external_styles, f'{name}: external CSS {external_styles}'
 
 
+def test_ebu_reference_table_is_bundled_and_no_manual_csv_upload_remains():
+    html = (ROOT / "ui/index.html").read_text(encoding="utf-8")
+    app = (ROOT / "ui/app.js").read_text(encoding="utf-8")
+    assert (ROOT / "references/ebu_tech3341_reference.csv").is_file()
+    assert 'id="ebuReferenceCsv"' not in html
+    assert "ebuReferenceCsvText" not in app
+    assert "run_ebu_loudness_validation(tolerance)" in app
+    assert "referans tablosu uygulamaya gömülüdür" in html
+
+
 def test_packaged_paths_exist():
     required = ['Merkez.py', 'ui/index.html', 'ui/app.js', 'ui/rta_math.js', 'ui/acoustic_math.js', 'ui/style.css', 'ui/first_party_tools.js', 'ui/advanced_modules.js', 'tests/test_first_party_tools.js',
                 'araclar/Frekans_Bulucu/index.html', 'egitim_paketleri/00_Uygulama_Kullanimi_Ogrenci.pdf',
