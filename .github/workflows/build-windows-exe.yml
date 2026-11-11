@@ -6,6 +6,8 @@ on:
     paths:
       - "windows/**"
       - "android/app/build.gradle"
+      - "android/app/src/main/assets/egitim_paketleri/**"
+      - "android/app/src/main/assets/docs/**"
       - "README.md"
       - ".github/workflows/build-windows-exe.yml"
   # Eski PR hedefi için sözleşme testi geriye dönük uyumluluk metnini korur: branches: [research/android-engineering-tools-parity]
@@ -18,19 +20,66 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: windows-exe-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  generate-education-pdfs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        name: Main kaynaklarını al
+        with:
+          ref: main
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: PDF üretim bağımlılıklarını kur
+        run: python -m pip install reportlab matplotlib numpy Pillow CairoSVG PyMuPDF
+      - name: Yedi ana öğrenci kitabını üret
+        run: python windows/scripts/generate_core_curriculum_pdfs.py
+      - name: Uygulama rehberini üret
+        run: python windows/scripts/generate_student_guide.py
+      - name: SPL ve RTA teknik ekini üret
+        run: python windows/scripts/generate_acoustic_appendix.py
+      - name: SPL görsel atlasını üret
+        run: python windows/scripts/generate_spl_visual_atlas.py
+      - name: Konsol eğitim kitaplarını üret
+        run: python windows/scripts/generate_console_training_pdfs.py
+      - name: Android eğitim kitaplığını Windows PDF'leriyle eşitle
+        run: |
+          mkdir -p android/app/src/main/assets/egitim_paketleri
+          cp windows/egitim_paketleri/*.pdf android/app/src/main/assets/egitim_paketleri/
+      - name: PDF içerik, sayfa ve kopya denetimi
+        run: python windows/scripts/verify_education_pdfs.py
+      - name: Android paket varlıklarını doğrula
+        run: python android/scripts/verify_assets.py
+      - name: Üretilen PDF'leri main dalına yaz
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add windows/egitim_paketleri/*.pdf android/app/src/main/assets/egitim_paketleri/*.pdf
+          if git diff --cached --quiet; then
+            echo "PDF çıktıları zaten güncel."
+          else
+            git commit -m "Eğitim PDF kitaplığını v4.0.0 ile yenile [skip ci]"
+            git push origin HEAD:main
+          fi
+
   build:
+    needs: generate-education-pdfs
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-        name: Kaynak kodunu al
+        name: Üretilen eğitim PDF sürümünü de içeren main kaynağını al
+        with:
+          ref: main
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -53,6 +102,8 @@ jobs:
           if ($values -contains '') { throw "Uygulama sürümlerinden biri bulunamadı." }
           if (($values | Select-Object -Unique).Count -ne 1) { throw "Uygulama sürümleri eşleşmiyor: $($values -join ', ')" }
           "version=$($values[0])" >> $env:GITHUB_OUTPUT
+      - name: Eğitim PDF içerik ve kopya denetimi
+        run: python windows/scripts/verify_education_pdfs.py
       - name: Android ortak varlıklarını doğrula
         run: python android/scripts/verify_assets.py
       - name: JavaScript ve regresyon testleri
