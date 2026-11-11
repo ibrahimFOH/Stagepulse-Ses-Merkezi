@@ -1,3 +1,6 @@
+param(
+    [System.Security.SecureString]$Password
+)
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $principal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
@@ -11,7 +14,11 @@ if (Test-Path -LiteralPath $pfxPath) { throw "Sertifika zaten var: $pfxPath. Üz
 New-Item -ItemType Directory -Force -Path $certDir | Out-Null
 Write-Host 'Stagepulse MSIX geliştirme sertifikası oluşturuluyor.' -ForegroundColor Cyan
 Write-Host 'Bu sertifika yerel test içindir. Genel dağıtımda güvenilir kod imzalama sertifikası gerekir.' -ForegroundColor Yellow
-$password = Read-Host 'PFX için güçlü bir parola belirleyin (GitHub secret olarak da kaydedilecek)' -AsSecureString
+if ($Password) {
+    $password = $Password
+} else {
+    $password = Read-Host 'PFX için güçlü bir parola belirleyin (GitHub secret olarak da kaydedilecek)' -AsSecureString
+}
 if (-not $password -or $password.Length -lt 12) { throw 'PFX parolası en az 12 karakter olmalıdır.' }
 $cert = New-SelfSignedCertificate -Type Custom -Subject 'CN=Stagepulse' -FriendlyName 'Stagepulse MSIX Package Signing' -CertStoreLocation 'Cert:\CurrentUser\My' -KeyAlgorithm RSA -KeyLength 3072 -HashAlgorithm SHA256 -KeyExportPolicy Exportable -KeyUsage DigitalSignature -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3','2.5.29.19={text}') -NotAfter (Get-Date).AddYears(5)
 Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $password | Out-Null
