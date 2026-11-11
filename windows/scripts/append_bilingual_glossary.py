@@ -64,14 +64,14 @@ def append_glossary(path: Path) -> None:
     page.insert_text((42, 62), "Teknik terimler tüm Stagepulse eğitimlerinde aynı karşılıklarla kullanılır.", fontfile=str(FONT), fontsize=8, color=(0.35, 0.38, 0.42))
     x0, x1, x2, x3 = 42, 292, 303, 553
     top, row_h = 88, 29
-    page.draw_rect((x0, top, x3, top + 2*row_h*22), color=(0.82,0.84,0.87), width=0.5)
+    page.draw_rect((x0, top, x3, top + row_h*22), color=(0.82,0.84,0.87), width=0.5)
     page.draw_line((x1, top, x1, top + 2*row_h*22), color=(0.82,0.84,0.87), width=0.5)
     page.draw_line((x2, top, x2, top + 2*row_h*22), color=(0.82,0.84,0.87), width=0.5)
     page.insert_text((x0+6, top+15), "Türkçe", fontfile=str(FONT), fontsize=8, color=(0.12,0.14,0.17))
     page.insert_text((x1+6, top+15), "English", fontfile=str(FONT), fontsize=8, color=(0.12,0.14,0.17))
     page.insert_text((x2+6, top+15), "Türkçe", fontfile=str(FONT), fontsize=8, color=(0.12,0.14,0.17))
     page.insert_text((x3-45, top+15), "English", fontfile=str(FONT), fontsize=8, color=(0.12,0.14,0.17))
-    y = top + 2*row_h
+    y = top + row_h
     half = (len(TERMS)+1)//2
     for i in range(half):
         pairs = [TERMS[i], TERMS[i+half] if i+half < len(TERMS) else ("","")]
