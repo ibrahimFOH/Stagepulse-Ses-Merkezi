@@ -8,8 +8,8 @@ Bu belge öğrenci PDF kitaplığının kaynak, kapsam, teknik sınır ve dağı
 |---|---|---|
 | 00 Uygulama Kullanımı | Uygulama akışı, araçlar, SPL/RTA, güvenlik ve öğrenci kitaplığı | RTA'nın dBFS spektrumu olduğu, kalibre SPL/IEC analizörü olmadığı açık; Nyquist ve mikrofon sınırları açıklanır. |
 | 01 Ses Mühendisliği | Dalga, dB referansları, faz/polarite, elektrik, mikrofon, akustik, işitme güvenliği | 8 ders, formül ve bitirme görevi; dBFS/dBu/dBV/dB SPL ayrımı ve raporlama disiplini. |
-| 02 Canlı Ses | Rider, patch, gain, FOH, monitor/IEM, PA, sub hizalama, show operasyonu | 8 saha dersi; 4 wedge + 2 IEM iş akışı, ölçüm ve arıza teşhisi. |
-| 03 Stüdyo | Kayıt, mikrofonlama, DAW, edit, EQ/dinamik, stereo, loudness ve QC | 8 ders; LUFS/sample peak/true peak ayrımı, mono kontrolü ve yeniden açılan proje teslimi. |
+| 02 Canlı Ses | Rider, patch, gain, FOH, monitor/IEM, PA, sub hizalama, show operasyonu | 9 saha dersi; 4 wedge + 2 IEM iş akışı, RF tarama/intermodülasyon, anten yerleşimi, ölçüm ve arıza teşhisi. |
+| 03 Stüdyo | Kayıt, mikrofonlama, DAW, edit, EQ/dinamik, stereo, loudness ve QC | 9 ders; LUFS/sample peak/true peak, mastering zinciri, dither, mono kontrolü ve yeniden açılan proje teslimi. |
 | 04 Dijital Mikser | Sinyal yolu, preamp, kanal işleme, bus/subgroup/matrix, DCA, scene, FX, ağ ve yedek | 8 uygulamalı ders; DCA'nın audio bus olmadığı ve üreticiye özgü routing farkları vurgulanır. |
 | 05 Canlı Mikser Hızlı Başvuru | Açılış/kapanış, gain, işlemci, monitor/IEM ve arıza kartları | Sahada hızlı kontrol listeleri; phantom, IEM ve güç sırası uyarıları. |
 | 06 Öğrenci Formları | Ders günlüğü, patch, mikrofon/RF, SPL, stüdyo QC, olay raporu ve rubrik | Kanıt temelli değerlendirme; kritik güvenlik hatası başarısızlık sebebi. |
