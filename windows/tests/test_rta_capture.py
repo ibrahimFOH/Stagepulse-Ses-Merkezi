@@ -284,3 +284,12 @@ def test_snapshot_includes_weighted_spl_metrics_when_fft_window_is_ready():
     assert set(result["spl_measurement"]["weightings"]) == {"A", "C", "Z"}
     assert result["spl_measurement"]["window_seconds"] == pytest.approx(16384 / 48000)
     assert result["spl_measurement"]["calibrated_spl"] is False
+
+
+def test_spl_filter_self_test_matches_iec_nominal_a_c_z_curves():
+    from core.acoustic_engine import run_spl_filter_self_test
+
+    report = run_spl_filter_self_test()
+    assert report["tests_total"] == 33
+    assert report["tests_failed"] == 0, report["results"]
+    assert report["tests_passed"] == 33
