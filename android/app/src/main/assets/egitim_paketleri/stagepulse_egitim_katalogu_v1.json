@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
   "currency": "TRY",
-  "pricing_status": "Önerilen başlangıç fiyatları; yayın öncesi vergi, eğitmen emeği, donanım/saha maliyeti ve rakip araştırmasıyla onaylanmalı.",
+  "pricing_status": "Aktif ticari ürün yalnızca FULL PAKET'tir. packages alanındaki eski paket tanımları veritabanı ve geriye dönük uyumluluk içindir; ayrı ürün/fiyat olarak gösterilmemelidir. Canlı fiyat yönetici mağaza ayarından doğrulanır.",
   "levels": [
     {
       "id": "L0",
@@ -1346,5 +1346,7 @@
     ],
     "formula": "Teklif = ekipman + personel/saat + kurulum/söküm + lojistik + mühendislik/dokümantasyon + ek tedarik + vergi + açıkça belirtilmiş risk/iptal koşulları",
     "source_note": "Website service pages describe quote-based pricing depending on equipment, event duration, venue, setup/teardown and technical crew; the app must not invent a final service quote without project inputs."
-  }
+  },
+  "active_commercial_model": "FULL_PACKAGE_ONLY",
+  "catalog_version": "4.0.0"
 }
