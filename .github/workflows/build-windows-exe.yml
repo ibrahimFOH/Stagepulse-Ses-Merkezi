@@ -20,7 +20,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: stagepulse-pdf-and-build-v2-${{ github.ref }}
@@ -28,6 +28,8 @@ concurrency:
 
 jobs:
   generate-education-pdfs:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -96,6 +98,7 @@ jobs:
         name: Üretilen eğitim PDF sürümünü de içeren main kaynağını al
         with:
           ref: main
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
