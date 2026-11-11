@@ -20,7 +20,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ses-merkezi-auto-release
@@ -49,7 +49,7 @@ jobs:
             exit 1
           fi
 
-      - name: Platform sürümlerini doğrula, çakışmasız kaynak etiketi oluştur ve yayın başlat
+      - name: Platform sürümlerini doğrula ve sabit commit SHA üzerinden yayın başlat
         shell: bash
         env:
           RELEASE_REPO_DISPATCH_TOKEN: ${{ secrets.RELEASE_REPO_DISPATCH_TOKEN }}
@@ -90,31 +90,11 @@ jobs:
           PY
           )"
 
-          BASE_TAG="ses-merkezi-v$RELEASE_VERSION"
-          TAG="$BASE_TAG"
-          EXISTING_SHA="$(git ls-remote --refs origin "refs/tags/$TAG" | awk 'NR==1 {print $1}')"
-          
-          # Aynı sürüm için eski kaynak etiketi varsa onu ezme; bu commit için benzersiz etiket kullan.
-          if [[ -n "$EXISTING_SHA" && "$EXISTING_SHA" != "$GITHUB_SHA" ]]; then
-            TAG="${BASE_TAG}-${GITHUB_SHA:0:8}"
-            EXISTING_SHA="$(git ls-remote --refs origin "refs/tags/$TAG" | awk 'NR==1 {print $1}')"
-          fi
-          
-          if [[ -n "$EXISTING_SHA" && "$EXISTING_SHA" != "$GITHUB_SHA" ]]; then
-            echo "::error:: $TAG etiketi farklı bir commit kullanıyor."
-            exit 1
-          fi
-          
-          if [[ -z "$EXISTING_SHA" ]]; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git tag "$TAG" "$GITHUB_SHA"
-            git push origin "refs/tags/$TAG"
-          else
-            echo "Kaynak etiketi aynı SHA değerini gösteriyor: $TAG"
-          fi
+          SOURCE_REF="$GITHUB_SHA"
+          echo "Kaynak sürüm doğrulandı: $RELEASE_VERSION"
+          echo "Yayın için sabit commit: $SOURCE_REF"
 
-          PAYLOAD="$(python3 - "$RELEASE_VERSION" "refs/tags/$TAG" <<'PY'
+          PAYLOAD="$(python3 - "$RELEASE_VERSION" "$SOURCE_REF" <<'PY'
           import json, sys
           print(json.dumps({
               "event_type": "ses-merkezi-release",
@@ -142,4 +122,4 @@ jobs:
             exit 1
           fi
 
-          echo "STABLE_RELEASE_TRIGGERED $TAG"
+          echo "STABLE_RELEASE_TRIGGERED $SOURCE_REF"
