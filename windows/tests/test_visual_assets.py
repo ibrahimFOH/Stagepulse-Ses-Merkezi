@@ -44,7 +44,7 @@ def test_student_visual_atlas_is_renderable_four_page_pdf_with_technical_limits(
     path = ROOT / 'egitim_paketleri/09_SPL_dB_3D_Gorsel_Atlasi.pdf'
     assert path.read_bytes().startswith(b'%PDF-')
     pdf = fitz.open(path)
-    assert len(pdf) == 5
+    assert len(pdf) == 7  # 4 özgün atlas sayfası + 3 terminoloji sözlüğü sayfası
     glossary_text = pdf[-1].get_text()
     assert 'Compressor' in glossary_text and 'Noise Gate' in glossary_text
     content = '\n'.join(page.get_text() for page in pdf)
