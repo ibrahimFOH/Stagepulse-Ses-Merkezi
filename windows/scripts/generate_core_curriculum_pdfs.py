@@ -30,7 +30,8 @@ styles.add(ParagraphStyle(name='H2x',fontName='SPB',fontSize=10.5,leading=14,tex
 styles.add(ParagraphStyle(name='Bodyx',fontName='SP',fontSize=8.6,leading=12.2,textColor=INK,spaceAfter=5))
 styles.add(ParagraphStyle(name='Smallx',fontName='SP',fontSize=7.2,leading=9.5,textColor=GREY,spaceAfter=3))
 styles.add(ParagraphStyle(name='Callx',fontName='SPB',fontSize=8.3,leading=11.5,textColor=INK,backColor=PALE,borderColor=GOLD,borderWidth=.6,borderPadding=7,spaceBefore=4,spaceAfter=7))
-P=lambda t,s='Bodyx':Paragraph(t,styles[s])
+from append_bilingual_glossary import bilingualize_markup
+P=lambda t,s='Bodyx':Paragraph(bilingualize_markup(t),styles[s])
 def footer(c,d):
  c.saveState(); w,h=A4; c.setStrokeColor(GOLD); c.setLineWidth(.65); c.line(16*mm,14*mm,w-16*mm,14*mm)
  c.setFont('SP',7); c.setFillColor(GREY); c.drawString(16*mm,8*mm,'STAGEPULSE · SES MÜHENDİSLİĞİ MERKEZİ · v4.0.0'); c.drawRightString(w-16*mm,8*mm,f'Sayfa {d.page}'); c.restoreState()
