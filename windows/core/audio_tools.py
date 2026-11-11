@@ -133,8 +133,14 @@ def normalize_lufs(source: str | Path, output: str | Path, target_lufs: float = 
     if len(audio) < int(rate * 0.5):
         raise ValueError("Loudness ölçümü için ses en az 0,5 saniye olmalıdır.")
 
-    meter = pyln.Meter(int(rate))
+    meter = pyln.Meter(int(rate), filter_class="DeMan")
     measured = float(meter.integrated_loudness(audio))
+    try:
+        input_lra = float(meter.loudness_range(audio))
+    except (ValueError, RuntimeError):
+        input_lra = float("nan")
+    if not math.isfinite(input_lra):
+        input_lra = None
     if not math.isfinite(measured):
         raise ValueError("LUFS ölçümü alınamadı. Dosya sessiz veya ölçüm için uygun olmayabilir.")
 
@@ -168,7 +174,14 @@ def normalize_lufs(source: str | Path, output: str | Path, target_lufs: float = 
         verified_audio, verified_rate = sf.read(str(temp_path), dtype="float32", always_2d=True)
         if verified_rate != int(rate) or verified_audio.shape != output_audio.shape:
             raise RuntimeError("Çıktı WAV doğrulaması başarısız: kanal veya örnekleme bilgisi değişti.")
-        verified_lufs = float(pyln.Meter(int(verified_rate)).integrated_loudness(verified_audio))
+        verified_meter = pyln.Meter(int(verified_rate), filter_class="DeMan")
+        verified_lufs = float(verified_meter.integrated_loudness(verified_audio))
+        try:
+            output_lra = float(verified_meter.loudness_range(verified_audio))
+        except (ValueError, RuntimeError):
+            output_lra = float("nan")
+        if not math.isfinite(output_lra):
+            output_lra = None
         if not math.isfinite(verified_lufs):
             raise RuntimeError("Yazılan dosyanın LUFS ölçümü doğrulanamadı.")
         verified_peak = 0.0
@@ -194,6 +207,7 @@ def normalize_lufs(source: str | Path, output: str | Path, target_lufs: float = 
     return {
         "source": str(src), "output": str(out), "sample_rate_hz": int(rate),
         "channels": int(audio.shape[1]), "input_lufs_i": measured,
+        "input_lra_lu": input_lra, "output_lra_lu": output_lra,
         "target_lufs_i": float(target_lufs), "achieved_lufs_i": achieved,
         "achieved_lufs_i_estimate": achieved,
         "input_true_peak_estimate_dbtp": input_tp,
@@ -204,7 +218,7 @@ def normalize_lufs(source: str | Path, output: str | Path, target_lufs: float = 
         "output_true_peak_dbtp_verified": verified_tp,
         "output_subtype": "PCM_24",
         "notes": [
-            "LUFS integrated ölçümü pyloudnorm/BS.1770 ile hesaplandı.",
+            "LUFS integrated ve LRA ölçümleri pyloudnorm DeMan K-weighting filtresiyle hesaplandı.",
             "True-peak değeri 4x oversampling ile tahmin edilmiştir; sertifikalı teslim ölçer yerine geçmez.",
             "Limiter uygulanmaz; true-peak tavanı hedef loudness'e erişimi kısıtlayabilir.",
             "Çıktıyı tekrar ölçüp kritik bölümleri dinleyin. Kaynak dosya değiştirilmez."
