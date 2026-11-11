@@ -232,16 +232,15 @@
       <div class="panel rta-diagnostics"><div class="chart-header"><h3>Giriş seviyesi</h3><small class="muted">Canlı peak / RMS · dBFS</small></div><div class="rta-meter-row"><span>PEAK</span><div class="rta-meter-track"><i id="rtaPeakMeterFill"></i></div><strong id="rtaPeakMeterValue">−∞ dBFS</strong></div><div class="rta-meter-row"><span>RMS</span><div class="rta-meter-track rms"><i id="rtaRmsMeterFill"></i></div><strong id="rtaRmsMeterValue">−∞ dBFS</strong></div><div id="rtaInputMeter" class="rta-input-meter">Giriş seviyesi: henüz ölçülmedi.</div><div id="rtaCaptureInfo" class="rta-capture-info">Aygıt, örnekleme hızı, FFT ve ölçüm sınırları burada gösterilir. Fiziksel 1 kHz ses kalibratörüyle oturumluk dB SPL kalibrasyonu yapılabilir.</div></div>
       <section class="panel measurement-validation" id="measurementValidation">
         <div class="panel-head"><div><span class="eyebrow">REFERANS / UYGUNLUK KONTROLÜ</span><h3>EBU / ITU ve SMAART doğrulama merkezi</h3></div><span class="chip">Yerel test</span></div>
-        <div class="notice"><strong>EBU test materyali</strong><span>Resmî <a href="https://tech.ebu.ch/publications/ebu_loudness_test_set" target="_blank" rel="noopener">EBU Loudness Test Set v5.0</a> ZIP dosyasını indir, bilgisayarında çıkar ve klasörünü seç. Test dosyaları uygulamaya kopyalanmaz. Referans CSV olmadan sonuçlar ölçülür ancak PASS verilmez.</span></div>
+        <div class="notice"><strong>EBU test materyali</strong><span>Resmî <a href="https://tech.ebu.ch/publications/ebu_loudness_test_set" target="_blank" rel="noopener">EBU Loudness Test Set v5.0</a> ZIP dosyasını indir, bilgisayarında çıkar ve klasörünü seç. Test WAV dosyaları uygulamaya kopyalanmaz. Tech 3341 referans tablosu uygulamaya gömülüdür; ayrıca CSV yüklemen gerekmez.</span></div>
         <div class="validation-grid">
           <div class="validation-card">
             <h4>1 · EBU Loudness Test Set</h4>
-            <p class="muted">Integrated, LRA, Momentary Max, Short-term Max ve True Peak ölçümleri. Referans CSV sütunları: filename, integrated_lufs, lra_lu, momentary_max_lufs, short_term_max_lufs, true_peak_dbtp.</p>
+            <p class="muted">Integrated, LRA, Momentary Max, Short-term Max ve True Peak ölçümleri. Referans değerleri uygulama içindeki EBU Tech 3341 tablosundan otomatik alınır.</p>
             <div class="row-actions"><button class="btn btn-secondary" id="ebuSelectFolder" type="button">EBU klasörünü seç</button><button class="btn btn-gold" id="ebuRun" type="button">Testleri çalıştır</button><button class="btn btn-secondary" id="ebuExport" type="button" disabled>JSON raporu dışa aktar</button></div>
-            <div class="field"><label for="ebuReferenceCsv">EBU referans sonuç CSV (isteğe bağlı)</label><input id="ebuReferenceCsv" type="file" accept=".csv,text/csv"></div>
             <div class="field"><label for="ebuTolerance">LU toleransı</label><input id="ebuTolerance" type="number" min="0.01" max="2" step="0.01" value="0.2"></div>
             <div id="ebuFolderStatus" class="feedback">Henüz EBU test klasörü seçilmedi.</div>
-            <div id="ebuReport" class="report-box">Test henüz çalıştırılmadı. Referans olmadan ölçüm sonucu PASS sayılmaz.</div>
+            <div id="ebuReport" class="report-box">Test henüz çalıştırılmadı. Yerleşik referans tablosu otomatik kullanılır.</div>
           </div>
           <div class="validation-card">
             <h4>2 · SPL algoritma kontrolü</h4>
