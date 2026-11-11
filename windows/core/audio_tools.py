@@ -209,10 +209,13 @@ def _loudness_window_maxima(audio: Any, sample_rate: int, meter: Any) -> tuple[f
 
 def validate_ebu_test_set(folder: str | Path, reference_csv_text: str = "",
                           tolerance_lu: float = 0.2) -> dict[str, Any]:
-    """Measure extracted EBU WAV sequences and compare optional operator-supplied references.
+    """Measure EBU WAV sequences against only the reference metrics explicitly supplied.
 
     CSV columns: filename, integrated_lufs, lra_lu, momentary_max_lufs,
-    short_term_max_lufs, true_peak_dbtp. Missing references are never marked PASS.
+    short_term_max_lufs, true_peak_dbtp. Optional per-row tolerances:
+    loudness_tolerance_lu, true_peak_tolerance_high_db and
+    true_peak_tolerance_low_db. A PASS applies only to populated reference fields;
+    it is not a declaration of full EBU/ITU compliance.
     """
     import csv
     import io
@@ -228,21 +231,24 @@ def validate_ebu_test_set(folder: str | Path, reference_csv_text: str = "",
         raise ValueError("Seçilen klasörde WAV test dosyası bulunamadı.")
     if len(files) > 500:
         raise ValueError("Tek çalıştırmada en fazla 500 WAV test dosyası işlenebilir.")
-    tolerance = float(tolerance_lu)
-    if not math.isfinite(tolerance) or not 0.01 <= tolerance <= 2.0:
+    default_tolerance = float(tolerance_lu)
+    if not math.isfinite(default_tolerance) or not 0.01 <= default_tolerance <= 2.0:
         raise ValueError("LU toleransı 0.01 ile 2.0 arasında olmalı.")
 
     references: dict[str, dict[str, str]] = {}
     if reference_csv_text.strip():
-        reader = csv.DictReader(io.StringIO(reference_csv_text.lstrip("\ufeff")))
-        required = {"filename"}
-        if not reader.fieldnames or not required.issubset(set(reader.fieldnames)):
+        reader = csv.DictReader(io.StringIO(reference_csv_text.lstrip("\\ufeff")))
+        if not reader.fieldnames or "filename" not in reader.fieldnames:
             raise ValueError("Referans CSV başlığı en az filename içermeli.")
         for row in reader:
             key = Path(str(row.get("filename", "")).strip()).name.casefold()
             if key:
                 references[key] = row
 
+    metric_keys = (
+        "integrated_lufs", "lra_lu", "momentary_max_lufs",
+        "short_term_max_lufs", "true_peak_dbtp",
+    )
     rows = []
     for path in files:
         audio, rate = sf.read(str(path), dtype="float64", always_2d=True)
@@ -250,7 +256,7 @@ def validate_ebu_test_set(folder: str | Path, reference_csv_text: str = "",
             rows.append({"filename": path.name, "status": "FAIL", "error": "Boş veya geçersiz ses verisi"})
             continue
         if audio.shape[1] > 5:
-            rows.append({"filename": path.name, "status": "UNSUPPORTED", "error": "BS.1770-5 Annex 1 için en fazla 5 ana kanal (L/R/C/Ls/Rs), LFE ayrı desteklenmez"})
+            rows.append({"filename": path.name, "status": "UNSUPPORTED", "error": "BS.1770 Annex 1 için en fazla 5 ana kanal (L/R/C/Ls/Rs); LFE ölçüme dahil edilmez"})
             continue
         meter = pyln.Meter(int(rate), filter_class="DeMan")
         try:
@@ -265,7 +271,6 @@ def validate_ebu_test_set(folder: str | Path, reference_csv_text: str = "",
             if not math.isfinite(lra):
                 lra = None
         except (ValueError, RuntimeError):
-            # Very short EBU sequences may not contain enough valid 3 s blocks for LRA.
             lra = None
         momentary, short_term = _loudness_window_maxima(audio, int(rate), meter)
         peak_linear, peak_method = _measure_true_peak(audio, int(rate))
@@ -277,42 +282,75 @@ def validate_ebu_test_set(folder: str | Path, reference_csv_text: str = "",
         }
         ref = references.get(path.name.casefold())
         comparisons = []
+        reference_metrics = []
+        unavailable_metrics = []
         if ref:
-            for key, value in measured.items():
+            for key in metric_keys:
                 raw = str(ref.get(key, "") or "").strip()
-                if not raw or value is None:
+                if not raw:
                     continue
                 try:
                     expected = float(raw)
+                    if not math.isfinite(expected):
+                        raise ValueError
                 except ValueError:
+                    comparisons.append({"metric": key, "status": "INVALID_REFERENCE", "pass": False})
                     continue
-                allowed = max(tolerance, 0.3) if key == "true_peak_dbtp" else tolerance
-                delta = float(value) - expected
-                comparisons.append({"metric": key, "reference": expected, "measured": float(value),
-                                    "difference": delta, "tolerance": allowed,
-                                    "pass": abs(delta) <= allowed})
-        expected_metrics = {key for key, value in measured.items() if value is not None}
-        compared_metrics = {item["metric"] for item in comparisons}
-        if comparisons and not all(item["pass"] for item in comparisons):
-            status = "FAIL"
-        elif comparisons and compared_metrics >= expected_metrics:
+                reference_metrics.append(key)
+                value = measured[key]
+                if value is None:
+                    unavailable_metrics.append(key)
+                    comparisons.append({
+                        "metric": key, "reference": expected, "measured": None,
+                        "status": "MEASUREMENT_UNAVAILABLE", "pass": None,
+                    })
+                    continue
+                if key == "true_peak_dbtp":
+                    high = float(ref.get("true_peak_tolerance_high_db") or 0.2)
+                    low = float(ref.get("true_peak_tolerance_low_db") or 0.4)
+                    if not (math.isfinite(high) and math.isfinite(low) and 0 <= high <= 2 and 0 <= low <= 2):
+                        raise ValueError("True-peak toleransları 0 ile 2 dB arasında olmalı.")
+                    delta = float(value) - expected
+                    passed = -low <= delta <= high
+                    comparisons.append({
+                        "metric": key, "reference": expected, "measured": float(value),
+                        "difference": delta, "tolerance_low_db": low,
+                        "tolerance_high_db": high, "pass": passed,
+                    })
+                else:
+                    row_tolerance = float(ref.get("loudness_tolerance_lu") or default_tolerance)
+                    if not math.isfinite(row_tolerance) or not 0.01 <= row_tolerance <= 2.0:
+                        raise ValueError("Satır LU toleransı 0.01 ile 2.0 arasında olmalı.")
+                    delta = float(value) - expected
+                    comparisons.append({
+                        "metric": key, "reference": expected, "measured": float(value),
+                        "difference": delta, "tolerance": row_tolerance,
+                        "pass": abs(delta) <= row_tolerance,
+                    })
+        if ref and any(item.get("status") == "INVALID_REFERENCE" for item in comparisons):
+            status = "PARTIAL_REFERENCE"
+        elif unavailable_metrics:
+            status = "PARTIAL_REFERENCE"
+        elif comparisons and all(item.get("pass") is True for item in comparisons):
             status = "PASS"
         elif comparisons:
-            status = "PARTIAL_REFERENCE"
+            status = "FAIL"
         else:
             status = "REFERENCE_REQUIRED"
         rows.append({
             "filename": path.name, "sample_rate_hz": int(rate), "channels": int(audio.shape[1]),
             "duration_seconds": len(audio) / int(rate), **measured,
-            "true_peak_method": peak_method, "comparisons": comparisons, "status": status,
+            "true_peak_method": peak_method, "reference_metrics": reference_metrics,
+            "comparisons": comparisons, "status": status,
         })
     counts = {key: sum(1 for row in rows if row["status"] == key)
               for key in ("PASS", "FAIL", "PARTIAL_REFERENCE", "REFERENCE_REQUIRED", "UNSUPPORTED")}
     return {
-        "ok": True, "standard_basis": "ITU-R BS.1770-5 / EBU Tech 3341 / EBU Tech 3342",
-        "folder": root.name, "files_total": len(rows), "counts": counts, "tolerance_lu": tolerance,
+        "ok": True, "standard_basis": "ITU-R BS.1770 / EBU Tech 3341 / EBU Tech 3342",
+        "folder": root.name, "files_total": len(rows), "counts": counts,
+        "default_tolerance_lu": default_tolerance,
         "reference_csv_loaded": bool(references), "results": rows,
-        "scope_note": "EBU Loudness Test Set WAV dosyalarını ölçer. Referans CSV verilmeden hiçbir dosya PASS sayılmaz. Bu otomatik rapor resmî sertifika veya EBU onayı değildir.",
+        "scope_note": "PASS yalnızca CSV'de açıkça doldurulmuş referans metriklerinin tolerans içinde olduğunu belirtir. Boş bırakılan metrikler test edilmemiştir. Bu rapor EBU/ITU sertifikası veya tam uygunluk beyanı değildir.",
     }
 
 def normalize_lufs(source: str | Path, output: str | Path, target_lufs: float = -14.0,
