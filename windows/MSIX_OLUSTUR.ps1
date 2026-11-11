@@ -125,7 +125,7 @@ Import-Certificate -FilePath $cerPath -CertStoreLocation 'Cert:\CurrentUser\Trus
 & $signTool.FullName verify /pa /v $packagePath
 if ($LASTEXITCODE -ne 0) { throw "MSIX imza doğrulaması başarısız. Çıkış kodu: $LASTEXITCODE" }
 $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $packagePath).Hash.ToLowerInvariant()
-Set-Content -LiteralPath "$packagePath.sha256" -Value "$hash  $packageName" -Encoding ascii -NoNewline
+Set-Content -LiteralPath "${packagePath}.sha256" -Value "$hash  $packageName" -Encoding ascii -NoNewline
 Write-Host ''
 Write-Host "MSIX BAŞARILI: $packagePath" -ForegroundColor Green
 Write-Host "SHA-256: $hash"
