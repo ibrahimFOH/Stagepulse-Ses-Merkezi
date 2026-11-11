@@ -1,4 +1,4 @@
-# Stagepulse student guide source release 4.0.0
+# Stagepulse student guide source release 4.0.2
 from pathlib import Path
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER
@@ -33,7 +33,7 @@ story=[]
 story += [Spacer(1,28*mm),P('STAGEPULSE','CoverSub'),P('SES MÜHENDİSLİĞİ MERKEZİ','CoverTitle'),P('Öğrenci Uygulama ve Sorun Giderme Rehberi','CoverSub'),Spacer(1,8*mm)]
 cover=Table([[P('<b>TEK ÇALIŞMA ALANI</b><br/>Ses araçları, teknik hesaplar, RTA ve öğrenci PDF kitaplığı aynı uygulama penceresinde.','TableSP')], [P('<b>ÇEVRİMDIŞI ÖNCELİKLİ</b><br/>Yerel araçlar internet bağlantısı olmadan kullanılabilir. Yapay zekâ servisi çevrimiçi veya yerel servis gerektirir.','TableSP')], [P('<b>ÖLÇÜMDE DÜRÜSTLÜK</b><br/>Ekrandaki tahmin, kalibre edilmiş akustik ölçüm veya saha doğrulamasının yerine geçmez.','TableSP')]],colWidths=[145*mm])
 cover.setStyle(TableStyle([('BACKGROUND',(0,0),(-1,-1),PALE),('BOX',(0,0),(-1,-1),0.7,GOLD),('INNERGRID',(0,0),(-1,-1),0.4,LIGHT),('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),12),('RIGHTPADDING',(0,0),(-1,-1),12),('TOPPADDING',(0,0),(-1,-1),10),('BOTTOMPADDING',(0,0),(-1,-1),10)]))
-story += [cover,Spacer(1,18*mm),P('Sürüm 4.0.0 · Öğrenci kullanım nüshası','CoverSub'),PageBreak()]
+story += [cover,Spacer(1,18*mm),P('Sürüm 4.0.2 · Öğrenci kullanım nüshası','CoverSub'),PageBreak()]
 # 1
 story += [P('1. Uygulamada öğrenme sırası','H1SP'),P('Her çalışma için aynı döngüyü uygula: konuyu oku, küçük bir örnek kur, tek bir değişkeni değiştir, sonucu dinle veya ölç, sonra gözlemini kaydet. Uygulamadaki araçlar eğitim ve ön çalışma içindir; kritik saha kararları üretici belgeleri, güvenlik prosedürleri ve gerçek ölçümlerle doğrulanmalıdır.')]
 data=[[P('<b>Sıra</b>','TableSP'),P('<b>Öğrenci PDF / araç</b>','TableSP'),P('<b>Ne öğreneceksin?</b>','TableSP')],
@@ -79,7 +79,7 @@ story += [P('4. Güvenlik, gizlilik ve raporlama','H1SP'),P('Mikrofon yalnızca 
 def footer(canvas,doc):
     canvas.saveState(); w,h=A4
     canvas.setStrokeColor(GOLD);canvas.setLineWidth(.6);canvas.line(18*mm,15*mm,w-18*mm,15*mm)
-    canvas.setFont(REG,7.5);canvas.setFillColor(GREY);canvas.drawString(18*mm,9*mm,'STAGEPULSE · Öğrenci Uygulama Rehberi · v4.0.0')
+    canvas.setFont(REG,7.5);canvas.setFillColor(GREY);canvas.drawString(18*mm,9*mm,'STAGEPULSE · Öğrenci Uygulama Rehberi · v4.0.2')
     canvas.drawRightString(w-18*mm,9*mm,f'Sayfa {doc.page}')
     canvas.restoreState()
 
