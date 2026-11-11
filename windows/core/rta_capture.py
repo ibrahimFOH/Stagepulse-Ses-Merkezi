@@ -413,6 +413,9 @@ class RTACapture:
             last_callback_monotonic = self._last_callback_monotonic
             spl_offset = self._spl_calibration_offset_db
             spl_reference = self._spl_calibration_reference_db
+            spl_filled = self._filled
+            spl_pos = self._write_pos
+            spl_buffer = self._buffer.copy() if self._filled >= self._fft_size else None
         if not running:
             return {"ok": False, "running": False, "error": "Mikrofon çalışmıyor."}
         if error:
@@ -432,6 +435,19 @@ class RTACapture:
             ready = True
         if stream_stale:
             ready = False
+        spl_measurement = None
+        if spl_buffer is not None and not stream_stale:
+            if spl_pos:
+                spl_buffer = np.concatenate((spl_buffer[spl_pos:], spl_buffer[:spl_pos]))
+            try:
+                from core.acoustic_engine import measure_spl
+                spl_measurement = measure_spl(
+                    spl_buffer, sample_rate, spl_offset
+                )
+                spl_measurement["window_seconds"] = float(len(spl_buffer) / sample_rate)
+                spl_measurement["scope"] = "Son FFT penceresindeki A/C/Z ağırlıklı Leq; mikrofon frekans düzeltmesi/IEC sınıfı değildir."
+            except Exception as exc:
+                spl_measurement = {"ok": False, "error": str(exc)}
         return {
             "ok": True, "running": True, "ready": ready,
             "device": device, "sample_rate": sample_rate, "fft_size": fft_size,
@@ -444,7 +460,8 @@ class RTACapture:
             "band_spl_db": ([value + spl_offset for value in values] if spl_offset is not None else None),
             "spl_calibration_offset_db": spl_offset,
             "spl_calibration_reference_db": spl_reference,
-            "spl_weighting": "Z/unweighted" if spl_offset is not None else None,
+            "spl_weighting": "A/C/Z" if spl_measurement and spl_measurement.get("ok") else None,
+            "spl_measurement": spl_measurement,
             "stream_status": status,
             "samples_received": samples_received,
             "seconds_since_last_callback": seconds_since_last_callback,
