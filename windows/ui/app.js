@@ -1457,11 +1457,17 @@ function renderAdminCenter(data){
  adminCenterRows('adminAuditRows',data.audit||[],x=>'<div class="admin-data-row"><strong>'+safeText(x.action||'İşlem')+'</strong><span>'+safeText(x.actor_user_id===currentAccountContext?.user?.id?'Sahip hesabı':'Yönetici')+'</span><small>'+safeText(adminCenterDate(x.created_at))+' · '+safeText(x.license_id||x.subject_user_id||'')+'</small></div>');
  const status=$('adminCenterStatus');if(status)status.textContent='Son güncelleme: '+adminCenterDate(data.generated_at)+'. Yönetim verileri sunucudan alındı.';
 }
+function adminCenterBridge(){
+ if(typeof accountApi==='function')return accountApi();
+ if(typeof api==='function')return api();
+ return null;
+}
 async function loadAdminCenter(){
  const status=$('adminCenterStatus');if(currentRole!=='owner'){if(status)status.textContent='Bu alan yalnızca Stagepulse sahibine açıktır.';return;}
- if(!accountApi()){if(status)status.textContent='Yönetim servisine bağlantı bulunamadı.';return;}
+ const bridge=adminCenterBridge();
+ if(!bridge||typeof bridge.admin_dashboard!=='function'){if(status)status.textContent='Yönetim servisine bağlantı bulunamadı.';return;}
  const button=$('adminCenterRefresh');if(button)button.disabled=true;if(status)status.textContent='Yönetim verileri güvenli bağlantıdan alınıyor…';
- try{const data=await accountApi().admin_dashboard();renderAdminCenter(data);}
+ try{const data=await bridge.admin_dashboard();renderAdminCenter(data);}
  catch(error){if(status)status.textContent='Yönetim verileri alınamadı: '+error.message;}
  finally{if(button)button.disabled=false;}
 }
