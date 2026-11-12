@@ -17,7 +17,7 @@ with atheris.instrument_imports():
 
 
 def TestOneInput(data: bytes) -> None:
-    # Mutations cover truncated RIFF chunks, declared sizes and chunk alignment.
+    # Mutations cover truncated RIFF chunks, declared sizes, alignment and overflow.
     if len(data) > 1_048_576:
         return
     fd, path = tempfile.mkstemp(suffix=".wav")
