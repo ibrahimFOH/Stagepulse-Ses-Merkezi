@@ -17,6 +17,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  repository_policy:
+    name: Depo politikası ve CODEOWNERS
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Kaynak kodunu al
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: CODEOWNERS ve bağımsız inceleme politikasını doğrula
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s .github/CODEOWNERS
+          grep -Eq '^\\*[[:space:]]+@ibrahimFOH([[:space:]]|$)' .github/CODEOWNERS
+          test -s .github/pull_request_template.md
+          grep -q 'Bağımsız inceleme' .github/pull_request_template.md
+          grep -q 'yazar kendi PR' CONTRIBUTING.md
+          echo "REPOSITORY_POLICY_OK"
+
   secrets:
     name: Gitleaks gizli bilgi taraması
     runs-on: ubuntu-24.04
