@@ -6,6 +6,7 @@ on:
     paths:
       - "windows/**"
       - "android/app/build.gradle"
+      - "android/app/src/main/assets/ui/first_party_tools.js"
       - "android/app/src/main/assets/egitim_paketleri/**"
       - "android/app/src/main/assets/docs/**"
       - "README.md"
@@ -16,6 +17,7 @@ on:
     paths:
       - "windows/**"
       - "android/app/build.gradle"
+      - "android/app/src/main/assets/ui/first_party_tools.js"
       - "README.md"
       - ".github/workflows/build-windows-exe.yml"
   workflow_dispatch:
