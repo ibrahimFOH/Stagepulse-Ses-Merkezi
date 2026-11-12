@@ -1,7 +1,7 @@
 #!/bin/bash -eu
 
 cd "$SRC/stagepulse"
-for fuzzer in "$SRC"/stagepulse/fuzz/*.py; do
+for fuzzer in "$SRC"/stagepulse/fuzz/*_fuzzer.py; do
   fuzzer_basename="$(basename -s .py "$fuzzer")"
   fuzzer_package="${fuzzer_basename}.pkg"
   pyinstaller --distpath "$OUT" --onefile --name "$fuzzer_package" "$fuzzer"
