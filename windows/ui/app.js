@@ -2,6 +2,7 @@
 'use strict';
 const $ = (id) => document.getElementById(id);
 const routes = {
+  admin:'Yönetim Merkezi',
   version:'4.0.4',
   home:'Ana sayfa', frequency:'Frekans bulucu', ear:'Kulak eğitimi', calculators:'Hesaplayıcılar', acoustics:'SPL / alan planı', systemplan:'Sahne ve ses-görüntü planı', patch:'Mikser kanal bağlantı raporu', rf:'Kablosuz frekans planı', distribution:'70/100 V hoparlör hattı', roommap:'Oda ses basınç seviyesi haritası', speaker:'Hoparlör ve sayısal sinyal işleme', wavelab:'Dalga / faz / gecikme laboratuvarı',
   rta:'Gerçek zamanlı analiz (RTA)', protocol:'OSC / MIDI kontrolü', mixer:'Ses katmanı atölyesi', mixlab:'Sanal mikser laboratuvarı', videoacademy:'Video akademi', wav:'Ses dosyası kalite analizi (WAV)', lufs:'Ses yüksekliği normalizasyonu (LUFS)',
@@ -162,6 +163,7 @@ function safeText(value) { return String(value ?? '').replace(/[&<>"']/g, c => (
 function downloadBlob(blob, filename) { const url=URL.createObjectURL(blob); const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500); }
 function setPage(route) {
   if (!routes[route]) route='home';
+  if (route==='admin' && currentRole!=='owner') route='account';
   if (!appAuthorized && currentRole !== 'owner' && route !== 'account') route='account';
   if (activeRoute==='rta' && route!=='rta') stopRta();
   if (activeRoute==='wavelab' && route!=='wavelab') window.StagepulseWaveLabStop?.();
@@ -179,6 +181,7 @@ function setPage(route) {
   if (route==='acoustics') requestAnimationFrame(()=>{try{drawSplCoverageMaps();}catch(err){const el=$('splMapSummary');if(el)el.textContent='Harita hesaplanamadı: '+err.message;}});
   if (route==='settings') loadAppInfo();
   if (route==='account') refreshAccountUi();
+  if (route==='admin') loadAdminCenter();
   if (route==='student') { renderStudentModules(); if (currentRole==='student') refreshStudentProgress().catch(()=>{}); }
   if (route==='pdf') { loadStudentPdfs(); setStatus('Öğrenci PDF kitaplığı aynı uygulama penceresinde.'); }
   if (route==='curriculum') { loadCurriculumWorkshop().catch(err=>{const el=$('curriculumTrackDetails');if(el)el.textContent='Eğitim kataloğu yüklenemedi: '+err.message;}); }
@@ -250,7 +253,7 @@ function initShell(){
     ['LUFS normalizasyonu',initLufs],['Cue notları',initCues],
     ['Kontrol listeleri',initChecklists],['Öğrenci profilleri',initStudent],
     ['Ders kılavuzları',initDocs],['AI asistanı',initAssistant],
-    ['Hesap ve lisans',initAccount],['Ayarlar',initSettings],['Stagepulse özgün yerel araçları',()=>window.StagepulseFirstPartyTools.initAll()]
+    ['Hesap ve lisans',initAccount],['Yönetim Merkezi',initAdminCenter],['Ayarlar',initSettings],['Stagepulse özgün yerel araçları',()=>window.StagepulseFirstPartyTools.initAll()]
   ];
   // İlk pencere çizildikten sonra her başlatma adımını ayrı görevde çalıştır.
   // Düşük güçlü bilgisayarlarda tek uzun JS görevi Windows'un "Yanıt vermiyor"
@@ -1411,7 +1414,7 @@ function applyAccountContext(context){
  else if(!appAuthorized&&activeRoute!=='account')setPage('account');
  if($('accountRoleBadge'))$('accountRoleBadge').textContent=currentRole==='owner'?'Sahip / öğretmen':currentRole==='student'?'Lisanslı öğrenci':'Misafir / lisans gerekli';
  if($('progressRoleBadge'))$('progressRoleBadge').textContent=currentRole==='owner'?'Öğretmen / yönetici':currentRole==='student'?'Öğrenci · salt okunur':'Hesap gerekli';
- const admin=currentRole==='owner';$('teacherLicensePanel').classList.toggle('hidden',!admin);$('teacherProgressPanel').classList.toggle('hidden',!admin);$('fullPackageAdminPanel')?.classList.toggle('hidden',!admin);$('fullPackagePurchasePanel')?.classList.toggle('hidden',!context?.user?.id);
+ const admin=currentRole==='owner';$('adminNavItem')?.classList.toggle('hidden',!admin);$('teacherLicensePanel').classList.toggle('hidden',!admin);$('teacherProgressPanel').classList.toggle('hidden',!admin);$('fullPackageAdminPanel')?.classList.toggle('hidden',!admin);$('fullPackagePurchasePanel')?.classList.toggle('hidden',!context?.user?.id);
  $('licenseActivate').disabled=currentRole==='owner';$('licenseActivate').textContent=currentRole==='owner'?'Sahip hesabı lisans gerektirmez':'Bu cihazı etkinleştir';
  if(trial.active){const seconds=Math.max(0,Number(trial.remaining_seconds||0)),days=Math.floor(seconds/86400),hours=Math.ceil((seconds%86400)/3600);$('licenseStatusText').textContent=`7 günlük demo açık · ${days>0?days+' gün ':''}${Math.max(1,hours)} saat kaldı`;appAuthorized=true;}
  else if(license.active){$('licenseStatusText').textContent=`Lisans etkin · FULL PAKET${license.expires_at?' · son tarih '+new Date(license.expires_at).toLocaleDateString('tr-TR'):''}`;appAuthorized=true;}
@@ -1442,6 +1445,27 @@ function refreshAccountUi(){
 }
 async function checkForUpdates(silent=false){const bridge=api()||(typeof accountApi==='function'?accountApi():null);if(!bridge||typeof bridge.check_updates!=='function'||updateCheckInProgress)return null;updateCheckInProgress=true;const check=$('checkUpdates'),status=$('updateStatus'),install=$('installUpdate');if(!silent&&check){check.disabled=true;if(status)status.textContent='Stagepulse güncellemeleri denetleniyor…';}try{const result=api()?await api().check_updates():await bridge.check_updates();if(!result||result.offline||result.ok===false){if(!silent&&status)status.textContent=result?.message||'Güncelleme servisine şu anda ulaşılamıyor.';return null;}latestUpdateManifest=result;const available=result.published===true&&result.available===true;if(install)install.classList.toggle('hidden',!available);if(available){const version=result.version||result.versionName||'Yeni sürüm';const message=`Yeni sürüm mevcut: ${version}.\n${result.message||'Güncelleme indirilmeye hazır.'}${result.notes?'\n\nSürüm notları: '+result.notes:''}`;if(status)status.textContent=message;if(silent)setStatus(`Yeni Stagepulse sürümü mevcut: ${version}. Hesap / güncellemeler bölümünden indirebilirsin.`);}else if(!silent&&status){status.textContent=result.message||(result.published?'Uygulama güncel.':'Henüz yayımlanmış kararlı güncelleme yok.');}return result;}catch(error){if(!silent&&status)status.textContent='Güncelleme denetlenemedi: '+String(error.message||error);return null;}finally{updateCheckInProgress=false;if(!silent&&check)check.disabled=false;}}
 async function openWhatsAppSupport(){const url='https://wa.me/905320683012?text='+encodeURIComponent('Merhaba Stagepulse, uygulama desteği almak istiyorum.');try{if(window.StagepulseAndroid&&typeof window.StagepulseAndroid.openWhatsApp==='function'){window.StagepulseAndroid.openWhatsApp();return;}}catch(_){}try{if(window.pywebview&&window.pywebview.api&&typeof window.pywebview.api.open_whatsapp==='function'){window.pywebview.api.open_whatsapp();return;}}catch(_){}window.open(url,'_blank','noopener');}
+function adminCenterDate(value){const date=value?new Date(value):null;return date&&!Number.isNaN(date.getTime())?date.toLocaleString('tr-TR'):'—';}
+function adminCenterRows(hostId,items,render,empty){const host=$(hostId);if(!host)return;host.innerHTML=items&&items.length?items.map(render).join(''):'<p class="muted">'+safeText(empty||'Kayıt bulunamadı.')+'</p>';}
+function renderAdminCenter(data){
+ const m=data.metrics||{},set=(id,value)=>{const el=$(id);if(el)el.textContent=String(value??0);};
+ set('adminMetricLicenses',m.licenses);set('adminMetricPaidLicenses','Ödenmiş: '+(m.paid_licenses??0));set('adminMetricActiveLicenses',m.active_licenses);set('adminMetricStudents',m.students);set('adminMetricActiveStudents','Aktif: '+(m.active_students??0));set('adminMetricPending',m.pending_purchases);set('adminMetricPurchases','Toplam bildirim: '+(m.purchases??0));set('adminMetricSessions',m.sessions_30d);
+ adminCenterRows('adminPurchaseRows',data.purchases||[],x=>'<div class="admin-data-row"><strong>'+safeText(x.customer_name||'İsimsiz müşteri')+'</strong><span>'+safeText(x.status||'—')+' · '+safeText(Number(x.amount||0).toLocaleString('tr-TR'))+' '+safeText(x.currency||'TRY')+'</span><small>'+safeText(x.customer_email||'')+' · '+safeText(adminCenterDate(x.created_at))+'</small></div>');
+ adminCenterRows('adminLicenseRows',data.licenses||[],x=>'<div class="admin-data-row"><strong>'+safeText(x.customer_name||x.label||'FULL PAKET')+'</strong><span>'+safeText(x.payment_status||'—')+' · '+(x.is_active?'Aktif':'Kapalı')+'</span><small>'+safeText(x.customer_email||'')+' · '+safeText(x.expires_at?adminCenterDate(x.expires_at):'Süresiz')+'</small></div>');
+ adminCenterRows('adminStudentRows',data.students||[],x=>'<div class="admin-data-row"><strong>'+safeText(x.display_name||x.email||'Öğrenci')+'</strong><span>'+(x.is_active?'Aktif':'Pasif')+'</span><small>'+safeText(x.email||'')+' · '+safeText(adminCenterDate(x.created_at))+'</small></div>');
+ adminCenterRows('adminSessionRows',data.sessions||[],x=>'<div class="admin-data-row"><strong>'+safeText(String(x.user_id||'').slice(0,8))+'</strong><span>'+safeText(x.event_type==='logout'?'Çıkış':'Oturum doğrulandı')+' · '+safeText(x.platform||'—')+'</span><small>'+safeText(adminCenterDate(x.created_at))+'</small></div>');
+ adminCenterRows('adminAuditRows',data.audit||[],x=>'<div class="admin-data-row"><strong>'+safeText(x.action||'İşlem')+'</strong><span>'+safeText(x.actor_user_id===currentAccountContext?.user?.id?'Sahip hesabı':'Yönetici')+'</span><small>'+safeText(adminCenterDate(x.created_at))+' · '+safeText(x.license_id||x.subject_user_id||'')+'</small></div>');
+ const status=$('adminCenterStatus');if(status)status.textContent='Son güncelleme: '+adminCenterDate(data.generated_at)+'. Yönetim verileri sunucudan alındı.';
+}
+async function loadAdminCenter(){
+ const status=$('adminCenterStatus');if(currentRole!=='owner'){if(status)status.textContent='Bu alan yalnızca Stagepulse sahibine açıktır.';return;}
+ if(!accountApi()){if(status)status.textContent='Yönetim servisine bağlantı bulunamadı.';return;}
+ const button=$('adminCenterRefresh');if(button)button.disabled=true;if(status)status.textContent='Yönetim verileri güvenli bağlantıdan alınıyor…';
+ try{const data=await accountApi().admin_dashboard();renderAdminCenter(data);}
+ catch(error){if(status)status.textContent='Yönetim verileri alınamadı: '+error.message;}
+ finally{if(button)button.disabled=false;}
+}
+function initAdminCenter(){const button=$('adminCenterRefresh');button?.addEventListener('click',loadAdminCenter);}
 function initAccount(){
  initMeasurementAdminPanel();
  initFullPackageCommerce();
