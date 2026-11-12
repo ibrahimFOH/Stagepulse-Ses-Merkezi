@@ -29,7 +29,7 @@ concurrency:
 jobs:
   generate-education-pdfs:
     permissions:
-      contents: write
+      contents: read
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -37,7 +37,7 @@ jobs:
         name: PR veya main kaynaklarını al
         with:
           ref: ${{ github.event.pull_request.head.ref || 'main' }}
-          persist-credentials: true
+          persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.11"
@@ -70,32 +70,10 @@ jobs:
         run: python windows/scripts/verify_education_pdfs.py
       - name: Android paket varlıklarını doğrula
         run: python android/scripts/verify_assets.py
-      - name: Üretilen PDF'leri main dalına yaz
+      - name: PDF çıktılarının doğrulanması
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add windows/requirements-pdf.lock windows/egitim_paketleri/*.pdf android/app/src/main/assets/egitim_paketleri/*.pdf
-          if git diff --cached --quiet; then
-            echo "PDF çıktıları zaten güncel."
-          else
-            git commit -m "Eğitim PDF kitaplığını iki dilli terminolojiyle yenile"
-            target_branch="${{ github.event.pull_request.head.ref || 'main' }}"
-            pushed=false
-            for attempt in 1 2 3 4 5; do
-              git fetch origin "$target_branch"
-              git rebase "origin/$target_branch"
-              if git push origin "HEAD:$target_branch"; then
-                pushed=true
-                break
-              fi
-              echo "$target_branch push yarışı; tekrar denenecek ($attempt/5)"
-              sleep 2
-            done
-            if [ "$pushed" != true ]; then
-              echo "PDF commit'i hedef dala yazılamadı."
-              exit 1
-            fi
-          fi
+          echo "PDF kitaplığı üretildi ve içerik/sayfa/kopya kontrollerinden geçti."
+          echo "Bu iş akışı korumalı dallara doğrudan dosya yazmaz; PDF güncellemeleri ayrı PR ile yayımlanır."
 
   build:
     needs: generate-education-pdfs
