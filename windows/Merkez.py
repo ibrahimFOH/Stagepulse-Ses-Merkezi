@@ -976,6 +976,11 @@ class AppApi(AcousticAnalysisApi):
     def auth_logout(self) -> dict[str, Any]:
         session = self._session
         if session and session.get("access_token"):
+            try:
+                self._edge_call("session_event", {"event_type": "logout", "platform": "windows"})
+            except Exception:
+                pass
+        if session and session.get("access_token"):
             request = Request(
                 SUPABASE_URL + "/auth/v1/logout",
                 headers={"Accept": "application/json", "apikey": SUPABASE_PUBLISHABLE_KEY,
@@ -1011,6 +1016,10 @@ class AppApi(AcousticAnalysisApi):
 
     def purchase_review(self, purchase_id: str, decision: str, admin_note: str = "") -> dict[str, Any]:
         return self._edge_call("purchase_review", {"purchase_id": purchase_id, "decision": decision, "admin_note": admin_note})
+
+    def admin_dashboard(self) -> dict[str, Any]:
+        """Return the owner-only central administration dashboard."""
+        return self._edge_call("admin_dashboard", {"platform": "windows"})
 
     def license_list(self) -> dict[str, Any]:
         """Return license metadata for the server-authorized owner only."""

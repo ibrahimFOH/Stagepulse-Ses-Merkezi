@@ -411,12 +411,77 @@ Deno.serve(async (req: Request) => {
       if(adminNote)await admin.from("sesm_purchase_requests").update({admin_note:adminNote}).eq("id",purchaseId);
       return reply({ok:true,purchase:approved,key:rawKey});
     }
+    if (action === "session_event") {
+      const eventType = String(body.event_type ?? "");
+      const platform = String(body.platform ?? "unknown");
+      if (eventType !== "logout") return fail("SESSION_EVENT_INVALID", 400);
+      if (!["windows", "android", "web", "unknown"].includes(platform)) return fail("SESSION_PLATFORM_INVALID", 400);
+      const { data: lastEvent, error: lastEventError } = await admin.from("sesm_session_events")
+        .select("id,event_type,created_at").eq("user_id", user.id).eq("app_id", "ses-merkezi").eq("platform", platform)
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (lastEventError) return fail("SESSION_EVENT_READ_FAILED", 500);
+      if (!lastEvent || lastEvent.event_type !== "session_verified" || Date.now() - Date.parse(lastEvent.created_at) > 24 * 60 * 60 * 1000) {
+        return reply({ ok: true, recorded: false });
+      }
+      const { error } = await admin.from("sesm_session_events").insert({
+        user_id: user.id, event_type: "logout", app_id: "ses-merkezi", platform,
+        user_agent: String(req.headers.get("user-agent") ?? "").slice(0, 300) || null,
+      });
+      if (error) return fail("SESSION_EVENT_WRITE_FAILED", 500);
+      return reply({ ok: true, recorded: true });
+    }
+    if (action === "admin_dashboard") {
+      await requireOwner(user.id);
+      const count = async (table: string, filters?: (query: any) => any) => {
+        let query = admin.from(table).select("*", { count: "exact", head: true });
+        if (filters) query = filters(query);
+        const result = await query;
+        if (result.error) throw result.error;
+        return result.count ?? 0;
+      };
+      const [licenseCount, activeLicenseCount, paidLicenseCount, studentCount, activeStudentCount, pendingPurchaseCount, purchaseCount, sessionCount, licenses, students, purchases, auditEvents, sessionEvents] = await Promise.all([
+        count("sesm_license_keys"),
+        count("sesm_license_keys", q => q.eq("is_active", true)),
+        count("sesm_license_keys", q => q.eq("payment_status", "paid")),
+        count("sesm_students"),
+        count("sesm_students", q => q.eq("is_active", true)),
+        count("sesm_purchase_requests", q => q.eq("status", "pending")),
+        count("sesm_purchase_requests"),
+        count("sesm_session_events", q => q.gte("created_at", new Date(Date.now() - 30 * 86400000).toISOString())),
+        admin.from("sesm_license_keys").select("id,label,customer_name,customer_email,plan_code,payment_status,is_active,expires_at,max_activations,created_at").order("created_at", {ascending:false}).limit(12),
+        admin.from("sesm_students").select("user_id,email,display_name,is_active,created_at,license_id").order("created_at", {ascending:false}).limit(12),
+        admin.from("sesm_purchase_requests").select("id,customer_name,customer_email,amount,currency,status,created_at,transfer_reference").order("created_at", {ascending:false}).limit(12),
+        admin.from("sesm_audit_events").select("id,actor_user_id,action,subject_user_id,license_id,details,created_at").order("created_at", {ascending:false}).limit(20),
+        admin.from("sesm_session_events").select("id,user_id,event_type,app_id,platform,user_agent,created_at").order("created_at", {ascending:false}).limit(20),
+      ]);
+      for (const result of [licenses, students, purchases, auditEvents, sessionEvents]) {
+        if (result.error) throw result.error;
+      }
+      await audit(user.id, "admin_center_opened", null, null, { platform: String(body.platform ?? "unknown") });
+      return reply({
+        ok: true,
+        metrics: { licenses: licenseCount, active_licenses: activeLicenseCount, paid_licenses: paidLicenseCount, students: studentCount, active_students: activeStudentCount, pending_purchases: pendingPurchaseCount, purchases: purchaseCount, sessions_30d: sessionCount },
+        licenses: licenses.data ?? [], students: students.data ?? [], purchases: purchases.data ?? [],
+        audit: auditEvents.data ?? [], sessions: sessionEvents.data ?? [],
+        generated_at: new Date().toISOString(),
+      });
+    }
     if (action === "context") {
       const deviceHash = String(body.device_hash ?? "");
       const requestedAppId = String(body.app_id ?? "");
       const entitlement = await entitlementContext(user.id, deviceHash, role, body.platform, requestedAppId);
       const offlineLease = await createOfflineLease(user.id, deviceHash, body.platform, requestedAppId, entitlement);
       const offlineLeasePublicKey = offlineLease ? await getOfflineLeasePublicKeyPem() : null;
+      const { data: recentSession } = await admin.from("sesm_session_events").select("id,event_type,created_at")
+        .eq("user_id", user.id).eq("app_id", "ses-merkezi").eq("platform", body.platform ?? "unknown")
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (!recentSession || recentSession.event_type === "logout" || Date.now() - Date.parse(recentSession.created_at) > 15 * 60 * 1000) {
+        await admin.from("sesm_session_events").insert({
+          user_id: user.id, event_type: "session_verified", app_id: "ses-merkezi",
+          platform: ["windows", "android"].includes(String(body.platform)) ? body.platform : "unknown",
+          user_agent: String(req.headers.get("user-agent") ?? "").slice(0, 300) || null,
+        });
+      }
       const { data: ownStudent } = await admin.from("sesm_students").select("display_name, email, teacher_user_id")
         .eq("user_id", user.id).eq("is_active", true).maybeSingle();
       return reply({ ok: true, user: { id: user.id, email: user.email?.endsWith("@students.stagepulse.invalid") ? null : (user.email ?? null), phone: user.user_metadata?.phone ?? user.phone ?? null, name: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? "" }, role, licensed: entitlement.licensed, trial: entitlement.trial, offline_lease: offlineLease, offline_lease_public_key: offlineLeasePublicKey, entitlements: { paid: entitlement.paid, demo: entitlement.trial.active === true }, student: ownStudent ?? null, app: "Stagepulse Ses Mühendisliği Merkezi" });

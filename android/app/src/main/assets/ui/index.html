@@ -42,6 +42,7 @@
       <button class="nav-item" data-route="videoacademy"><span>▶</span>Video akademi</button>
       <button class="nav-item" data-route="student"><span>◌</span>Öğrenci ilerlemesi</button>
       <button class="nav-item" data-route="assistant"><span>✳</span>AI / çalışma asistanı</button>
+      <button class="nav-item hidden" id="adminNavItem" data-route="admin"><span>▦</span>Yönetim Merkezi</button>
       <button class="nav-item" data-route="account"><span>♙</span>Hesap / lisans</button>
       <button class="nav-item" data-route="settings"><span>⚙</span>Ayarlar ve gizlilik</button>
     </nav>
@@ -660,6 +661,25 @@
       <div class="notice notice-warn"><strong>Bağlantı sınırı</strong><span>OSC yalnızca aynı yerel ağa erişebilen cihazlara UDP paketi yollar. M32/X32 üzerinde uzaktan kontrol/OSC ayarının açık olduğunu, IP adresini ve portu doğrula. Ağ üzerinden gönderilen seviye komutlarını düşük ses seviyesinde test et; bu araç mikser durumunu geri okumaz.</span></div>
     </section>
 
+    <section class="page" data-page="admin">
+      <div class="page-intro admin-intro"><div><span class="eyebrow">STAGEPULSE • MERKEZİ YÖNETİM</span><h2>Yönetim Merkezi</h2><p>Lisans, öğrenci, ödeme, oturum ve yönetici işlemleri tek ekranda.</p></div><div class="row-actions"><button class="btn btn-secondary" id="adminCenterRefresh" type="button">Verileri yenile</button><span class="badge badge-gold">Yalnızca sahip</span></div></div>
+      <div class="admin-metric-grid">
+        <article class="metric-card"><span>TOPLAM LİSANS</span><strong id="adminMetricLicenses">—</strong><small id="adminMetricPaidLicenses">Ödenmiş: —</small></article>
+        <article class="metric-card"><span>AKTİF LİSANS</span><strong id="adminMetricActiveLicenses">—</strong><small>Etkin kullanım hakkı</small></article>
+        <article class="metric-card"><span>ÖĞRENCİ</span><strong id="adminMetricStudents">—</strong><small id="adminMetricActiveStudents">Aktif: —</small></article>
+        <article class="metric-card"><span>BEKLEYEN ÖDEME</span><strong id="adminMetricPending">—</strong><small id="adminMetricPurchases">Toplam bildirim: —</small></article>
+        <article class="metric-card"><span>SON 30 GÜN OTURUM</span><strong id="adminMetricSessions">—</strong><small>Doğrulanmış oturum olayları</small></article>
+      </div>
+      <div class="admin-shortcuts"><button class="btn btn-gold" data-route="account" type="button">Lisans / ödeme yönetimi</button><button class="btn btn-secondary" data-route="student" type="button">Öğrenci / eğitim takibi</button></div>
+      <div class="admin-list-grid">
+        <article class="panel"><div class="panel-head"><div><h3>Son satın alma bildirimleri</h3><p class="muted">Havale/EFT inceleme kuyruğu</p></div></div><div id="adminPurchaseRows" class="admin-data-list"><p class="muted">Veriler yüklenmedi.</p></div></article>
+        <article class="panel"><div class="panel-head"><div><h3>Son lisanslar</h3><p class="muted">Ödeme ve aktivasyon durumu</p></div></div><div id="adminLicenseRows" class="admin-data-list"><p class="muted">Veriler yüklenmedi.</p></div></article>
+        <article class="panel"><div class="panel-head"><div><h3>Öğrenci hesapları</h3><p class="muted">Kayıt ve hesap durumu</p></div></div><div id="adminStudentRows" class="admin-data-list"><p class="muted">Veriler yüklenmedi.</p></div></article>
+        <article class="panel"><div class="panel-head"><div><h3>Oturum geçmişi</h3><p class="muted">Giriş doğrulama ve çıkış olayları</p></div></div><div id="adminSessionRows" class="admin-data-list"><p class="muted">Veriler yüklenmedi.</p></div></article>
+      </div>
+      <article class="panel"><div class="panel-head"><div><h3>Yönetici işlem geçmişi</h3><p class="muted">Lisans, ödeme ve eğitim yönetimi işlemleri</p></div></div><div id="adminAuditRows" class="admin-data-list"><p class="muted">Veriler yüklenmedi.</p></div></article>
+      <div class="report-box" id="adminCenterStatus" role="status" aria-live="polite">Yönetim verileri için sahip hesabıyla giriş yap.</div>
+    </section>
     <footer class="app-footer"><span>STAGEPULSE · Sesin gücü, işin kalitesi.</span><span id="footerStatus">Yerel çalışma alanı hazır</span></footer>
   </main>
 </div>
