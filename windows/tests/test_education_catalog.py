@@ -92,14 +92,15 @@ def test_catalogue_is_current_and_identical_across_platforms():
     }
 
 
-def test_windows_android_have_same_28_primary_screens():
+def test_windows_android_have_same_29_primary_screens_including_admin_center():
     repo = ROOT.parent
     win_html = (ROOT / "ui/index.html").read_text("utf-8")
     android_html = (repo / "android/app/src/main/assets/ui/index.html").read_text("utf-8")
     import re
     win_pages = set(re.findall(r"""data-page=["']([^"']+)["']""", win_html))
     android_pages = set(re.findall(r"""data-page=["']([^"']+)["']""", android_html))
-    assert len(win_pages) == 28
+    assert len(win_pages) == 29
+    assert "admin" in win_pages
     assert win_pages == android_pages
 
 
