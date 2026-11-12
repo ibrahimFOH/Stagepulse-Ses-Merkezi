@@ -34,7 +34,7 @@ jobs:
           grep -Eq '^\\*[[:space:]]+@ibrahimFOH([[:space:]]|$)' .github/CODEOWNERS
           test -s .github/pull_request_template.md
           grep -q 'Bağımsız inceleme' .github/pull_request_template.md
-          grep -q 'yazar kendi PR' CONTRIBUTING.md
+          grep -q 'yazarı kendi PR' CONTRIBUTING.md
           echo "REPOSITORY_POLICY_OK"
 
   secrets:
