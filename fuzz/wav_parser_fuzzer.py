@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Atheris fuzz target for the untrusted PCM WAV parser."""
+"""Atheris fuzz target for the untrusted PCM WAV parser and RIFF chunk boundaries."""
 from __future__ import annotations
 
 import os
