@@ -414,14 +414,21 @@ Deno.serve(async (req: Request) => {
     if (action === "session_event") {
       const eventType = String(body.event_type ?? "");
       const platform = String(body.platform ?? "unknown");
-      if (!["session_verified", "logout"].includes(eventType)) return fail("SESSION_EVENT_INVALID", 400);
+      if (eventType !== "logout") return fail("SESSION_EVENT_INVALID", 400);
       if (!["windows", "android", "web", "unknown"].includes(platform)) return fail("SESSION_PLATFORM_INVALID", 400);
+      const { data: lastEvent, error: lastEventError } = await admin.from("sesm_session_events")
+        .select("id,event_type,created_at").eq("user_id", user.id).eq("app_id", "ses-merkezi").eq("platform", platform)
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (lastEventError) return fail("SESSION_EVENT_READ_FAILED", 500);
+      if (!lastEvent || lastEvent.event_type !== "session_verified" || Date.now() - Date.parse(lastEvent.created_at) > 24 * 60 * 60 * 1000) {
+        return reply({ ok: true, recorded: false });
+      }
       const { error } = await admin.from("sesm_session_events").insert({
-        user_id: user.id, event_type: eventType, app_id: "ses-merkezi", platform,
-        user_agent: String(body.user_agent ?? "").slice(0, 300) || null,
+        user_id: user.id, event_type: "logout", app_id: "ses-merkezi", platform,
+        user_agent: String(req.headers.get("user-agent") ?? "").slice(0, 300) || null,
       });
       if (error) return fail("SESSION_EVENT_WRITE_FAILED", 500);
-      return reply({ ok: true });
+      return reply({ ok: true, recorded: true });
     }
     if (action === "admin_dashboard") {
       await requireOwner(user.id);
