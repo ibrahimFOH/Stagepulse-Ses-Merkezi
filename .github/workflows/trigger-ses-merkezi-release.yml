@@ -25,6 +25,7 @@ permissions:
 concurrency:
   group: ses-merkezi-auto-release
   cancel-in-progress: false
+  queue: max
 
 jobs:
   trigger-release:
