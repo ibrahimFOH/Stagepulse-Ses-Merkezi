@@ -1054,6 +1054,7 @@ class MainActivity : Activity() {
             "auth_context" -> return JSONObject().put("context", fetchMobileContext())
             "auth_restore" -> return restoreMobileAuthSession()
             "auth_logout" -> {
+                try { callSesEdge("session_event", JSONObject().put("event_type", "logout").put("platform", "android")) } catch (_: Exception) { }
                 try {
                     val token = readSecret("session")?.let { JSONObject(it).optString("access_token") }
                     if (!token.isNullOrBlank()) requestSupabase("POST", "/auth/v1/logout", bearer = token)
@@ -1111,6 +1112,8 @@ class MainActivity : Activity() {
                 JSONObject().put("license_id", payload.optString("license_id")).put("payment_status", payload.optString("payment_status"))
             )
             "license_revoke" -> return callSesEdge("license_revoke", JSONObject().put("license_id", payload.optString("license_id")))
+            "admin_dashboard" -> return callSesEdge("admin_dashboard", JSONObject().put("platform", "android"))
+            "session_event" -> return callSesEdge("session_event", JSONObject().put("event_type", payload.optString("event_type")).put("platform", "android"))
             "teacher_students" -> return callSesEdge("teacher_students")
             "progress_get" -> return callSesEdge("progress_get", JSONObject().put("student_user_id", payload.optString("student_user_id")))
             "progress_mark" -> return callSesEdge(
