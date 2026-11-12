@@ -31,7 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           test -s .github/CODEOWNERS
-          grep -Eq '^\\*[[:space:]]+@ibrahimFOH([[:space:]]|$)' .github/CODEOWNERS
+          grep -Fqx '* @ibrahimFOH' .github/CODEOWNERS
           test -s .github/pull_request_template.md
           grep -q 'Bağımsız inceleme' .github/pull_request_template.md
           grep -q 'yazarı kendi PR' CONTRIBUTING.md
