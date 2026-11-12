@@ -1,21 +1,27 @@
-# Security Policy
+# Güvenlik Politikası
 
-## Supported Versions
+## Desteklenen sürüm
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+| Sürüm | Güvenlik güncellemesi |
+|---|---|
+| 4.0.x | Destekleniyor |
+| 4.0 öncesi | Desteklenmiyor |
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+Güvenlik düzeltmeleri öncelikle desteklenen kararlı sürüme uygulanır. Eski sürümlerdeki bir açığın etkilenip etkilenmediği ayrıca değerlendirilir.
 
-## Reporting a Vulnerability
+## Güvenlik açığı bildirme
 
-Use this section to tell people how to report a vulnerability.
+Güvenlik açığı bildirimlerini herkese açık issue, tartışma veya pull request olarak yayımlamayın. İstismar edilebilir ayrıntıları özel tutun. Bildirim için [Stagepulse bakım sorumlusu GitHub profili](https://github.com/ibrahimFOH) üzerinden özel iletişim kurun.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+Lütfen bildiriminize etkilenen sürümü, işletim sistemini, etkiyi, yeniden üretim adımlarını ve mümkünse güvenli bir doğrulama örneğini ekleyin. Gerçek kullanıcı verilerini, erişim anahtarlarını veya lisans bilgilerini göndermeyin.
+
+## Müdahale ve açıklama takvimi
+
+- Bildirim alındıktan sonra 3 iş günü içinde alındı teyidi hedeflenir.
+- İlk etki ve kapsam değerlendirmesi 10 iş günü içinde yapılır.
+- Düzeltme ve koordineli açıklama takvimi, riskin ciddiyetine göre bildirim sahibiyle kararlaştırılır.
+- Kullanıcıları korumak için düzeltme yayımlanmadan önce istismar ayrıntıları kamuya açıklanmaz.
+
+## Güvenli geliştirme
+
+Bağımlılıklar OSV-Scanner ve Trivy ile taranır. GitHub Actions iş akışları zizmor ile denetlenir. Kod değişiklikleri Python/JavaScript regresyon testleri, Android birim testleri ve Windows paketleme kontrollerinden geçirilir.
