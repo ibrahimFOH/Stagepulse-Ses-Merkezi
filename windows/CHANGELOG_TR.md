@@ -1,5 +1,14 @@
 # Stagepulse Ses Merkezi değişiklik geçmişi
 
+## 4.0.5 · Ortak Yönetim Merkezi ve oturum güvenliği
+
+- Windows ve Android uygulamalarına yalnızca sahip rolünün erişebildiği ortak Yönetim Merkezi eklendi.
+- Lisans, öğrenci, satın alma, oturum ve yönetici işlem kayıtları tek yönetim ekranında toplandı.
+- Oturum doğrulama olayları istemciden kabul edilmez; sunucu tarafından kontrollü biçimde kaydedilir.
+- Çıkış olayları yalnızca yakın zamanda doğrulanmış oturumlar için kaydedilir.
+- Windows ve Android yönetim ekranları kendi yerel köprüleri üzerinden aynı yetkili sunucu uç noktasını kullanır.
+- Windows/Android sürümleri 4.0.5 olarak eşitlendi; Android versionCode 40005 olarak artırıldı.
+
 ## 4.0.0 · Kaynak sürümü
 
 - Windows ve Android kaynak sürümleri 4.0.0 olarak eşitlendi.
