@@ -1,4 +1,4 @@
-/* Stagepulse - özgün yerel mühendislik araçları, sürüm 4.0.3
+/* Stagepulse - özgün yerel mühendislik araçları, sürüm 4.0.4
    Dış kütüphane, CDN veya çevrimiçi hesaplama servisi kullanmaz. */
 (function () {
   'use strict';
