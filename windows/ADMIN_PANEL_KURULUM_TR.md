@@ -53,3 +53,15 @@ Bu sayfa tek yönetici girişini masaüstü ve mobil tarayıcıya sunar. Kaynak 
 - [ ] İade, iptal, süre uzatma ve cihaz kaldırma sonucu listede/aktivasyonda görülüyor.
 - [ ] CSV Türkçe karakterleri koruyor.
 - [ ] Test lisansları gerçek öğrenci kayıtlarıyla karıştırılmadan iptal ediliyor.
+
+## Uygulama içi Yönetim Merkezi
+
+4.0.4 sonrası ortak Yönetim Merkezi, Windows ve Android uygulamalarında yalnızca Stagepulse sahibi rolüyle oturum açıldığında görünür.
+
+- **Genel bakış:** toplam/aktif/ödenmiş lisanslar, öğrenciler, bekleyen satın alma bildirimleri ve son 30 günlük oturum olayları.
+- **Lisans ve ödeme:** mevcut Hesap / Lisans ekranındaki mağaza ayarları, manuel lisans, ödeme onayı, iptal ve cihaz işlemleri korunur.
+- **Öğrenci ve eğitim:** mevcut öğrenci ilerleme ekranına hızlı geçiş sunulur.
+- **Oturum geçmişi:** yeni oturum kayıt tablosu yalnızca Edge Function service-role üzerinden yazılır/okunur. Anon ve authenticated rollerine doğrudan tablo izni verilmez. Geçmiş kayıtlar dağıtım öncesini kapsamaz; ilk kayıtlar uygulama oturumları doğrulandıkça oluşur.
+- **Yönetici işlem geçmişi:** mevcut `sesm_audit_events` kayıtları özet panelde gösterilir.
+
+Yönetim verileri `ses-merkezi-desktop` Edge Function üzerinden alınır. `admin_dashboard` işlemi her istekte sahip rolünü sunucuda tekrar doğrular. İstemciye service-role anahtarı verilmez.
