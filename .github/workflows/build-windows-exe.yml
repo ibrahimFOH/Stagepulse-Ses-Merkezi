@@ -33,12 +33,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         name: Main kaynaklarını al
         with:
           ref: main
           persist-credentials: true
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.11"
       - name: PDF üretim bağımlılıklarını kur
@@ -94,16 +94,16 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         name: Üretilen eğitim PDF sürümünü de içeren main kaynağını al
         with:
           ref: main
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.11"
           architecture: x64
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: "22"
       - name: Ana uygulama sürümünü doğrula
@@ -218,7 +218,7 @@ jobs:
           if ($signature.Status -ne 'NotSigned') { throw "Store'a gönderilecek paket imzasız olmalı; mevcut durum: $($signature.Status)" }
           Write-Host "STORE_MSIX_IDENTITY_OK $($packages[0].Name)" -ForegroundColor Green
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         name: Windows EXE ve MSIX artifact
         with:
           name: Stagepulse-Ses-Merkezi-Windows-${{ steps.version.outputs.version }}
