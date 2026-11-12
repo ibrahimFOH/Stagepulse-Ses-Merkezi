@@ -2,10 +2,10 @@
 
 ## Güncel kararlı sürüm
 
-- Kaynak sürümü: **3.9.8**
-- Android sürümü: **3.9.8 (versionCode 30908)**
-- Windows sürümü: **3.9.8**
-- Kararlı yayın: [Stagepulse Ses Merkezi 3.9.8](https://github.com/ibrahimFOH/Stagepulse-Releases/releases/tag/v3.9.8)
+- Kaynak sürümü: **4.0.4**
+- Android sürümü: **4.0.4 (versionCode 40004)**
+- Windows sürümü: **4.0.4**
+- Kararlı yayın: [Stagepulse Ses Merkezi 4.0.4](https://github.com/ibrahimFOH/Stagepulse-Releases/releases/tag/v4.0.4)
 - Yayın deposu: `ibrahimFOH/Stagepulse-Releases`
 - Güncelleme manifesti: `Stagepulse-Releases/main/latest.json`
 
@@ -22,12 +22,12 @@ Bu dosya yayın sürecinin güncel açıklamasıdır. Sürüm numarasını yeni 
 
 **Elle APK/EXE yükleme veya web sunucusuna manifest kopyalama yapma.** Yayın hattı bu işlemleri otomatik yürütür. Yeni yayın tamamlanmadan `latest.json` dosyasını elle değiştirme.
 
-## 3.9.8 yayın varlıkları
+## 4.0.4 yayın varlıkları
 
-- `Stagepulse-Ses-Merkezi-Android-3.9.8.apk`
-- `Stagepulse-Ses-Merkezi-Android-3.9.8.apk.sha256`
-- `Stagepulse-Ses-Merkezi-Windows-3.9.8.exe`
-- `Stagepulse-Ses-Merkezi-Windows-3.9.8.exe.sha256`
+- `Stagepulse-Ses-Merkezi-Android-4.0.4.apk`
+- `Stagepulse-Ses-Merkezi-Android-4.0.4.apk.sha256`
+- `Stagepulse-Ses-Merkezi-Windows-4.0.4.exe`
+- `Stagepulse-Ses-Merkezi-Windows-4.0.4.exe.sha256`
 - `latest.json`
 
 Yayın hattı bu dosyaları GitHub Release'e ekler. İndirme adresleri ve SHA-256 değerleri manifestte tutulur.
