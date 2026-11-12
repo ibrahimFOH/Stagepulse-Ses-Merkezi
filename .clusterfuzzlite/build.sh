@@ -4,7 +4,7 @@ cd "$SRC/stagepulse"
 for fuzzer in "$SRC"/stagepulse/fuzz/*_fuzzer.py; do
   fuzzer_basename="$(basename -s .py "$fuzzer")"
   fuzzer_package="${fuzzer_basename}.pkg"
-  PYTHONPATH="$SRC/stagepulse/windows${PYTHONPATH:+:$PYTHONPATH}" pyinstaller --distpath "$OUT" --onefile --name "$fuzzer_package" "$fuzzer"
+  PYTHONPATH="$SRC/stagepulse/windows${PYTHONPATH:+:$PYTHONPATH}" pyinstaller --collect-all numpy --distpath "$OUT" --onefile --name "$fuzzer_package" "$fuzzer"
   cat > "$OUT/$fuzzer_basename" <<EOF
 #!/bin/sh
 # LLVMFuzzerTestOneInput for fuzzer detection.
