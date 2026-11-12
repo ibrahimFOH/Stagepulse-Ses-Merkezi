@@ -16,6 +16,7 @@ on:
     paths:
       - "windows/**"
       - "android/app/build.gradle"
+      - "README.md"
       - ".github/workflows/build-windows-exe.yml"
   workflow_dispatch:
 
