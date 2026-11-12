@@ -34,9 +34,9 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        name: Main kaynaklarını al
+        name: PR veya main kaynaklarını al
         with:
-          ref: main
+          ref: ${{ github.event.pull_request.head.ref || 'main' }}
           persist-credentials: true
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
@@ -79,19 +79,20 @@ jobs:
             echo "PDF çıktıları zaten güncel."
           else
             git commit -m "Eğitim PDF kitaplığını iki dilli terminolojiyle yenile"
+            target_branch="${{ github.event.pull_request.head.ref || 'main' }}"
             pushed=false
             for attempt in 1 2 3 4 5; do
-              git fetch origin main
-              git rebase origin/main
-              if git push origin HEAD:main; then
+              git fetch origin "$target_branch"
+              git rebase "origin/$target_branch"
+              if git push origin "HEAD:$target_branch"; then
                 pushed=true
                 break
               fi
-              echo "main push yarışı; tekrar denenecek ($attempt/5)"
+              echo "$target_branch push yarışı; tekrar denenecek ($attempt/5)"
               sleep 2
             done
             if [ "$pushed" != true ]; then
-              echo "PDF commit'i main dalına yazılamadı."
+              echo "PDF commit'i hedef dala yazılamadı."
               exit 1
             fi
           fi
@@ -102,9 +103,9 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        name: Üretilen eğitim PDF sürümünü de içeren main kaynağını al
+        name: Üretilen PDF'leri içeren PR/main kaynağını al
         with:
-          ref: main
+          ref: ${{ github.event.pull_request.head.ref || 'main' }}
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
