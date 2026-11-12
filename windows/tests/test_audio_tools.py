@@ -229,3 +229,36 @@ def test_ebu_reference_csv_can_produce_pass_only_when_all_available_metrics_matc
     assert result["counts"]["PASS"] == 1
     assert result["results"][0]["status"] == "PASS"
     assert len(result["results"][0]["comparisons"]) == 5
+
+
+def test_analyze_wav_rejects_fuzzed_headers_without_unexpected_exceptions(tmp_path):
+    """Deterministik mutasyon testi: bozuk WAV başlıkları analiz sürecini çökertmemeli."""
+    import random
+
+    rng = random.Random(0x5A17E)
+    path = tmp_path / "fuzz-input.wav"
+    seeds = [
+        b"",
+        b"RIFF",
+        b"RIFF" + b"\x00" * 40,
+        b"NOTW" + rng.randbytes(64),
+        b"RIFF" + (36).to_bytes(4, "little") + b"WAVE" + rng.randbytes(64),
+    ]
+    for _ in range(256):
+        size = rng.randrange(0, 512)
+        payload = bytearray(rng.randbytes(size))
+        if payload and rng.random() < 0.5:
+            payload[:min(4, len(payload))] = b"RIFF"[:min(4, len(payload))]
+        seeds.append(bytes(payload))
+
+    for payload in seeds:
+        path.write_bytes(payload)
+        try:
+            report = analyze_wav(path)
+        except (ValueError, OSError):
+            continue
+        assert report["channels"] > 0
+        assert report["frames"] > 0
+        assert math.isfinite(report["duration_seconds"])
+        assert math.isfinite(report["sample_peak_dbfs"])
+        assert math.isfinite(report["rms_dbfs"])
