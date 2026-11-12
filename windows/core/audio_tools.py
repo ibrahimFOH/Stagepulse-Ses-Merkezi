@@ -62,7 +62,7 @@ def analyze_wav(path: str | Path) -> dict[str, Any]:
                 dc_sum += matrix.sum(axis=0, dtype=np.float64)
                 near_full += np.count_nonzero(abs_matrix >= (1.0 - 1.0 / full_scale), axis=0)
                 counts += matrix.shape[0]
-    except (wave.Error, EOFError) as exc:
+    except (wave.Error, EOFError, RuntimeError) as exc:
         raise ValueError(f"WAV okunamadı: {exc}") from exc
 
     if not np.all(counts > 0):
