@@ -8,7 +8,7 @@ for fuzzer in "$SRC"/stagepulse/fuzz/*.py; do
   cat > "$OUT/$fuzzer_basename" <<EOF
 #!/bin/sh
 this_dir=\$(dirname "\$0")
-ASAN_OPTIONS=\$ASAN_OPTIONS:symbolize=1:external_symbolizer_path=\$this_dir/llvm-symbolizer:detect_leaks=0 \
+ASAN_OPTIONS=\${ASAN_OPTIONS:-}:symbolize=1:external_symbolizer_path=\$this_dir/llvm-symbolizer:detect_leaks=0 \
   "\$this_dir/$fuzzer_package" "\$@"
 EOF
   chmod +x "$OUT/$fuzzer_basename"
