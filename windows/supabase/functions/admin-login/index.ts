@@ -1,6 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { corsHeadersFor, handleOptions, getClientIp, isDistributedRateLimited, GENERIC_LOGIN_ERROR, jsonError } from "../_shared/security.ts";
+const ALLOWED_ORIGINS = new Set(["https://stagepulse.com.tr","https://www.stagepulse.com.tr","https://appassets.androidplatform.net","null","http://localhost:5173","http://127.0.0.1:5173"]);
+function corsHeadersFor(req:Request):Record<string,string>{const origin=req.headers.get("origin")||"";return {"Access-Control-Allow-Origin":ALLOWED_ORIGINS.has(origin)?origin:"https://stagepulse.com.tr","Vary":"Origin","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type","Access-Control-Allow-Methods":"POST, OPTIONS"};}
+function handleOptions(req:Request):Response|null{return req.method==="OPTIONS"?new Response("ok",{headers:corsHeadersFor(req)}):null;}
+function getClientIp(req:Request):string{return req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()||req.headers.get("cf-connecting-ip")||req.headers.get("x-real-ip")||"unknown";}
+async function isDistributedRateLimited(db:{rpc:(fn:string,args:Record<string,unknown>)=>PromiseLike<{data:unknown;error:unknown}>},key:string,max=10):Promise<boolean>{try{const result=await db.rpc("check_login_rate_limit",{p_key:key,p_max:max});if(!result||typeof result!=="object")return true;const data=(result as {data?:unknown}).data,error=(result as {error?:unknown}).error;if(error)return true;return data!==true;}catch{return true;}}
+const GENERIC_LOGIN_ERROR="Geçersiz kullanıcı adı veya şifre.";
+function jsonError(message:string,status:number,headers:Record<string,string>):Response{return Response.json({error:message},{status,headers});}
 Deno.serve(async (req) => {
   const opt=handleOptions(req); if(opt)return opt;
   const headers=corsHeadersFor(req);
