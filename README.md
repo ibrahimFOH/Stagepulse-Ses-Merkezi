@@ -41,15 +41,15 @@ Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasında
 
 ## Platform sürümleri
 
-Kaynak sürümü 4.0.5'tür. Aşağıdaki sürüm bilgileri kaynak ağacını tanımlar; tek başına Release deposunda imzalı kurulumların yayımlandığını veya fiziksel cihaz kabul testlerinin tamamlandığını göstermez.
+Kaynak sürümü 4.0.6'tür. Aşağıdaki sürüm bilgileri kaynak ağacını tanımlar; tek başına Release deposunda imzalı kurulumların yayımlandığını veya fiziksel cihaz kabul testlerinin tamamlandığını göstermez.
 
 | Bileşen | Kaynak sürümü | Sürümün yönetildiği yer |
 |---|---:|---|
-| Windows Ses Merkezi | 4.0.5 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
-| Android Ses Merkezi | 4.0.5 (40005) | android/app/build.gradle |
+| Windows Ses Merkezi | 4.0.6 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
+| Android Ses Merkezi | 4.0.6 (40006) | android/app/build.gradle |
 | Yönetici girişi | Ana uygulama içinde | Ana uygulamanın kimlik doğrulama ve yetki kontrolü |
 
-4.0.5 kaynak sürümüdür. Windows EXE ve imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır; indirme manifesti ve SHA-256 dosyaları da aynı sürümle üretilir. Android APK kalıcı Stagepulse keystore ile imzalanmıştır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz.
+4.0.6 kaynak sürümüdür. Windows EXE ve imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır; indirme manifesti ve SHA-256 dosyaları da aynı sürümle üretilir. Android APK kalıcı Stagepulse keystore ile imzalanmıştır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz.
 
 ## Uygulama ekranları ve araç envanteri (4.0.3)\n\nArayüzün tüm sayfalarında ve öğrenci PDF kitaplığındaki 13 kitapta teknik terimler Türkçe ad + İngilizce karşılık biçiminde gösterilir; PDF'lerde ortak terim sözlüğü de bulunur.
 
