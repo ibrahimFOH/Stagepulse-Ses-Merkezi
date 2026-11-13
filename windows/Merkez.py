@@ -882,7 +882,7 @@ class AppApi(AcousticAnalysisApi):
             raise RuntimeError(str(result.get("error", "SERVER_ERROR")) if isinstance(result, dict) else "Servis yanıtı geçersiz.")
         return result
 
-    def _edge_call(self, action: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+    def _edge_call(self, action: str, payload: dict[str, Any] | None = None, function_slug: str = "ses-merkezi-desktop") -> dict[str, Any]:
         if not self._session or not self._session.get("access_token"):
             raise RuntimeError("Önce Stagepulse hesabına giriş yap.")
         body = {
@@ -892,7 +892,7 @@ class AppApi(AcousticAnalysisApi):
             "platform": "windows",
         }
         request = Request(
-            SUPABASE_URL + "/functions/v1/ses-merkezi-desktop",
+            SUPABASE_URL + "/functions/v1/" + function_slug,
             data=json.dumps(body, ensure_ascii=False).encode("utf-8"),
             headers={"Content-Type": "application/json", "Accept": "application/json", "apikey": SUPABASE_PUBLISHABLE_KEY,
                      "Authorization": "Bearer " + str(self._session["access_token"])},
@@ -967,6 +967,23 @@ class AppApi(AcousticAnalysisApi):
             "offline_lease_public_key": public_key,
             "last_seen_at_ms": now_ms,
         })
+
+
+    def education_api(self, action: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+        allowed = {"published_documents", "document_open", "published_exams", "exam_begin", "exam_submit"}
+        if action not in allowed:
+            raise ValueError("Öğrenci eğitim API işlemi izin listesinde değil.")
+        return self._edge_call(action, payload, function_slug="sesm-education-admin")
+
+    def open_pdf_url(self, url: str) -> dict[str, Any]:
+        from urllib.parse import urlparse
+        parsed = urlparse(str(url))
+        if parsed.scheme != "https" or parsed.hostname != "itasctyjzyewcykozuex.supabase.co" or not parsed.path.startswith("/storage/v1/object/sign/sesm-education-pdfs/"):
+            raise ValueError("Eğitim PDF bağlantısı güvenli değil.")
+        opened = webbrowser.open(str(url), new=2)
+        if not opened:
+            raise RuntimeError("PDF bağlantısı tarayıcıda açılamadı.")
+        return {"ok": True}
 
     def auth_context(self) -> dict[str, Any]:
         context = self._edge_call("context", {"device_hash": _installation_device_hash()})
