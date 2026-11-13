@@ -1,0 +1,85 @@
+// Ortak güvenlik yardımcıları: CORS, dağıtık rate-limit ve şifre politikası.
+// Tüm edge function'lar bu modülü kullanır.
+
+const ALLOWED_ORIGINS = new Set<string>([
+  "https://stagepulse.com.tr",
+  "https://www.stagepulse.com.tr",
+  "https://appassets.androidplatform.net",
+  "null",
+  // Sadece geliştirme ortamı için (production'da zararsız, origin eşleşmezse kullanılmaz):
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+]);
+
+export function corsHeadersFor(req: Request): Record<string, string> {
+  const origin = req.headers.get("origin") || "";
+  const allowOrigin = ALLOWED_ORIGINS.has(origin) ? origin : "https://stagepulse.com.tr";
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Vary": "Origin",
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  };
+}
+
+export function handleOptions(req: Request): Response | null {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeadersFor(req) });
+  }
+  return null;
+}
+
+// Basit bellek-içi (in-memory) rate limit. Not: Edge Function instance'ları
+// birden fazla olabileceğinden ve soğuk başlatmalarda sıfırlanacağından bu
+// kesin bir koruma değildir; ek olarak Supabase/Cloudflare seviyesinde
+// gerçek bir rate-limit / WAF kuralı uygulanması önerilir.
+// TODO: Kalıcı/dağıtık rate-limit için Supabase tablosu veya KV store kullanılabilir.
+const rateBuckets = new Map<string, number[]>();
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 10;
+
+export function getClientIp(req: Request): string {
+  return (
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-real-ip") ||
+    "unknown"
+  );
+}
+
+export async function isDistributedRateLimited(
+  db: { rpc: (fn: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> },
+  key: string,
+  max = RATE_LIMIT_MAX,
+): Promise<boolean> {
+  try {
+    const result = await db.rpc("check_login_rate_limit", {
+      p_key: key,
+      p_max: max,
+    });
+    if (!result || typeof result !== "object") return true;
+    const data = (result as { data?: unknown }).data;
+    const error = (result as { error?: unknown }).error;
+    if (error) return true;
+    return data !== true;
+  } catch {
+    return true;
+  }
+}
+
+export function isStrongPassword(password: string): boolean {
+  if (typeof password !== "string" || password.length < 10) return false;
+  const hasLetter = /[a-zA-ZğüşıöçĞÜŞİÖÇ]/.test(password);
+  const hasDigit = /[0-9]/.test(password);
+  return hasLetter && hasDigit;
+}
+
+export const GENERIC_LOGIN_ERROR = "Geçersiz kullanıcı adı veya şifre.";
+
+export function jsonError(
+  message: string,
+  status: number,
+  headers: Record<string, string>
+): Response {
+  return Response.json({ error: message }, { status, headers });
+}

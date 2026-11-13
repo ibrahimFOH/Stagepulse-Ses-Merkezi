@@ -466,6 +466,20 @@ class MainActivity : Activity() {
         }
         return response
     }
+ 
+    private fun callEducationEdge(action: String, fields: JSONObject = JSONObject()): JSONObject {
+        val token = requireMobileAccessToken()
+        val body = JSONObject(fields.toString())
+            .put("action", action)
+            .put("app_id", "ses-merkezi-android")
+            .put("platform", "android")
+            .put("device_hash", mobileDeviceHash())
+        val response = requestSupabase("POST", "/functions/v1/sesm-education-admin", body, token)
+        if (!response.optBoolean("ok", false)) {
+            throw IllegalStateException(response.optString("error").ifBlank { "Eğitim servisi isteği tamamlayamadı." })
+        }
+        return response
+    }
 
     private fun fetchMobileContext(): JSONObject {
         val context = callSesEdge("context")
@@ -1124,6 +1138,16 @@ class MainActivity : Activity() {
                     .put("completed", payload.optBoolean("completed"))
                     .put("teacher_note", payload.optString("teacher_note"))
             )
+            "education_api" -> return callEducationEdge(payload.optString("action").take(40), payload.optJSONObject("data") ?: JSONObject())
+            "open_pdf_url" -> {
+                val uri = android.net.Uri.parse(payload.optString("url"))
+                if (uri.scheme != "https" || uri.host != "itasctyjzyewcykozuex.supabase.co"
+                    || uri.path?.startsWith("/storage/v1/object/sign/sesm-education-pdfs/") != true) {
+                    throw IllegalArgumentException("Eğitim PDF bağlantısı güvenli değil.")
+                }
+                runOnUiThread { startActivity(Intent(Intent.ACTION_VIEW, uri)) }
+                return JSONObject().put("ok", true)
+            }
             else -> throw IllegalArgumentException("Android hesap köprüsünde desteklenmeyen işlem: $action")
         }
     }

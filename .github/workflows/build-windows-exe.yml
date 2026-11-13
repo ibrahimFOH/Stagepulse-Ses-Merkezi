@@ -216,3 +216,52 @@ jobs:
           path: windows/dist/*
           if-no-files-found: error
           retention-days: 30
+
+      - name: Microsoft Store kimlik bilgilerini kontrol et
+        id: store_credentials
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          MSSTORE_PRODUCT_ID: ${{ vars.MSSTORE_PRODUCT_ID }}
+          AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          AZURE_AD_APPLICATION_CLIENT_ID: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
+          AZURE_AD_APPLICATION_SECRET: ${{ secrets.AZURE_AD_APPLICATION_SECRET }}
+          SELLER_ID: ${{ secrets.SELLER_ID }}
+        run: |
+          $required = @('MSSTORE_PRODUCT_ID','AZURE_AD_TENANT_ID','AZURE_AD_APPLICATION_CLIENT_ID','AZURE_AD_APPLICATION_SECRET','SELLER_ID')
+          $missing = @($required | Where-Object { [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($_)) })
+          if ($missing.Count -gt 0) {
+            Write-Warning "Microsoft Store otomatik gönderimi henüz etkin değil. Eksik GitHub değişken/gizli değerleri: $($missing -join ', ')"
+            "enabled=false" >> $env:GITHUB_OUTPUT
+          } else {
+            "enabled=true" >> $env:GITHUB_OUTPUT
+            Write-Host "Microsoft Store otomatik gönderimi etkin." -ForegroundColor Green
+          }
+
+      - name: Microsoft Store Developer CLI kur
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.store_credentials.outputs.enabled == 'true'
+        uses: microsoft/microsoft-store-apppublisher@cc9910a8d59f2eb55cbb83df0a3800cf3b5300e0 # v1.4
+
+      - name: Microsoft Store hesabını yapılandır
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.store_credentials.outputs.enabled == 'true'
+        shell: pwsh
+        env:
+          AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+          AZURE_AD_APPLICATION_CLIENT_ID: ${{ secrets.AZURE_AD_APPLICATION_CLIENT_ID }}
+          AZURE_AD_APPLICATION_SECRET: ${{ secrets.AZURE_AD_APPLICATION_SECRET }}
+          SELLER_ID: ${{ secrets.SELLER_ID }}
+        run: |
+          msstore reconfigure --tenantId "$env:AZURE_AD_TENANT_ID" --sellerId "$env:SELLER_ID" --clientId "$env:AZURE_AD_APPLICATION_CLIENT_ID" --clientSecret "$env:AZURE_AD_APPLICATION_SECRET"
+          if ($LASTEXITCODE -ne 0) { throw "Microsoft Store CLI kimlik doğrulaması başarısız." }
+
+      - name: MSIX paketini Microsoft Store'a gönder
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.store_credentials.outputs.enabled == 'true'
+        shell: pwsh
+        env:
+          MSSTORE_PRODUCT_ID: ${{ vars.MSSTORE_PRODUCT_ID }}
+        run: |
+          $packages = @(Get-ChildItem -LiteralPath (Join-Path $env:GITHUB_WORKSPACE 'windows\dist') -Filter 'Stagepulse-Ses-Merkezi-Store-*.msix' -File)
+          if ($packages.Count -ne 1) { throw "Microsoft Store'a gönderilecek tek bir Store MSIX paketi bekleniyordu." }
+          msstore publish $packages[0].FullName -id "$env:MSSTORE_PRODUCT_ID"
+          if ($LASTEXITCODE -ne 0) { throw "Microsoft Store gönderimi başarısız." }
+          Write-Host "STORE_SUBMISSION_SENT $($packages[0].Name)" -ForegroundColor Green
