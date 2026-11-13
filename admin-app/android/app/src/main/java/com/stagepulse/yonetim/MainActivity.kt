@@ -46,7 +46,7 @@ class MainActivity : Activity() {
                 val uri = request.url
                 if (uri.scheme == "https" && uri.host == "appassets.androidplatform.net") return false
                 if (uri.scheme == "https" && uri.host == "itasctyjzyewcykozuex.supabase.co"
-                    && uri.path.startsWith("/storage/v1/object/sign/sesm-education-pdfs/")) {
+                    && uri.path?.startsWith("/storage/v1/object/sign/sesm-education-pdfs/") == true) {
                     try {
                         val filename = android.webkit.URLUtil.guessFileName(uri.toString(), null, "application/pdf")
                         val download = DownloadManager.Request(uri)
