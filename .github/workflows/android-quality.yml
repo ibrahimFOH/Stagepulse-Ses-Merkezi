@@ -12,6 +12,7 @@ on:
     branches: [main]
     paths:
       - "android/**"
+      - "admin-app/**"
       - "windows/ui/first_party_tools.js"
       - ".github/workflows/android-quality.yml"
   workflow_dispatch:
@@ -80,6 +81,23 @@ jobs:
 
       - name: Usta Öğretmen yönetim uygulaması JavaScript kontrolü
         run: node --check admin-app/android/app/src/main/assets/app.js
+
+      - name: Yönetim uygulaması varlık eşleşmesini doğrula
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmp admin-app/android/app/src/main/assets/index.html admin-app/desktop/assets/index.html
+          cmp admin-app/android/app/src/main/assets/app.js admin-app/desktop/assets/app.js
+          cmp admin-app/android/app/src/main/assets/style.css admin-app/desktop/assets/style.css
+          node --check admin-app/desktop/assets/app.js
+          python3 - <<'PY'
+          from pathlib import Path
+          html = Path("admin-app/android/app/src/main/assets/index.html").read_text(encoding="utf-8")
+          for page in ("education", "exams", "reports"):
+              if f'id="page-{page}"' not in html:
+                  raise SystemExit(f"Eksik yönetim sayfası: {page}")
+          print("Android/masaüstü yönetim varlıkları eşleşiyor.")
+          PY
 
       - name: JDK 17 kur
         uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4.9.1
