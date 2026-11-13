@@ -44,7 +44,20 @@ class MainActivity : Activity() {
 
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 val uri = request.url
-                return uri.scheme != "https" || uri.host != "appassets.androidplatform.net"
+                if (uri.scheme == "https" && uri.host == "appassets.androidplatform.net") return false
+                if (uri.scheme == "https" && uri.host == "itasctyjzyewcykozuex.supabase.co"
+                    && uri.path.startsWith("/storage/v1/object/sign/sesm-education-pdfs/")) {
+                    try {
+                        val filename = android.webkit.URLUtil.guessFileName(uri.toString(), null, "application/pdf")
+                        val download = DownloadManager.Request(uri)
+                            .setTitle(filename)
+                            .setMimeType("application/pdf")
+                            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
+                        (getSystemService(DOWNLOAD_SERVICE) as DownloadManager).enqueue(download)
+                    } catch (_: Exception) { }
+                }
+                return true
             }
         }
         web.webChromeClient = object : WebChromeClient() {
