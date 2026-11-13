@@ -699,6 +699,82 @@ Deno.serve(async (req: Request) => {
         role: "student",
       });
     }
+
+    if (action === "student_test_accounts") {
+      await requireOwner(user.id);
+      const [{ data: authResult, error: authError }, { data: linked, error: linkedError }] = await Promise.all([
+        admin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+        admin.from("sesm_students").select("user_id"),
+      ]);
+      if (authError || linkedError) return fail("STUDENT_ACCOUNT_LIST_FAILED", 500);
+      const linkedIds = new Set((linked ?? []).map((row: any) => String(row.user_id)));
+      const accounts = (authResult?.users ?? [])
+        .filter((account: any) => account.id !== user.id && !linkedIds.has(String(account.id)))
+        .map((account: any) => ({
+          user_id: account.id,
+          email: account.email ?? "",
+          display_name: String(account.user_metadata?.display_name ?? account.user_metadata?.full_name ?? account.user_metadata?.name ?? account.email ?? "İsimsiz hesap").slice(0, 120),
+          created_at: account.created_at,
+        }))
+        .sort((a: any, b: any) => Date.parse(b.created_at) - Date.parse(a.created_at));
+      return reply({ ok: true, accounts });
+    }
+    if (action === "student_test_enroll") {
+      await requireOwner(user.id);
+      const target = String(body.student_user_id ?? "").trim();
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(target) || target === user.id) {
+        return fail("STUDENT_ACCOUNT_INVALID", 400);
+      }
+      const [{ data: accountResult, error: accountError }, { data: existing, error: existingError }] = await Promise.all([
+        admin.auth.admin.getUserById(target),
+        admin.from("sesm_students").select("user_id,teacher_user_id").eq("user_id", target).maybeSingle(),
+      ]);
+      const account = accountResult?.user;
+      if (accountError || !account) return fail("STUDENT_ACCOUNT_NOT_FOUND", 404);
+      if (existingError) return fail("STUDENT_LOOKUP_FAILED", 500);
+      if (existing) return fail("STUDENT_ALREADY_ENROLLED", 409);
+      const email = String(account.email ?? "").trim().toLowerCase().slice(0, 320);
+      const displayName = String(account.user_metadata?.display_name ?? account.user_metadata?.full_name ?? account.user_metadata?.name ?? email ?? "Stagepulse öğrencisi").trim().slice(0, 120) || "Stagepulse öğrencisi";
+      const rawKey = issueLicenseKey();
+      const keyHash = await sha256Hex(normalizeKey(rawKey));
+      const { data: createdLicense, error: licenseError } = await admin.rpc("sesm_create_manual_full_package_license", {
+        p_owner_user_id: user.id,
+        p_key_hash: keyHash,
+        p_customer_name: ("Stagepulse Eğitim/Test - " + displayName).slice(0, 120),
+        p_customer_email: email,
+        p_payment_method: "cash",
+        p_payment_status: "paid",
+        p_amount: 0,
+        p_payment_reference: "",
+        p_admin_note: "STAGEPULSE_EDUCATION_TEST",
+        p_max_devices: 3,
+      });
+      if (licenseError || !createdLicense?.license_id) {
+        console.error("Student test license creation failed", licenseError?.message ?? "missing license id");
+        return fail("STUDENT_TEST_LICENSE_CREATE_FAILED", 500);
+      }
+      const { error: enrollmentError } = await admin.from("sesm_students").insert({
+        user_id: target,
+        teacher_user_id: user.id,
+        license_id: createdLicense.license_id,
+        email,
+        display_name: displayName,
+        is_active: true,
+      });
+      if (enrollmentError) {
+        await admin.from("sesm_license_keys").update({ is_active: false })
+          .eq("id", createdLicense.license_id).eq("created_by", user.id);
+        console.error("Student test enrollment failed", enrollmentError.message);
+        return fail(enrollmentError.code === "23505" ? "STUDENT_ALREADY_ENROLLED" : "STUDENT_PROFILE_CREATE_FAILED", 409);
+      }
+      await audit(user.id, "student_test_enrolled", target, createdLicense.license_id, { email, display_name: displayName, amount: 0 });
+      return reply({
+        ok: true,
+        key: rawKey,
+        student: { user_id: target, email, display_name: displayName },
+        license: { id: createdLicense.license_id, plan_code: "student", bundle_code: "full_master", max_activations: 3, amount: 0, payment_status: "paid" },
+      }, 201);
+    }
     if (action === "teacher_students") {
       await requireOwner(user.id);
       const { data: students, error } = await admin.from("sesm_students").select("user_id,license_id,email,display_name,is_active,created_at,updated_at").eq("teacher_user_id", user.id).order("created_at", { ascending: false });
