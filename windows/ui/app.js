@@ -1,4 +1,4 @@
-// Stagepulse UI release 4.0.5
+// Stagepulse UI release 4.0.6
 'use strict';
 const $ = (id) => document.getElementById(id);
 const routes = {
@@ -1628,4 +1628,4 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLower
   if(document.body) start(); else document.addEventListener("DOMContentLoaded",start,{once:true});
 })();
 
-// v4.0.5 release marker: global Turkish + English audio-engineering terminology is enabled on every route; student PDFs share the same glossary.
+// v4.0.6 release marker: global Turkish + English audio-engineering terminology is enabled on every route; student PDFs share the same glossary.
