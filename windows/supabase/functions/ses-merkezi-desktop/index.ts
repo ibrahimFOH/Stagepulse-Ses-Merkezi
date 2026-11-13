@@ -13,6 +13,7 @@ const ALLOWED_ORIGINS = new Set([
   "https://appassets.androidplatform.net",
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  "null",
 ]);
 function corsHeaders(req: Request): Record<string, string> {
   const origin = req.headers.get("origin") ?? "";

@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 const BUCKET = "sesm-education-pdfs";
-const ORIGINS = new Set(["https://stagepulse.com.tr","https://www.stagepulse.com.tr","https://appassets.androidplatform.net","http://localhost:5173","http://127.0.0.1:5173"]);
+const ORIGINS = new Set(["https://stagepulse.com.tr","https://www.stagepulse.com.tr","https://appassets.androidplatform.net","http://localhost:5173","http://127.0.0.1:5173","null"]);
 const headers = (req:Request) => ({
   ...(ORIGINS.has(req.headers.get("origin") ?? "") ? {"Access-Control-Allow-Origin":req.headers.get("origin")!} : {}),
   "Vary":"Origin","Access-Control-Allow-Headers":"authorization, apikey, content-type, x-client-info",
