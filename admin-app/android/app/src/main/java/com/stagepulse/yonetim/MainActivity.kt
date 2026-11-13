@@ -1,6 +1,7 @@
 package com.stagepulse.yonetim
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.app.DownloadManager
 import android.content.Intent
 import android.net.Uri
@@ -8,10 +9,14 @@ import android.os.Environment
 import android.graphics.Color
 import android.os.Bundle
 import android.webkit.WebChromeClient
+import android.webkit.JsPromptResult
+import android.webkit.JsResult
 import android.webkit.ValueCallback
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.text.InputType
+import android.widget.EditText
 import android.webkit.WebResourceRequest
 import androidx.webkit.WebViewAssetLoader
 
@@ -61,6 +66,32 @@ class MainActivity : Activity() {
             }
         }
         web.webChromeClient = object : WebChromeClient() {
+            override fun onJsConfirm(view: WebView?, url: String?, message: String?, result: JsResult?): Boolean {
+                AlertDialog.Builder(this@MainActivity)
+                    .setMessage(message ?: "Bu işlemi onaylıyor musun?")
+                    .setPositiveButton("Onayla") { _, _ -> result?.confirm() }
+                    .setNegativeButton("İptal") { _, _ -> result?.cancel() }
+                    .setOnCancelListener { result?.cancel() }
+                    .show()
+                return true
+            }
+
+            override fun onJsPrompt(view: WebView?, url: String?, message: String?, defaultValue: String?, result: JsPromptResult?): Boolean {
+                val input = EditText(this@MainActivity).apply {
+                    setText(defaultValue ?: "")
+                    inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+                    minLines = 2
+                }
+                AlertDialog.Builder(this@MainActivity)
+                    .setTitle(message ?: "Bilgi düzenle")
+                    .setView(input)
+                    .setPositiveButton("Kaydet") { _, _ -> result?.confirm(input.text.toString()) }
+                    .setNegativeButton("İptal") { _, _ -> result?.cancel() }
+                    .setOnCancelListener { result?.cancel() }
+                    .show()
+                return true
+            }
+
             override fun onShowFileChooser(view: WebView?, callback: ValueCallback<Array<Uri>>?, params: FileChooserParams?): Boolean {
                 filePathCallback?.onReceiveValue(null)
                 filePathCallback = callback
