@@ -36,12 +36,21 @@ async function owner(userId:string) {
   const ids=[...new Set((all??[]).filter((m:any)=>{const r=Array.isArray(m.role)?m.role[0]:m.role;return r?.code==="owner"&&r?.is_admin_role===true&&r?.active===true;}).map((m:any)=>String(m.user_id)))];
   return ids.length===1&&ids[0]===userId;
 }
-async function student(userId:string) {
+async function student(userId:string, body:any) {
   const {data:s,error}=await supabase.from("sesm_students").select("user_id,license_id,is_active")
     .eq("user_id",userId).eq("is_active",true).maybeSingle();
   if(error||!s)throw new Error("STUDENT_ACCESS_REQUIRED");
   const {data:l,error:le}=await supabase.from("sesm_license_keys").select("is_active,payment_status,expires_at").eq("id",s.license_id).maybeSingle();
   if(le||!l?.is_active||l.payment_status!=="paid"||(l.expires_at&&Date.parse(l.expires_at)<=Date.now()))throw new Error("STUDENT_LICENSE_REQUIRED");
+  const deviceHash=text(body.device_hash,64),appId=text(body.app_id,40),platform=text(body.platform,20);
+  const validPlatform=(appId==="ses-merkezi-android"&&platform==="android")||(appId==="ses-merkezi"&&platform==="windows");
+  if(!/^[0-9a-f]{64}$/.test(deviceHash)||!validPlatform)throw new Error("LICENSE_REQUIRED");
+  const {data:core,error:coreError}=await supabase.from("license_core").select("id")
+    .eq("legacy_license_id",s.license_id).eq("product_code","ses-merkezi").eq("status","active").eq("payment_status","paid").maybeSingle();
+  if(coreError||!core)throw new Error("LICENSE_REQUIRED");
+  const {data:device,error:deviceError}=await supabase.from("license_core_devices").select("id")
+    .eq("license_id",core.id).eq("user_id",userId).eq("device_hash",deviceHash).eq("app_id",appId).eq("is_active",true).maybeSingle();
+  if(deviceError||!device)throw new Error("LICENSE_REQUIRED");
 }
 async function ownedExam(id:string,uid:string) {
   const {data,error}=await supabase.from("sesm_exams").select("id").eq("id",id).eq("created_by",uid).maybeSingle();
@@ -171,11 +180,11 @@ Deno.serve(async(req:Request)=>{
       const map=new Map((s.data??[]).map((x:any)=>[x.user_id,x]));return send(req,{ok:true,attempts:(r.data??[]).map((x:any)=>({...x,student:map.get(x.student_user_id)??null}))});
     }
     if(action==="published_exams"){
-      await student(user.id);const r=await supabase.from("sesm_exams").select("id,title,description,module_id,duration_minutes,pass_percent,attempts_allowed,published_at").eq("is_published",true).order("published_at",{ascending:false});
+      await student(user.id,b);const r=await supabase.from("sesm_exams").select("id,title,description,module_id,duration_minutes,pass_percent,attempts_allowed,published_at").eq("is_published",true).order("published_at",{ascending:false});
       if(r.error)throw r.error;return send(req,{ok:true,exams:r.data??[]});
     }
     if(action==="exam_begin"){
-      await student(user.id);const id=text(b.exam_id,80);
+      await student(user.id,b);const id=text(b.exam_id,80);
       const e=await supabase.from("sesm_exams").select("id,title,duration_minutes,attempts_allowed").eq("id",id).eq("is_published",true).maybeSingle();
       if(e.error||!e.data)return bad(req,"EXAM_NOT_AVAILABLE",404);
       const q=await supabase.from("sesm_questions").select("id,exam_id,question_text,question_type,options,points,position").eq("exam_id",id).order("position");
@@ -190,7 +199,7 @@ Deno.serve(async(req:Request)=>{
       return send(req,{ok:true,attempt:a.data,exam:e.data,questions:q.data});
     }
     if(action==="exam_submit"){
-      await student(user.id);const id=text(b.attempt_id,80),answers=b.answers&&typeof b.answers==="object"&&!Array.isArray(b.answers)?b.answers:{};
+      await student(user.id,b);const id=text(b.attempt_id,80),answers=b.answers&&typeof b.answers==="object"&&!Array.isArray(b.answers)?b.answers:{};
       const a=await supabase.from("sesm_exam_attempts").select("id,exam_id,started_at,status").eq("id",id).eq("student_user_id",user.id).maybeSingle();
       if(a.error||!a.data||a.data.status!=="in_progress")return bad(req,"EXAM_ATTEMPT_NOT_FOUND",404);
       const e=await supabase.from("sesm_exams").select("id,pass_percent,duration_minutes").eq("id",a.data.exam_id).eq("is_published",true).maybeSingle();
@@ -266,11 +275,11 @@ Deno.serve(async(req:Request)=>{
       if(r.error||!r.data?.signedUrl)throw new Error("DOCUMENT_URL_FAILED");return send(req,{ok:true,url:r.data.signedUrl,expires_in:600});
     }
     if(action==="published_documents"){
-      await student(user.id);const r=await supabase.from("sesm_education_documents").select("id,title,description,category,file_name,file_size,version,published_at").eq("is_published",true).order("category").order("title");
+      await student(user.id,b);const r=await supabase.from("sesm_education_documents").select("id,title,description,category,file_name,file_size,version,published_at").eq("is_published",true).order("category").order("title");
       if(r.error)throw r.error;return send(req,{ok:true,documents:r.data??[]});
     }
     if(action==="document_open"){
-      await student(user.id);const id=text(b.document_id,80),event=b.event_type==="download"?"download":"view",platform=["windows","android","web"].includes(String(b.platform))?String(b.platform):"unknown";
+      await student(user.id,b);const id=text(b.document_id,80),event=b.event_type==="download"?"download":"view",platform=["windows","android","web"].includes(String(b.platform))?String(b.platform):"unknown";
       const doc=await supabase.from("sesm_education_documents").select("id,storage_path").eq("id",id).eq("is_published",true).maybeSingle();
       if(doc.error||!doc.data)return bad(req,"DOCUMENT_NOT_AVAILABLE",404);
       const log=await supabase.from("sesm_document_events").insert({document_id:id,user_id:user.id,event_type:event,platform});if(log.error)throw new Error("DOCUMENT_EVENT_FAILED");

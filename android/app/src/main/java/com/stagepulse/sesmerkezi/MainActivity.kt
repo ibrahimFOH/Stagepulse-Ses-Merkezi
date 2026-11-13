@@ -469,7 +469,11 @@ class MainActivity : Activity() {
  
     private fun callEducationEdge(action: String, fields: JSONObject = JSONObject()): JSONObject {
         val token = requireMobileAccessToken()
-        val body = JSONObject(fields.toString()).put("action", action)
+        val body = JSONObject(fields.toString())
+            .put("action", action)
+            .put("app_id", "ses-merkezi-android")
+            .put("platform", "android")
+            .put("device_hash", mobileDeviceHash())
         val response = requestSupabase("POST", "/functions/v1/sesm-education-admin", body, token)
         if (!response.optBoolean("ok", false)) {
             throw IllegalStateException(response.optString("error").ifBlank { "Eğitim servisi isteği tamamlayamadı." })

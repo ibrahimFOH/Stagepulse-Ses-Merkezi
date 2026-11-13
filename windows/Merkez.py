@@ -973,7 +973,8 @@ class AppApi(AcousticAnalysisApi):
         allowed = {"published_documents", "document_open", "published_exams", "exam_begin", "exam_submit"}
         if action not in allowed:
             raise ValueError("Öğrenci eğitim API işlemi izin listesinde değil.")
-        return self._edge_call(action, payload, function_slug="sesm-education-admin")
+        data = {**(payload or {}), "device_hash": _installation_device_hash()}
+        return self._edge_call(action, data, function_slug="sesm-education-admin")
 
     def open_pdf_url(self, url: str) -> dict[str, Any]:
         from urllib.parse import urlparse
