@@ -1191,7 +1191,7 @@ class AppApi(AcousticAnalysisApi):
             raise
 
     def open_website(self, page: str = "home") -> dict[str, Any]:
-        target = {"home": WEBSITE_URL, "support": WEBSITE_URL + "/iletisim.html", "privacy": WEBSITE_URL + "/gizlilik.html"}.get(str(page), WEBSITE_URL)
+        target = {"home": WEBSITE_URL, "support": WEBSITE_URL + "/iletisim.html", "privacy": WEBSITE_URL + "/ses-merkezi-gizlilik.html"}.get(str(page), WEBSITE_URL)
         webbrowser.open(target)
         return {"ok": True, "url": target}
 
