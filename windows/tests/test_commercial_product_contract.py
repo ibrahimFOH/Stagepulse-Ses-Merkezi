@@ -100,6 +100,9 @@ def test_ollama_default_groq_fallback_and_full_package_sales_contract():
     assert 'if (Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true") return fail("SALES_TEMPORARILY_DISABLED", 403);' in edge
     assert 'sales_enabled:salesEnabled' in edge
     assert 'role === "owner" || salesEnabled ? data' in edge
+    assert 'decision==="approved" && Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true"' in edge
+    assert 'paymentStatus === "paid" && Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true"' in edge
+    assert 'if (paymentStatus === "paid" && Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true")' in edge
 
 
 
