@@ -181,3 +181,12 @@ Yüklenen Windows CLI arşivinin SHA-256 değeri resmî Open Audio Analyzer v0.1
 5. Stagepulse ile OAA sonuçlarını aynı kaynak WAV, aynı kanal düzeni ve aynı örnekleme hızı üzerinden karşılaştırın. Farkları otomatik olarak hata saymayın; algoritma sürümü, K-weighting, gating, kanal haritası ve true-peak filtreleri aynı olmalıdır.
 
 OAA bağımsız bir karşılaştırma aracıdır; EBU tarafından sertifikalandırılmış referans cihaz olarak sunulmaz. OAA motorunun GPL-3.0-or-later lisansı vardır. İkili dosyanın dağıtılması halinde ilgili lisans ve karşılık gelen kaynak kod yükümlülükleri ayrıca yerine getirilmelidir. Kaynak: https://github.com/JonasGrunau/open_audio_analyzer
+
+
+## Gizlilik ve kişisel veri başvuruları
+
+- Uygulama gizlilik/KVKK bilgilendirmesi: https://stagepulse.com.tr/ses-merkezi-gizlilik.html
+- Kişisel veri erişim, düzeltme ve silme başvurusu: https://stagepulse.com.tr/veri-talebi.html
+- Web sitesi gizlilik ve çerez politikaları: https://stagepulse.com.tr/gizlilik.html ve https://stagepulse.com.tr/cerezler.html
+
+Uygulamanın yerel ses analizi, hesap/lisans, öğrenci ilerlemesi, satın alma bildirimi ve isteğe bağlı Groq aktarımı ayrı veri akışlarıdır. Uygulama içindeki AI onayı yalnızca seçilen AI sağlayıcısına istem gönderimi içindir; tüm veri işlemleri için genel rıza değildir. Yurt dışı veri aktarım mekanizması ve veri saklama süreleri, gerçek hizmet sağlayıcı sözleşmeleri ve proje ayarlarıyla ayrıca doğrulanmalıdır.
