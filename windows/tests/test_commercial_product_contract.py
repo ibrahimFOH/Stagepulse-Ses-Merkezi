@@ -90,6 +90,9 @@ def test_ollama_default_groq_fallback_and_full_package_sales_contract():
     html = (ROOT / 'ui' / 'index.html').read_text('utf-8')
     edge = (ROOT / 'supabase' / 'functions' / 'ses-merkezi-desktop' / 'index.ts').read_text('utf-8')
     assert 'id="fullPackagePurchasePanel"' in html
+    assert 'id="submitFullPackagePurchase" disabled' in html
+    android_html = (ROOT.parent / 'android' / 'app' / 'src' / 'main' / 'assets' / 'ui' / 'index.html').read_text('utf-8')
+    assert 'id="submitFullPackagePurchase" disabled' in android_html
     assert 'id="fullPackageAdminPanel"' in html
     assert 'licensePlan' not in html and 'licenseBundle' not in html
     assert 'function commerceApi()' in ui and 'purchase_submit' in ui and 'purchase_review' in ui
