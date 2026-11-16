@@ -1502,7 +1502,7 @@ function commerceApi(){return accountApi();}
 async function refreshFullPackageStore(){
  const apiClient=commerceApi();if(!apiClient)return;
  try{const result=await apiClient.store_get(),s=result.settings||{};applyMeasurementFeatureSettings(s.measurement_settings||{advanced_rta_enabled:true,microphone_correction_enabled:true});
-  $("fullPackagePrice").textContent=Number(s.price||0).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})+" TL";
+  $("fullPackagePrice").textContent=s.sales_enabled?Number(s.price||0).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})+" TL":"Satış geçici olarak kapalı";
   $("fullPackageBankInfo").innerHTML=!s.sales_enabled?"<strong>Ücretli satış geçici olarak kapalıdır.</strong><br>Satıcı, vergi, fatura, toplam bedel ve tüketici belgeleri doğrulanana kadar ödeme bilgileri gösterilmez.":s.iban?`<strong>${safeText(s.bank_name||"Banka")}</strong><br>Hesap sahibi: ${safeText(s.account_holder||"")}<br>IBAN: <strong>${safeText(s.iban)}</strong>${s.payment_instructions?`<br>${safeText(s.payment_instructions)}`:""}${s.contact_phone?`<br>İletişim: ${safeText(s.contact_phone)}`:""}`:"<strong>Havale/EFT hesabı henüz tanımlanmadı.</strong><br>Satın alma bildirimleri hesap bilgileri girilene kadar kapalıdır.";
   $("submitFullPackagePurchase").disabled=!s.sales_enabled||!s.iban||!s.account_holder;
   if(currentRole==="owner"){ $("fullPackageAdminPrice").value=s.price??2500;$("fullPackageBankName").value=s.bank_name||"";$("fullPackageAccountHolder").value=s.account_holder||"";$("fullPackageIban").value=s.iban||"";$("fullPackagePaymentInstructions").value=s.payment_instructions||"";$("fullPackageContactPhone").value=s.contact_phone||""; }
