@@ -96,8 +96,10 @@ def test_ollama_default_groq_fallback_and_full_package_sales_contract():
     assert 'store_update' in ui and 'await refreshLicenseList();' in ui
     assert 'price > 2500' in edge and 'sesm_review_full_package_purchase' in edge
     assert 'purchase_submit' in edge and 'purchase_review' in edge
-    assert 'STAGEPULSE_SALES_ENABLED' in edge
-    assert 'sales_enabled' in edge
+    assert 'const salesEnabled = Deno.env.get("STAGEPULSE_SALES_ENABLED") === "true";' in edge
+    assert 'if (Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true") return fail("SALES_TEMPORARILY_DISABLED", 403);' in edge
+    assert 'sales_enabled:salesEnabled' in edge
+    assert 'role === "owner" || salesEnabled ? data' in edge
 
 
 
