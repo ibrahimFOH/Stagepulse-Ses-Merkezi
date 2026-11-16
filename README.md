@@ -187,6 +187,8 @@ OAA bağımsız bir karşılaştırma aracıdır; EBU tarafından sertifikaland�
 
 - Uygulama gizlilik/KVKK bilgilendirmesi: https://stagepulse.com.tr/ses-merkezi-gizlilik.html
 - Kişisel veri erişim, düzeltme ve silme başvurusu: https://stagepulse.com.tr/veri-talebi.html
+- Uygulama kullanım koşulları: https://stagepulse.com.tr/ses-merkezi-kullanim-kosullari.html
+- Lisans satışı ve iade bilgilendirmesi: https://stagepulse.com.tr/ses-merkezi-lisans-satis.html
 - Web sitesi gizlilik ve çerez politikaları: https://stagepulse.com.tr/gizlilik.html ve https://stagepulse.com.tr/cerezler.html
 
 Uygulamanın yerel ses analizi, hesap/lisans, öğrenci ilerlemesi, satın alma bildirimi ve isteğe bağlı Groq aktarımı ayrı veri akışlarıdır. Uygulama içindeki AI onayı yalnızca seçilen AI sağlayıcısına istem gönderimi içindir; tüm veri işlemleri için genel rıza değildir. Yurt dışı veri aktarım mekanizması ve veri saklama süreleri, gerçek hizmet sağlayıcı sözleşmeleri ve proje ayarlarıyla ayrıca doğrulanmalıdır.
