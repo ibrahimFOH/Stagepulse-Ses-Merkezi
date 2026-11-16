@@ -348,7 +348,9 @@ Deno.serve(async (req: Request) => {
     if (action === "store_get") {
       const { data, error } = await admin.from("sesm_store_settings").select("product_code,product_name,price,currency,bank_name,account_holder,iban,payment_instructions,contact_phone,measurement_settings").eq("id", true).single();
       if (error || !data) return fail("STORE_SETTINGS_UNAVAILABLE",503);
-      return reply({ok:true,settings:data});
+      const salesEnabled = Deno.env.get("STAGEPULSE_SALES_ENABLED") === "true";
+      const visibleSettings = role === "owner" || salesEnabled ? data : {...data, bank_name:null, account_holder:null, iban:null, payment_instructions:null, contact_phone:null};
+      return reply({ok:true,settings:{...visibleSettings,sales_enabled:salesEnabled}});
     }
     if (action === "store_update") {
       await requireOwner(user.id);
@@ -374,6 +376,7 @@ Deno.serve(async (req: Request) => {
       return reply({ok:true,settings:data});
     }
     if (action === "purchase_submit") {
+      if (Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true") return fail("SALES_TEMPORARILY_DISABLED", 403);
       const {data:settings,error:settingsError}=await admin.from("sesm_store_settings").select("price,account_holder,iban").eq("id",true).single();
       if(settingsError||!settings)return fail("STORE_SETTINGS_UNAVAILABLE",503);
       if(!settings.iban||!settings.account_holder)return fail("BANK_DETAILS_NOT_CONFIGURED",409);
