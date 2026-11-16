@@ -403,6 +403,7 @@ Deno.serve(async (req: Request) => {
       await requireOwner(user.id);
       const purchaseId=String(body.purchase_id??"").trim(), decision=String(body.decision??""), adminNote=String(body.admin_note??"").trim().slice(0,500);
       if(!purchaseId||!["approved","rejected"].includes(decision))return fail("PURCHASE_REVIEW_INVALID",400);
+      if(decision==="approved" && Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true") return fail("SALES_TEMPORARILY_DISABLED",403);
       if(decision==="rejected"){
         const {data,error}=await admin.from("sesm_purchase_requests").update({status:"rejected",admin_note:adminNote,reviewed_by:user.id,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",purchaseId).eq("status","pending").select("id,status").maybeSingle();
         if(error)return fail("PURCHASE_REVIEW_FAILED",500); if(!data)return fail("PURCHASE_NOT_PENDING",409);
@@ -600,6 +601,7 @@ Deno.serve(async (req: Request) => {
         || !["paid", "unpaid"].includes(paymentStatus)
         || !Number.isFinite(amount) || amount < 0 || amount > 2500
         || ![1, 2, 3, 5].includes(maxDevices)) return fail("LICENSE_CREATE_DATA_INVALID", 400);
+      if (paymentStatus === "paid" && Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true") return fail("SALES_TEMPORARILY_DISABLED",403);
       if (paymentStatus === "paid" && paymentMethod === "bank_transfer" && paymentReference.length < 3) {
         return fail("PAYMENT_REFERENCE_REQUIRED", 400);
       }
@@ -642,6 +644,7 @@ Deno.serve(async (req: Request) => {
       const licenseId = String(body.license_id ?? "").trim();
       const paymentStatus = String(body.payment_status ?? "");
       if (!licenseId || !["paid", "unpaid", "refunded"].includes(paymentStatus)) return fail("LICENSE_PAYMENT_DATA_INVALID", 400);
+      if (paymentStatus === "paid" && Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true") return fail("SALES_TEMPORARILY_DISABLED",403);
       const { data: lic, error } = await admin.rpc("sesm_set_license_payment_status", {
         p_license_id: licenseId,
         p_owner_user_id: user.id,
