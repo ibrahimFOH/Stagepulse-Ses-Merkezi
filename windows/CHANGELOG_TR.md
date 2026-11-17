@@ -1,5 +1,11 @@
 # Stagepulse Ses Merkezi değişiklik geçmişi
 
+## 4.0.7 · Ses sistemi doğrulama bakım sürümü
+
+- RTA/FFT, A/C/Z SPL ağırlıklandırma, stereo transfer-function, WAV analiz, true-peak ve bozuk WAV regresyon testleri Windows CI hattında yeniden doğrulandı.
+- Windows ve Android sürüm işaretleri 4.0.7 olarak eşitlendi; kurulum paketleri, imza/özet doğrulaması ve güncelleme manifesti mevcut otomatik yayın hattıyla üretilir.
+- Gerçek mikrofon/ses kartı saha kabul testi bu otomatik CI çalışmasının kapsamında değildir.
+
 ## 4.0.5 · Ortak Yönetim Merkezi ve oturum güvenliği
 
 - Windows ve Android uygulamalarına yalnızca sahip rolünün erişebildiği ortak Yönetim Merkezi eklendi.
