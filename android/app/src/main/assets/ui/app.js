@@ -198,8 +198,8 @@ function accountApi() {
   purchase_submit: payload => call('purchase_submit', payload),
   purchase_list: () => call('purchase_list'),
   purchase_review: (purchase_id, decision, admin_note) => call('purchase_review', { purchase_id, decision, admin_note }),
-  license_create: (label, plan_code, max_activations, expires_days, customer_name, customer_email, payment_method, payment_status, amount, currency, payment_reference, bundle_code) =>
-   call('license_create', { label, plan_code, max_activations, expires_days, customer_name, customer_email, payment_method, payment_status, amount, currency, payment_reference, bundle_code }),
+  license_create: (label, plan_code, max_activations, expires_days, customer_name, customer_email, payment_method, payment_status, amount, currency, payment_reference, bundle_code, customer_phone) =>
+   call('license_create', { label, plan_code, max_activations, expires_days, customer_name, customer_email, payment_method, payment_status, amount, currency, payment_reference, bundle_code, customer_phone }),
   license_list: () => call('license_list'),
   license_payment_update: (license_id, payment_status) => call('license_payment_update', { license_id, payment_status }),
   license_revoke: license_id => call('license_revoke', { license_id }),
@@ -1838,7 +1838,7 @@ function initFullPackageCommerce(){
   const button=$("createFullPackageLicense"),status=$("manualLicenseStatus");
   try{
    if(currentRole!=="owner")throw new Error("Yalnızca Stagepulse sahibi lisans üretebilir.");
-   const name=$("manualLicenseCustomerName").value.trim(),email=$("manualLicenseCustomerEmail").value.trim().toLowerCase();
+   const name=$("manualLicenseCustomerName").value.trim(),email=$("manualLicenseCustomerEmail").value.trim().toLowerCase(),phone=$("manualLicenseCustomerPhone").value.trim();
    const method=$("manualLicensePaymentMethod").value,payment=$("manualLicensePaymentStatus").value;
    const amount=Number($("manualLicenseAmount").value),reference=method==="cash"?"":$("manualLicenseReference").value.trim();
    const devices=Number($("manualLicenseDevices").value);
@@ -1853,7 +1853,7 @@ function initFullPackageCommerce(){
     if(!confirm(confirmation))return;
    }
    button.disabled=true;status.textContent="Lisans anahtarı güvenli biçimde üretiliyor…";
-   const result=await commerceApi().license_create("FULL PAKET","student",devices,0,name,email,method,payment,amount,"TRY",reference,"full_master");
+   const result=await commerceApi().license_create("FULL PAKET","student",devices,0,name,email,method,payment,amount,"TRY",reference,"full_master",phone);
    const key=result.key||result.license_key||"";
    if(!key||!result.license?.id)throw new Error("Sunucu lisans anahtarını doğrulanmış kayıtla döndürmedi.");
    $("fullPackageIssuedKey").value=key;$("copyFullPackageIssuedKey").disabled=false;
@@ -1861,7 +1861,7 @@ function initFullPackageCommerce(){
     ?(method==="cash"?"Elden nakit tahsilatı kaydedildi. FULL PAKET lisansı üretildi; anahtarı müşteriye iletebilirsin.":"Havale/EFT tahsilatı kaydedildi. FULL PAKET lisansı üretildi; anahtarı müşteriye iletebilirsin.")
     :"FULL PAKET lisansı üretildi. Ödeme bekliyor; ödeme durumu onaylanmadan etkinleşmez.";
    $("fullPackageAdminStatus").textContent="Manuel FULL PAKET lisansı oluşturuldu. Anahtar aşağıda gösteriliyor.";
-   $("manualLicenseCustomerName").value="";$("manualLicenseCustomerEmail").value="";$("manualLicenseReference").value="";
+   $("manualLicenseCustomerName").value="";$("manualLicenseCustomerEmail").value="";$("manualLicenseCustomerPhone").value="";$("manualLicenseReference").value="";
    await refreshLicenseList();
   }catch(err){status.textContent="Lisans üretilemedi: "+err.message;}
   finally{button.disabled=false;}
