@@ -1029,7 +1029,7 @@ class AppApi(AcousticAnalysisApi):
         self, label: str, plan_code: str, max_activations: int, expires_days: int,
         customer_name: str = "", customer_email: str = "", payment_method: str = "cash",
         payment_status: str = "unpaid", amount: Any = 0, currency: str = "TRY",
-        payment_reference: str = "", bundle_code: str = "start",
+        payment_reference: str = "", bundle_code: str = "start", customer_phone: str = "",
     ) -> dict[str, Any]:
         """Create a manually sold license; payment metadata is validated again server-side."""
         return self._edge_call("license_create", {
@@ -1038,6 +1038,7 @@ class AppApi(AcousticAnalysisApi):
             "customer_email": customer_email, "payment_method": payment_method,
             "payment_status": payment_status, "amount": amount, "currency": currency,
             "payment_reference": payment_reference, "bundle_code": bundle_code,
+            "customer_phone": customer_phone,
         })
 
     def license_payment_update(self, license_id: str, payment_status: str) -> dict[str, Any]:
