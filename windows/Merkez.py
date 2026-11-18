@@ -690,16 +690,16 @@ class AppApi(AcousticAnalysisApi):
         display_name = " ".join(str(display_name).split())[:120]
         if len(password) < 8 or len(password) > 256:
             raise ValueError("Şifre en az 8, en fazla 256 karakter olmalı.")
+        if len(display_name) < 2:
+            raise ValueError("Öğrenci adı en az 2 karakter olmalı.")
         if phone:
-            if len(display_name) < 2:
-                raise ValueError("Öğrenci adı en az 2 karakter olmalı.")
             self._public_edge_call("student_signup", {"phone": phone, "password": password, "display_name": display_name})
             result = self._auth_request("/auth/v1/token?grant_type=password", {
                 "email": phone.lstrip("+") + "@students.stagepulse.invalid", "password": password,
             })
         else:
             auth_identity = self._auth_identity_payload(identity)
-            result = self._auth_request("/auth/v1/signup", {**auth_identity, "password": password, "data": {"display_name": display_name}})
+            result = self._auth_request("/auth/v1/signup", {**auth_identity, "password": password, "data": {"display_name": display_name, "account_type": "student"}})
         if result.get("access_token") and result.get("refresh_token"):
             self._session = result
             self._account_context = self._edge_call("context", {"device_hash": _installation_device_hash()})
@@ -1048,6 +1048,14 @@ class AppApi(AcousticAnalysisApi):
 
     def teacher_students(self) -> dict[str, Any]:
         return self._edge_call("teacher_students")
+
+    def student_application_update(self, student_user_id: str, application_status: str, application_note: str = "") -> dict[str, Any]:
+        """Update a student application through the owner-authorized server endpoint."""
+        return self._edge_call("student_application_update", {
+            "student_user_id": str(student_user_id),
+            "application_status": str(application_status),
+            "application_note": str(application_note),
+        })
 
     def student_progress(self, student_user_id: str = "") -> dict[str, Any]:
         payload = {"student_user_id": student_user_id} if student_user_id else {}
