@@ -344,6 +344,8 @@ def test_email_signup_pending_confirmation_does_not_create_password_session(monk
     assert calls[0][0] == "/auth/v1/signup"
     assert result["ok"] is True
     assert result["session_created"] is False
+    assert calls[0][1]["data"]["display_name"] == "Test Student"
+    assert calls[0][1]["data"]["account_type"] == "student"
     assert "e-posta adresini doğrula" in result["message"].lower()
 
 
@@ -816,4 +818,42 @@ def test_generated_pdf_export_uses_safe_save_dialog_and_validates_pdf(tmp_path, 
     assert target.read_bytes().startswith(b"%PDF-1.4")
     with pytest.raises(ValueError, match="geçerli PDF"):
         api.save_generated_pdf_dialog("bad.pdf", base64.b64encode(b"not a PDF").decode("ascii"))
+
+def test_owner_student_application_update_uses_edge_authorization():
+    api = Merkez.AppApi()
+    calls = []
+    monkeypatch = pytest.MonkeyPatch()
+    try:
+        monkeypatch.setattr(api, "_edge_call", lambda action, payload=None: calls.append((action, payload)) or {"ok": True})
+        result = api.student_application_update("student-id", "approved", "E-posta doğrulandı")
+    finally:
+        monkeypatch.undo()
+    assert result["ok"] is True
+    assert calls == [("student_application_update", {
+        "student_user_id": "student-id",
+        "application_status": "approved",
+        "application_note": "E-posta doğrulandı",
+    })]
+
+
+def test_student_application_lifecycle_and_phone_license_are_wired():
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    edge = (root / "windows" / "supabase" / "functions" / "ses-merkezi-desktop" / "index.ts").read_text(encoding="utf-8")
+    windows_ui = (root / "windows" / "ui" / "app.js").read_text(encoding="utf-8")
+    android_ui = (root / "android" / "app" / "src" / "main" / "assets" / "ui" / "app.js").read_text(encoding="utf-8")
+    kotlin = (root / "android" / "app" / "src" / "main" / "java" / "com" / "stagepulse" / "sesmerkezi" / "MainActivity.kt").read_text(encoding="utf-8")
+
+    assert 'if (action === "student_application_update")' in edge
+    assert 'application_status: applicationStatus' in edge
+    assert 'email_verified_at' in edge
+    assert 'customer_phone: customerPhone' in edge
+    assert 'phone: normalizedPhone' in edge
+    assert 'student_application_update: (student_user_id, application_status, application_note)' in android_ui
+    assert 'student_application_update' in kotlin
+    assert 'data-student-application="approved"' in windows_ui
+    assert 'data-student-application="rejected"' in windows_ui
+    assert 'adminMetricPendingStudents' in windows_ui
+    assert 'customer_phone' in windows_ui and 'customer_phone' in android_ui
 
