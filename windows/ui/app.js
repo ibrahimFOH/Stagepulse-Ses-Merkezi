@@ -1499,7 +1499,7 @@ function renderAdminCenter(data){
   const status=x.application_status||'legacy';
   const statusLabel={pending:'Başvuru bekliyor',approved:'Onaylandı',rejected:'Reddedildi',legacy:'Eski kayıt'}[status]||'Durum bilinmiyor';
   const identity=x.email||x.phone||'İletişim bilgisi yok';
-  const verification=x.email?(x.email_verified_at?'E-posta doğrulandı':'E-posta doğrulaması bekliyor'):(x.phone?'Telefon kaydı':'Kimlik doğrulanmadı');
+  const verification=x.email?(x.email_verified_at?'E-posta doğrulandı':'E-posta doğrulaması bekliyor'):(x.phone?(status==='approved'?'Telefon yönetici tarafından doğrulandı':'Telefon doğrulaması bekliyor'):'Kimlik doğrulanmadı');
   const license=x.license_id?'Lisans bağlı':'Lisans bekliyor';
   const canApprove=status==='pending'&&(!x.email||!!x.email_verified_at);
   const actions=status==='pending'?'<div class="row-actions">'+(canApprove?'<button type="button" class="btn btn-gold btn-small" data-student-application="approved" data-student-id="'+safeText(x.user_id)+'">Başvuruyu onayla</button>':'<span class="muted">E-posta doğrulaması bekleniyor</span>')+(!x.license_id?'<button type="button" class="btn btn-secondary btn-small" data-student-application="rejected" data-student-id="'+safeText(x.user_id)+'">Reddet</button>':'')+'</div>':'';
