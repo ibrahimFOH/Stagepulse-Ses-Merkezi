@@ -510,37 +510,21 @@ Deno.serve(async (req: Request) => {
         || !["pending", "approved", "rejected"].includes(applicationStatus)) {
         return fail("STUDENT_APPLICATION_DATA_INVALID", 400);
       }
-      const { data: student, error: studentError } = await admin.from("sesm_students")
-        .select("user_id,license_id,email,phone,email_verified_at,application_status")
-        .eq("user_id", studentId).eq("teacher_user_id", user.id).maybeSingle();
-      if (studentError) return fail("STUDENT_APPLICATION_LOOKUP_FAILED", 500);
-      if (!student) return fail("STUDENT_NOT_FOUND", 404);
-      if (applicationStatus === "approved" && student.email && !student.email_verified_at) {
-        return fail("STUDENT_EMAIL_NOT_VERIFIED", 409);
-      }
-      if (applicationStatus === "rejected" && student.license_id) {
-        return fail("STUDENT_HAS_LINKED_LICENSE", 409);
-      }
-      if (applicationStatus === "pending" && student.license_id) {
-        return fail("STUDENT_HAS_LINKED_LICENSE", 409);
-      }
-      const reviewedAt = applicationStatus === "pending" ? null : new Date().toISOString();
-      const { data: updated, error: updateError } = await admin.from("sesm_students")
-        .update({
-          application_status: applicationStatus,
-          application_note: applicationNote,
-          reviewed_at: reviewedAt,
-          reviewed_by: reviewedAt ? user.id : null,
-          is_active: applicationStatus !== "rejected",
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", studentId).eq("teacher_user_id", user.id)
-        .select("user_id,email,phone,display_name,is_active,license_id,application_status,application_note,email_verified_at,reviewed_at")
-        .single();
-      if (updateError || !updated) return fail("STUDENT_APPLICATION_UPDATE_FAILED", 500);
-      await audit(user.id, "student_application_" + applicationStatus, studentId, student.license_id, {
-        application_note: applicationNote,
+      const { data: updated, error: updateError } = await admin.rpc("sesm_review_student_application", {
+        p_student_user_id: studentId,
+        p_owner_user_id: user.id,
+        p_application_status: applicationStatus,
+        p_application_note: applicationNote,
       });
+      if (updateError || !updated) {
+        const reason = String(updateError?.message ?? "");
+        if (reason.includes("STUDENT_NOT_FOUND")) return fail("STUDENT_NOT_FOUND", 404);
+        if (reason.includes("STUDENT_EMAIL_NOT_VERIFIED")) return fail("STUDENT_EMAIL_NOT_VERIFIED", 409);
+        if (reason.includes("STUDENT_HAS_LINKED_LICENSE")) return fail("STUDENT_HAS_LINKED_LICENSE", 409);
+        if (reason.includes("FORBIDDEN_OWNER_ONLY")) return fail("FORBIDDEN_OWNER_ONLY", 403);
+        console.error("Atomic student application review failed", updateError?.message ?? "missing student");
+        return fail("STUDENT_APPLICATION_UPDATE_FAILED", 500);
+      }
       return reply({ ok: true, student: updated });
     }
     if (action === "context") {
