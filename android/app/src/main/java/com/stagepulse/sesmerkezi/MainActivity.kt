@@ -1078,6 +1078,7 @@ class MainActivity : Activity() {
                     .put("expires_days", payload.optInt("expires_days", 365))
                     .put("customer_name", payload.optString("customer_name"))
                     .put("customer_email", payload.optString("customer_email"))
+                    .put("customer_phone", payload.optString("customer_phone"))
                     .put("payment_method", payload.optString("payment_method", "cash"))
                     .put("payment_status", payload.optString("payment_status", "unpaid"))
                     .put("amount", payload.optDouble("amount", 0.0))
