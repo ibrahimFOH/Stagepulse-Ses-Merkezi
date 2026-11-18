@@ -204,6 +204,7 @@ function accountApi() {
   license_payment_update: (license_id, payment_status) => call('license_payment_update', { license_id, payment_status }),
   license_revoke: license_id => call('license_revoke', { license_id }),
   teacher_students: () => call('teacher_students'),
+  student_application_update: (student_user_id, application_status, application_note) => call('student_application_update', { student_user_id, application_status, application_note }),
   student_progress: student_user_id => call('progress_get', { student_user_id: student_user_id || '' }),
   teacher_mark_progress: (student_user_id, module_id, completed, teacher_note) =>
    call('progress_mark', { student_user_id, module_id, completed, teacher_note }),
@@ -1701,16 +1702,60 @@ function refreshAccountUi(){
 async function checkForUpdates(silent=false){const bridge=api()||(typeof accountApi==='function'?accountApi():null);if(!bridge||typeof bridge.check_updates!=='function'||updateCheckInProgress)return null;updateCheckInProgress=true;const check=$('checkUpdates'),status=$('updateStatus'),install=$('installUpdate');if(!silent&&check){check.disabled=true;if(status)status.textContent='Stagepulse güncellemeleri denetleniyor…';}try{const result=await bridge.check_updates();if(!result||result.offline||result.ok===false){if(!silent&&status)status.textContent=result?.message||'Güncelleme servisine şu anda ulaşılamıyor.';return null;}latestUpdateManifest=result;const available=result.published===true&&result.available===true;if(install)install.classList.toggle('hidden',!available);if(available){const version=result.version||result.versionName||'Yeni sürüm';const message=`Yeni sürüm mevcut: ${version}.\n${result.message||'Güncelleme indirilmeye hazır.'}${result.notes?'\n\nSürüm notları: '+result.notes:''}`;if(status)status.textContent=message;if(silent)setStatus(`Yeni Stagepulse sürümü mevcut: ${version}. Hesap / güncellemeler bölümünden indirebilirsin.`);}else if(!silent&&status){status.textContent=result.message||(result.published?'Uygulama güncel.':'Henüz yayımlanmış kararlı güncelleme yok.');}return result;}catch(error){if(!silent&&status)status.textContent='Güncelleme denetlenemedi: '+String(error.message||error);return null;}finally{updateCheckInProgress=false;if(!silent&&check)check.disabled=false;}}
 async function openWhatsAppSupport(){const url='https://wa.me/905320683012?text='+encodeURIComponent('Merhaba Stagepulse, uygulama desteği almak istiyorum.');try{if(window.StagepulseAndroid&&typeof window.StagepulseAndroid.openWhatsApp==='function'){window.StagepulseAndroid.openWhatsApp();return;}}catch(_){}try{if(window.pywebview&&window.pywebview.api&&typeof window.pywebview.api.open_whatsapp==='function'){window.pywebview.api.open_whatsapp();return;}}catch(_){}window.open(url,'_blank','noopener');}
 function adminCenterDate(value){const date=value?new Date(value):null;return date&&!Number.isNaN(date.getTime())?date.toLocaleString('tr-TR'):'—';}
+function adminStudentApplicationBridge(){
+ if(typeof accountApi==='function')return accountApi();
+ if(typeof adminCenterBridge==='function')return adminCenterBridge();
+ return typeof api==='function'?api():null;
+}
+function bindAdminStudentActions(items){
+ const host=$('adminStudentRows'),status=$('adminCenterStatus');
+ if(!host)return;
+ host.querySelectorAll('[data-student-application]').forEach(button=>button.addEventListener('click',async()=>{
+  const studentId=button.dataset.studentId||'',nextStatus=button.dataset.studentApplication||'';
+  if(!studentId||!['approved','rejected'].includes(nextStatus))return;
+  let note='';
+  if(nextStatus==='rejected'){
+   const supplied=prompt('Başvuru notu (isteğe bağlı):');
+   if(supplied===null)return;
+   note=supplied.trim().slice(0,1000);
+   if(!confirm('Bu öğrenci başvurusunu reddetmek istiyor musun?'))return;
+  }else if(!confirm('Bu öğrenci başvurusunu onaylamak istiyor musun?'))return;
+  const bridge=adminStudentApplicationBridge();
+  if(!bridge||typeof bridge.student_application_update!=='function'){
+   if(status)status.textContent='Başvuru yönetimi için uygulama bağlantısı güncellenmeli.';
+   return;
+  }
+  button.disabled=true;
+  if(status)status.textContent='Öğrenci başvurusu güncelleniyor…';
+  try{
+   await bridge.student_application_update(studentId,nextStatus,note);
+   await loadAdminCenter();
+  }catch(error){
+   if(status)status.textContent='Başvuru güncellenemedi: '+error.message;
+   button.disabled=false;
+  }
+ }));
+}
 function adminCenterRows(hostId,items,render,empty){const host=$(hostId);if(!host)return;host.innerHTML=items&&items.length?items.map(render).join(''):'<p class="muted">'+safeText(empty||'Kayıt bulunamadı.')+'</p>';}
 function renderAdminCenter(data){
  const m=data.metrics||{},set=(id,value)=>{const el=$(id);if(el)el.textContent=String(value??0);};
  set('adminMetricLicenses',m.licenses);set('adminMetricPaidLicenses','Ödenmiş: '+(m.paid_licenses??0));set('adminMetricActiveLicenses',m.active_licenses);set('adminMetricStudents',m.students);set('adminMetricActiveStudents','Aktif: '+(m.active_students??0));set('adminMetricPending',m.pending_purchases);set('adminMetricPurchases','Toplam bildirim: '+(m.purchases??0));set('adminMetricSessions',m.sessions_30d);set('adminMetricSaleLicenses',m.sale_licenses);set('adminMetricTestLicenses',m.test_licenses);set('adminMetricUnclassifiedLicenses',m.unclassified_licenses);set('adminMetricUsers30d',m.users_30d);set('adminMetricDevices30d',m.devices_30d);
  adminCenterRows('adminPurchaseRows',data.purchases||[],x=>'<div class="admin-data-row"><strong>'+safeText(x.customer_name||'İsimsiz müşteri')+'</strong><span>'+safeText(x.status||'—')+' · '+safeText(Number(x.amount||0).toLocaleString('tr-TR'))+' '+safeText(x.currency||'TRY')+'</span><small>'+safeText(x.customer_email||'')+' · '+safeText(adminCenterDate(x.created_at))+'</small></div>');
  adminCenterRows('adminLicenseRows',data.licenses||[],x=>'<div class="admin-data-row"><strong>'+safeText(x.customer_name||x.label||'FULL PAKET')+'</strong><span>'+safeText((x.license_kind==='sale'?'Satış':x.license_kind==='test'?'Test':x.license_kind==='unclassified'?'Sınıflandırılmamış':x.payment_status||'—'))+' · '+(x.is_active?'Aktif':'Kapalı')+'</span><small>'+safeText(x.customer_email||'')+' · '+safeText(x.expires_at?adminCenterDate(x.expires_at):'Süresiz')+'</small></div>');
- adminCenterRows('adminStudentRows',data.students||[],x=>'<div class="admin-data-row"><strong>'+safeText(x.display_name||x.email||'Öğrenci')+'</strong><span>'+(x.is_active?'Aktif':'Pasif')+'</span><small>'+safeText(x.email||'')+' · '+safeText(adminCenterDate(x.created_at))+'</small></div>');
+ adminCenterRows('adminStudentRows',data.students||[],x=>{
+  const status=x.application_status||'legacy';
+  const statusLabel={pending:'Başvuru bekliyor',approved:'Onaylandı',rejected:'Reddedildi',legacy:'Eski kayıt'}[status]||'Durum bilinmiyor';
+  const identity=x.email||x.phone||'İletişim bilgisi yok';
+  const verification=x.email?(x.email_verified_at?'E-posta doğrulandı':'E-posta doğrulaması bekliyor'):(x.phone?'Telefon kaydı':'Kimlik doğrulanmadı');
+  const license=x.license_id?'Lisans bağlı':'Lisans bekliyor';
+  const canApprove=status==='pending'&&(!x.email||!!x.email_verified_at);
+  const actions=status==='pending'?'<div class="row-actions">'+(canApprove?'<button type="button" class="btn btn-gold btn-small" data-student-application="approved" data-student-id="'+safeText(x.user_id)+'">Başvuruyu onayla</button>':'<span class="muted">E-posta doğrulaması bekleniyor</span>')+(!x.license_id?'<button type="button" class="btn btn-secondary btn-small" data-student-application="rejected" data-student-id="'+safeText(x.user_id)+'">Reddet</button>':'')+'</div>':'';
+  return '<div class="admin-data-row"><strong>'+safeText(x.display_name||identity)+'</strong><span>'+safeText(statusLabel)+' · '+(x.is_active?'Profil aktif':'Profil pasif')+'</span><small>'+safeText(identity)+' · '+safeText(verification)+' · '+safeText(license)+' · '+safeText(adminCenterDate(x.created_at))+'</small>'+(x.application_note?'<small>Not: '+safeText(x.application_note)+'</small>':'')+actions+'</div>';
+ });
  adminCenterRows('adminSessionRows',data.sessions||[],x=>'<div class="admin-data-row"><strong>'+safeText(String(x.user_id||'').slice(0,8))+'</strong><span>'+safeText(x.event_type==='logout'?'Çıkış':'Oturum doğrulandı')+' · '+safeText(x.platform||'—')+'</span><small>'+safeText(adminCenterDate(x.created_at))+'</small></div>');
  adminCenterRows('adminDeviceRows',data.devices||[],x=>'<div class="admin-data-row"><strong>'+safeText(x.device_name||x.platform||'Bilinmeyen cihaz')+'</strong><span>'+safeText(x.user_email||String(x.user_id||'').slice(0,8))+'</span><small>'+safeText(x.device_hash?String(x.device_hash).slice(0,12)+'…':'Cihaz kimliği yok')+' · '+safeText(adminCenterDate(x.last_seen_at||x.created_at))+'</small></div>');
  adminCenterRows('adminAuditRows',data.audit||[],x=>'<div class="admin-data-row"><strong>'+safeText(x.action||'İşlem')+'</strong><span>'+safeText(x.actor_user_id===currentAccountContext?.user?.id?'Sahip hesabı':'Yönetici')+'</span><small>'+safeText(adminCenterDate(x.created_at))+' · '+safeText(x.license_id||x.subject_user_id||'')+'</small></div>');
+ bindAdminStudentActions(data.students||[]);
  const status=$('adminCenterStatus');if(status)status.textContent='Son güncelleme: '+adminCenterDate(data.generated_at)+'. Yönetim verileri sunucudan alındı.';
 }
 async function loadAdminCenter(){
