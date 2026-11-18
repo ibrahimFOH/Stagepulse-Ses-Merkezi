@@ -1,4 +1,4 @@
-// Stagepulse UI release 4.0.7
+// Stagepulse UI release 4.0.8
 'use strict';
 const $ = (id) => document.getElementById(id);
 const routes = {
