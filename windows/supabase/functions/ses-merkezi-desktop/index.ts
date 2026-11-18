@@ -345,8 +345,11 @@ Deno.serve(async (req: Request) => {
         teacher_user_id: teacherUserId,
         license_id: null,
         email: "",
+        phone: normalizedPhone,
         display_name: displayName,
         is_active: true,
+        application_status: "pending",
+        application_note: "",
       });
       if (profileError) {
         console.error("Student signup profile creation failed", profileError.message);
@@ -355,7 +358,8 @@ Deno.serve(async (req: Request) => {
       }
       await audit(teacherUserId, "student_registered", data.user.id, null, {
         phone: normalizedPhone,
-        profile_status: "awaiting_license",
+        profile_status: "pending",
+        application_status: "pending",
       });
       return reply({ ok: true, user_id: data.user.id, profile_created: true, profile_status: "awaiting_license" });
     }
@@ -469,17 +473,18 @@ Deno.serve(async (req: Request) => {
         if (result.error) throw result.error;
         return result.count ?? 0;
       };
-      const [licenseCount, activeLicenseCount, paidLicenseCount, studentCount, activeStudentCount, pendingPurchaseCount, purchaseCount, sessionCount, licenses, students, purchases, auditEvents, sessionEvents] = await Promise.all([
+      const [licenseCount, activeLicenseCount, paidLicenseCount, studentCount, activeStudentCount, pendingStudentCount, pendingPurchaseCount, purchaseCount, sessionCount, licenses, students, purchases, auditEvents, sessionEvents] = await Promise.all([
         count("sesm_license_keys"),
         count("sesm_license_keys", q => q.eq("is_active", true)),
         count("sesm_license_keys", q => q.eq("payment_status", "paid")),
         count("sesm_students"),
         count("sesm_students", q => q.eq("is_active", true)),
+        count("sesm_students", q => q.eq("application_status", "pending")),
         count("sesm_purchase_requests", q => q.eq("status", "pending")),
         count("sesm_purchase_requests"),
         count("sesm_session_events", q => q.gte("created_at", new Date(Date.now() - 30 * 86400000).toISOString())),
-        admin.from("sesm_license_keys").select("id,label,customer_name,customer_email,plan_code,payment_status,is_active,expires_at,max_activations,created_at").order("created_at", {ascending:false}).limit(12),
-        admin.from("sesm_students").select("user_id,email,display_name,is_active,created_at,license_id").order("created_at", {ascending:false}).limit(12),
+        admin.from("sesm_license_keys").select("id,label,customer_name,customer_email,plan_code,payment_status,payment_method,payment_reference,license_kind,is_active,expires_at,max_activations,created_at").order("created_at", {ascending:false}).limit(12),
+        admin.from("sesm_students").select("user_id,email,phone,display_name,is_active,created_at,license_id,application_status,application_note,email_verified_at,reviewed_at").order("created_at", {ascending:false}).limit(100),
         admin.from("sesm_purchase_requests").select("id,customer_name,customer_email,amount,currency,status,created_at,transfer_reference").order("created_at", {ascending:false}).limit(12),
         admin.from("sesm_audit_events").select("id,actor_user_id,action,subject_user_id,license_id,details,created_at").order("created_at", {ascending:false}).limit(20),
         admin.from("sesm_session_events").select("id,user_id,event_type,app_id,platform,user_agent,created_at").order("created_at", {ascending:false}).limit(20),
@@ -490,11 +495,53 @@ Deno.serve(async (req: Request) => {
       await audit(user.id, "admin_center_opened", null, null, { platform: String(body.platform ?? "unknown") });
       return reply({
         ok: true,
-        metrics: { licenses: licenseCount, active_licenses: activeLicenseCount, paid_licenses: paidLicenseCount, students: studentCount, active_students: activeStudentCount, pending_purchases: pendingPurchaseCount, purchases: purchaseCount, sessions_30d: sessionCount },
+        metrics: { licenses: licenseCount, active_licenses: activeLicenseCount, paid_licenses: paidLicenseCount, students: studentCount, active_students: activeStudentCount, pending_students: pendingStudentCount, pending_purchases: pendingPurchaseCount, purchases: purchaseCount, sessions_30d: sessionCount },
         licenses: licenses.data ?? [], students: students.data ?? [], purchases: purchases.data ?? [],
         audit: auditEvents.data ?? [], sessions: sessionEvents.data ?? [],
         generated_at: new Date().toISOString(),
       });
+    }
+    if (action === "student_application_update") {
+      await requireOwner(user.id);
+      const studentId = String(body.student_user_id ?? "").trim();
+      const applicationStatus = String(body.application_status ?? "").trim();
+      const applicationNote = String(body.application_note ?? "").trim().slice(0, 1000);
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(studentId)
+        || !["pending", "approved", "rejected"].includes(applicationStatus)) {
+        return fail("STUDENT_APPLICATION_DATA_INVALID", 400);
+      }
+      const { data: student, error: studentError } = await admin.from("sesm_students")
+        .select("user_id,license_id,email,phone,email_verified_at,application_status")
+        .eq("user_id", studentId).eq("teacher_user_id", user.id).maybeSingle();
+      if (studentError) return fail("STUDENT_APPLICATION_LOOKUP_FAILED", 500);
+      if (!student) return fail("STUDENT_NOT_FOUND", 404);
+      if (applicationStatus === "approved" && student.email && !student.email_verified_at) {
+        return fail("STUDENT_EMAIL_NOT_VERIFIED", 409);
+      }
+      if (applicationStatus === "rejected" && student.license_id) {
+        return fail("STUDENT_HAS_LINKED_LICENSE", 409);
+      }
+      if (applicationStatus === "pending" && student.license_id) {
+        return fail("STUDENT_HAS_LINKED_LICENSE", 409);
+      }
+      const reviewedAt = applicationStatus === "pending" ? null : new Date().toISOString();
+      const { data: updated, error: updateError } = await admin.from("sesm_students")
+        .update({
+          application_status: applicationStatus,
+          application_note: applicationNote,
+          reviewed_at: reviewedAt,
+          reviewed_by: reviewedAt ? user.id : null,
+          is_active: applicationStatus !== "rejected",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", studentId).eq("teacher_user_id", user.id)
+        .select("user_id,email,phone,display_name,is_active,license_id,application_status,application_note,email_verified_at,reviewed_at")
+        .single();
+      if (updateError || !updated) return fail("STUDENT_APPLICATION_UPDATE_FAILED", 500);
+      await audit(user.id, "student_application_" + applicationStatus, studentId, student.license_id, {
+        application_note: applicationNote,
+      });
+      return reply({ ok: true, student: updated });
     }
     if (action === "context") {
       const deviceHash = String(body.device_hash ?? "");
@@ -618,7 +665,7 @@ Deno.serve(async (req: Request) => {
       const customerEmail = String(body.customer_email ?? "").trim().toLowerCase().slice(0, 320);
       const paymentMethod = String(body.payment_method ?? "");
       const paymentStatus = String(body.payment_status ?? "unpaid");
-      const paymentReference = String(body.payment_reference ?? "").trim().slice(0, 120);
+      const paymentReference = paymentMethod === "cash" ? "" : String(body.payment_reference ?? "").trim().slice(0, 120);
       const notes = String(body.notes ?? "").trim().slice(0, 500);
       const amount = Number(body.amount);
       const maxDevices = Number(body.max_activations ?? 3);
@@ -820,7 +867,7 @@ Deno.serve(async (req: Request) => {
     }
     if (action === "teacher_students") {
       await requireOwner(user.id);
-      const { data: students, error } = await admin.from("sesm_students").select("user_id,license_id,email,display_name,is_active,created_at,updated_at").eq("teacher_user_id", user.id).order("created_at", { ascending: false });
+      const { data: students, error } = await admin.from("sesm_students").select("user_id,license_id,email,phone,display_name,is_active,application_status,application_note,email_verified_at,reviewed_at,created_at,updated_at").eq("teacher_user_id", user.id).order("created_at", { ascending: false });
       if (error) return fail("STUDENTS_READ_FAILED", 500);
       const ids = (students ?? []).map((s: any) => s.user_id);
       const progress = ids.length ? await admin.from("sesm_progress").select("student_user_id,module_id,completed,marked_at,teacher_note,updated_at").in("student_user_id", ids) : { data: [], error: null };
