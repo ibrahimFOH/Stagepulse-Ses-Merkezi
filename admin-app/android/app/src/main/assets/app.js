@@ -1,5 +1,5 @@
 (()=>{'use strict';
-const BASE='https://mtjcqqrogjqaxkagwkti.supabase.co/functions/v1/',LOGIN=BASE+'license-admin',API=BASE+'ses-merkezi-desktop',KEY='sb_publishable_yR_HlWlFbYYq22tQmiB9LA_acq6bQi6';
+const BASE='https://itasctyjzyewcykozuex.supabase.co/functions/v1/',LOGIN=BASE+'license-admin',API=BASE+'ses-merkezi-desktop',KEY='sb_publishable_tP3CMhVAjv6FNtrkYfVEOA_dbF9m8Jb';
 const $=id=>document.getElementById(id);let token=sessionStorage.getItem('sp-owner-token')||'',licenses=[],students=[],progress=[],audit=[],testAccounts=[],busy=false,selectedStudent=null;
 const MODULES=[['frequency','Frekans Bulucu'],['ear','Kulak Eğitimi'],['calculators','Ses Hesaplayıcıları'],['acoustics','Akustik'],['rta','RTA / SPL Ölçümü'],['mixer','Dijital Mikser'],['wav','Ses Dosyası Analizi'],['lufs','LUFS / Loudness'],['cues','Cue Listesi'],['checklists','Kontrol Listeleri'],['docs','Eğitim Dokümanları']];
 const BUNDLES=[['start','Başlangıç'],['live_sound','Canlı Ses'],['rf_wireless','RF / Kablosuz Sistemler'],['pa_system','PA Sistem Tasarımı'],['studio_post','Stüdyo / Post Prodüksiyon'],['spl_acoustics','SPL / Akustik'],['digital_console','Dijital Konsol'],['full_master','Full Master'],['institution','Kurum']];
