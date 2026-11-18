@@ -1774,6 +1774,18 @@ async function refreshFullPackagePurchases(){
  }catch(err){host.innerHTML="";$("fullPackageAdminStatus").textContent="Bildirimler alınamadı: "+err.message;}
 }
 function initFullPackageCommerce(){
+ const paymentMethodField=$("manualLicensePaymentMethod");
+ const paymentStatusField=$("manualLicensePaymentStatus");
+ const paymentReferenceField=$("manualLicenseReference");
+ const paymentReferenceContainer=paymentReferenceField?.closest(".field");
+ const syncManualPaymentReference=()=>{
+  const isBankTransfer=paymentMethodField?.value==="bank_transfer";
+  if(paymentReferenceContainer)paymentReferenceContainer.hidden=!isBankTransfer;
+  if(paymentReferenceField)paymentReferenceField.required=isBankTransfer&&paymentStatusField?.value==="paid";
+ };
+ paymentMethodField?.addEventListener("change",syncManualPaymentReference);
+ paymentStatusField?.addEventListener("change",syncManualPaymentReference);
+ syncManualPaymentReference();
  $("submitFullPackagePurchase")?.addEventListener("click",async()=>{try{if(!currentAccountContext?.user?.id)throw new Error("Satın alma bildirimi için önce hesabına giriş yap.");$("submitFullPackagePurchase").disabled=true;$("fullPackagePurchaseStatus").textContent="Ödeme bildirimi gönderiliyor…";const r=await commerceApi().purchase_submit({customer_name:$("purchaseCustomerName").value,customer_phone:$("purchaseCustomerPhone").value,transfer_reference:$("purchaseTransferReference").value,customer_note:$("purchaseCustomerNote").value});$("fullPackagePurchaseStatus").textContent=`${r.purchase.product_name} ödeme bildirimi alındı. Tutar: ${Number(r.purchase.amount).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})} TL. Banka hareketi yönetici tarafından doğrulanınca lisans oluşturulacak.`;}catch(err){$("fullPackagePurchaseStatus").textContent="Bildirim gönderilemedi: "+err.message;}finally{$("submitFullPackagePurchase").disabled=false;}});
  $("saveFullPackageSettings")?.addEventListener("click",async()=>{try{if(currentRole!=="owner")throw new Error("Yalnızca yönetici değiştirebilir.");$("saveFullPackageSettings").disabled=true;const s=await commerceApi().store_update({price:Number($("fullPackageAdminPrice").value),bank_name:$("fullPackageBankName").value,account_holder:$("fullPackageAccountHolder").value,iban:$("fullPackageIban").value,payment_instructions:$("fullPackagePaymentInstructions").value,contact_phone:$("fullPackageContactPhone").value});$("fullPackageAdminStatus").textContent="FULL PAKET mağaza ayarları kaydedildi. Yeni fiyat: "+Number(s.settings.price).toLocaleString("tr-TR")+" TL." ;await refreshFullPackageStore();}catch(err){$("fullPackageAdminStatus").textContent="Ayarlar kaydedilemedi: "+err.message;}finally{$("saveFullPackageSettings").disabled=false;}});
  $("refreshFullPackagePurchases")?.addEventListener("click",refreshFullPackagePurchases);
