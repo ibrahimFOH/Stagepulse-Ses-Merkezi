@@ -679,7 +679,6 @@ Deno.serve(async (req: Request) => {
       const amount = Number(body.amount);
       const maxDevices = Number(body.max_activations ?? 3);
       if (customerName.length < 2 || (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail))
-        || (!customerEmail && !customerPhone)
         || !["cash", "bank_transfer"].includes(paymentMethod)
         || !["paid", "unpaid"].includes(paymentStatus)
         || !Number.isFinite(amount) || amount < 0 || amount > 2500
