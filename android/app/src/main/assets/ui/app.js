@@ -1739,7 +1739,7 @@ function bindAdminStudentActions(items){
 function adminCenterRows(hostId,items,render,empty){const host=$(hostId);if(!host)return;host.innerHTML=items&&items.length?items.map(render).join(''):'<p class="muted">'+safeText(empty||'Kayıt bulunamadı.')+'</p>';}
 function renderAdminCenter(data){
  const m=data.metrics||{},set=(id,value)=>{const el=$(id);if(el)el.textContent=String(value??0);};
- set('adminMetricLicenses',m.licenses);set('adminMetricPaidLicenses','Ödenmiş: '+(m.paid_licenses??0));set('adminMetricActiveLicenses',m.active_licenses);set('adminMetricStudents',m.students);set('adminMetricActiveStudents','Aktif: '+(m.active_students??0));set('adminMetricPending',m.pending_purchases);set('adminMetricPurchases','Toplam bildirim: '+(m.purchases??0));set('adminMetricSessions',m.sessions_30d);set('adminMetricSaleLicenses',m.sale_licenses);set('adminMetricTestLicenses',m.test_licenses);set('adminMetricUnclassifiedLicenses',m.unclassified_licenses);set('adminMetricUsers30d',m.users_30d);set('adminMetricDevices30d',m.devices_30d);
+ set('adminMetricLicenses',m.licenses);set('adminMetricPaidLicenses','Ödenmiş: '+(m.paid_licenses??0));set('adminMetricActiveLicenses',m.active_licenses);set('adminMetricStudents',m.students);set('adminMetricPendingStudents',m.pending_students);set('adminMetricActiveStudents','Aktif: '+(m.active_students??0));set('adminMetricPending',m.pending_purchases);set('adminMetricPurchases','Toplam bildirim: '+(m.purchases??0));set('adminMetricSessions',m.sessions_30d);set('adminMetricSaleLicenses',m.sale_licenses);set('adminMetricTestLicenses',m.test_licenses);set('adminMetricUnclassifiedLicenses',m.unclassified_licenses);set('adminMetricUsers30d',m.users_30d);set('adminMetricDevices30d',m.devices_30d);
  adminCenterRows('adminPurchaseRows',data.purchases||[],x=>'<div class="admin-data-row"><strong>'+safeText(x.customer_name||'İsimsiz müşteri')+'</strong><span>'+safeText(x.status||'—')+' · '+safeText(Number(x.amount||0).toLocaleString('tr-TR'))+' '+safeText(x.currency||'TRY')+'</span><small>'+safeText(x.customer_email||'')+' · '+safeText(adminCenterDate(x.created_at))+'</small></div>');
  adminCenterRows('adminLicenseRows',data.licenses||[],x=>'<div class="admin-data-row"><strong>'+safeText(x.customer_name||x.label||'FULL PAKET')+'</strong><span>'+safeText((x.license_kind==='sale'?'Satış':x.license_kind==='test'?'Test':x.license_kind==='unclassified'?'Sınıflandırılmamış':x.payment_status||'—'))+' · '+(x.is_active?'Aktif':'Kapalı')+'</span><small>'+safeText(x.customer_email||'')+' · '+safeText(x.expires_at?adminCenterDate(x.expires_at):'Süresiz')+'</small></div>');
  adminCenterRows('adminStudentRows',data.students||[],x=>{
@@ -1840,7 +1840,7 @@ function initFullPackageCommerce(){
    if(currentRole!=="owner")throw new Error("Yalnızca Stagepulse sahibi lisans üretebilir.");
    const name=$("manualLicenseCustomerName").value.trim(),email=$("manualLicenseCustomerEmail").value.trim().toLowerCase();
    const method=$("manualLicensePaymentMethod").value,payment=$("manualLicensePaymentStatus").value;
-   const amount=Number($("manualLicenseAmount").value),reference=$("manualLicenseReference").value.trim();
+   const amount=Number($("manualLicenseAmount").value),reference=method==="cash"?"":$("manualLicenseReference").value.trim();
    const devices=Number($("manualLicenseDevices").value);
    if(name.length<2)throw new Error("Müşteri adı en az 2 karakter olmalı.");
    if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error("Geçerli bir e-posta adresi gir.");
