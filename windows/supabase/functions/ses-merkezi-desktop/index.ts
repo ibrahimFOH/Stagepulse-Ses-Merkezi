@@ -118,7 +118,7 @@ async function trialContext(userId: string, deviceHash: string, platform: unknow
   if (usedDevice) return { active: false, reason: "device_trial_already_used", remaining_seconds: 0 };
 
   const { data: created, error: createError } = await admin.from("sesm_trials")
-    .insert({ user_id: userId, device_hash: deviceHash, platform: expectedPlatform })
+    .insert({ user_id: userId, device_hash: deviceHash, platform: expectedPlatform, started_at: new Date().toISOString(), expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), revoked: false })
     .select("user_id,device_hash,platform,started_at,expires_at,revoked").single();
   if (createError || !created) {
     if (createError?.code === "23505") {
