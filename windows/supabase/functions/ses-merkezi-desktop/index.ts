@@ -483,7 +483,7 @@ Deno.serve(async (req: Request) => {
         count("sesm_purchase_requests", q => q.eq("status", "pending")),
         count("sesm_purchase_requests"),
         count("sesm_session_events", q => q.gte("created_at", new Date(Date.now() - 30 * 86400000).toISOString())),
-        admin.from("sesm_license_keys").select("id,label,customer_name,customer_email,plan_code,payment_status,payment_method,payment_reference,license_kind,is_active,expires_at,max_activations,created_at").order("created_at", {ascending:false}).limit(12),
+        admin.from("sesm_license_keys").select("id,label,customer_name,customer_email,customer_phone,plan_code,payment_status,payment_method,payment_reference,license_kind,is_active,expires_at,max_activations,created_at").order("created_at", {ascending:false}).limit(12),
         admin.from("sesm_students").select("user_id,email,phone,display_name,is_active,created_at,license_id,application_status,application_note,email_verified_at,reviewed_at").order("created_at", {ascending:false}).limit(100),
         admin.from("sesm_purchase_requests").select("id,customer_name,customer_email,amount,currency,status,created_at,transfer_reference").order("created_at", {ascending:false}).limit(12),
         admin.from("sesm_audit_events").select("id,actor_user_id,action,subject_user_id,license_id,details,created_at").order("created_at", {ascending:false}).limit(20),
@@ -663,6 +663,15 @@ Deno.serve(async (req: Request) => {
       await requireOwner(user.id);
       const customerName = String(body.customer_name ?? "").trim().slice(0, 120);
       const customerEmail = String(body.customer_email ?? "").trim().toLowerCase().slice(0, 320);
+      const customerPhoneRaw = String(body.customer_phone ?? "").trim();
+      const phoneDigits = customerPhoneRaw.replace(/\D/g, "");
+      let customerPhone = "";
+      if (customerPhoneRaw) {
+        if (phoneDigits.length === 10 && phoneDigits.startsWith("5")) customerPhone = "+90" + phoneDigits;
+        else if (phoneDigits.length === 11 && phoneDigits.startsWith("05")) customerPhone = "+90" + phoneDigits.slice(1);
+        else if (phoneDigits.length === 12 && phoneDigits.startsWith("905")) customerPhone = "+" + phoneDigits;
+        else return fail("STUDENT_PHONE_INVALID", 400);
+      }
       const paymentMethod = String(body.payment_method ?? "");
       const paymentStatus = String(body.payment_status ?? "unpaid");
       const paymentReference = paymentMethod === "cash" ? "" : String(body.payment_reference ?? "").trim().slice(0, 120);
@@ -670,6 +679,7 @@ Deno.serve(async (req: Request) => {
       const amount = Number(body.amount);
       const maxDevices = Number(body.max_activations ?? 3);
       if (customerName.length < 2 || (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail))
+        || (!customerEmail && !customerPhone)
         || !["cash", "bank_transfer"].includes(paymentMethod)
         || !["paid", "unpaid"].includes(paymentStatus)
         || !Number.isFinite(amount) || amount < 0 || amount > 2500
@@ -696,6 +706,7 @@ Deno.serve(async (req: Request) => {
         p_payment_reference: paymentReference,
         p_admin_note: notes,
         p_max_devices: maxDevices,
+        p_customer_phone: customerPhone,
       });
       if (error || !data?.license_id) {
         console.error("Manual FULL PAKET license creation failed", error?.message ?? "missing license id");
