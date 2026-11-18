@@ -1789,13 +1789,20 @@ function initFullPackageCommerce(){
    if(email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))throw new Error("Geçerli bir e-posta adresi gir.");
    if(!Number.isFinite(amount)||amount<0||amount>2500)throw new Error("Tutar 0 ile 2.500 TL arasında olmalı.");
    if(payment==="paid"&&method==="bank_transfer"&&reference.length<3)throw new Error("Ödenmiş havale için dekont veya işlem referansı gerekli.");
-   if(payment==="paid"&&!confirm("Tahsilatın gerçekten alındığını doğruluyor musun? Lisans etkinleştirilebilir olacak."))return;
+   if(payment==="paid"){
+    const confirmation=method==="cash"
+     ?"Elden nakit tahsilatını gerçekten aldığını doğruluyor musun? Lisans hemen etkinleşecektir."
+     :"Havale/EFT tutarının banka hesabına geçtiğini doğruluyor musun? Lisans hemen etkinleşecektir.";
+    if(!confirm(confirmation))return;
+   }
    button.disabled=true;status.textContent="Lisans anahtarı güvenli biçimde üretiliyor…";
    const result=await commerceApi().license_create("FULL PAKET","student",devices,0,name,email,method,payment,amount,"TRY",reference,"full_master");
    const key=result.key||result.license_key||"";
    if(!key||!result.license?.id)throw new Error("Sunucu lisans anahtarını doğrulanmış kayıtla döndürmedi.");
    $("fullPackageIssuedKey").value=key;$("copyFullPackageIssuedKey").disabled=false;
-   status.textContent=payment==="paid"?"FULL PAKET lisansı üretildi. Ödeme kaydı alındı; anahtarı müşteriye iletebilirsin.":"FULL PAKET lisansı üretildi. Ödeme bekliyor; ödeme durumu onaylanmadan etkinleşmez.";
+   status.textContent=payment==="paid"
+    ?(method==="cash"?"Elden nakit tahsilatı kaydedildi. FULL PAKET lisansı üretildi; anahtarı müşteriye iletebilirsin.":"Havale/EFT tahsilatı kaydedildi. FULL PAKET lisansı üretildi; anahtarı müşteriye iletebilirsin.")
+    :"FULL PAKET lisansı üretildi. Ödeme bekliyor; ödeme durumu onaylanmadan etkinleşmez.";
    $("fullPackageAdminStatus").textContent="Manuel FULL PAKET lisansı oluşturuldu. Anahtar aşağıda gösteriliyor.";
    $("manualLicenseCustomerName").value="";$("manualLicenseCustomerEmail").value="";$("manualLicenseReference").value="";
    await refreshLicenseList();

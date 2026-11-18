@@ -627,7 +627,12 @@ Deno.serve(async (req: Request) => {
         || !["paid", "unpaid"].includes(paymentStatus)
         || !Number.isFinite(amount) || amount < 0 || amount > 2500
         || ![1, 2, 3, 5].includes(maxDevices)) return fail("LICENSE_CREATE_DATA_INVALID", 400);
-      if (paymentStatus === "paid" && Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true") return fail("SALES_TEMPORARILY_DISABLED",403);
+      const publicSalesEnabled = Deno.env.get("STAGEPULSE_SALES_ENABLED") === "true";
+      // Elden nakit yalnızca doğrulanmış sahibi tarafından manuel kaydedilebilir.
+      // Havale/EFT ve herkese açık satış, genel satış anahtarı kapalıyken etkinleşmez.
+      if (paymentStatus === "paid" && paymentMethod !== "cash" && !publicSalesEnabled) {
+        return fail("SALES_TEMPORARILY_DISABLED", 403);
+      }
       if (paymentStatus === "paid" && paymentMethod === "bank_transfer" && paymentReference.length < 3) {
         return fail("PAYMENT_REFERENCE_REQUIRED", 400);
       }
@@ -670,7 +675,13 @@ Deno.serve(async (req: Request) => {
       const licenseId = String(body.license_id ?? "").trim();
       const paymentStatus = String(body.payment_status ?? "");
       if (!licenseId || !["paid", "unpaid", "refunded"].includes(paymentStatus)) return fail("LICENSE_PAYMENT_DATA_INVALID", 400);
-      if (paymentStatus === "paid" && Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true") return fail("SALES_TEMPORARILY_DISABLED",403);
+      if (paymentStatus === "paid" && Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true") {
+        const { data: existingLicense, error: lookupError } = await admin.from("sesm_license_keys")
+          .select("payment_method").eq("id", licenseId).eq("created_by", user.id).maybeSingle();
+        if (lookupError) return fail("LICENSE_PAYMENT_LOOKUP_FAILED", 500);
+        if (!existingLicense) return fail("LICENSE_NOT_FOUND", 404);
+        if (existingLicense.payment_method !== "cash") return fail("SALES_TEMPORARILY_DISABLED", 403);
+      }
       const { data: lic, error } = await admin.rpc("sesm_set_license_payment_status", {
         p_license_id: licenseId,
         p_owner_user_id: user.id,

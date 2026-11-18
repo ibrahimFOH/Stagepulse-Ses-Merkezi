@@ -104,8 +104,8 @@ def test_ollama_default_groq_fallback_and_full_package_sales_contract():
     assert 'sales_enabled:salesEnabled' in edge
     assert 'role === "owner" || salesEnabled ? data' in edge
     assert 'decision==="approved" && Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true"' in edge
-    assert 'paymentStatus === "paid" && Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true"' in edge
-    assert 'if (paymentStatus === "paid" && Deno.env.get("STAGEPULSE_SALES_ENABLED") !== "true")' in edge
+    assert 'if (paymentStatus === "paid" && paymentMethod !== "cash" && !publicSalesEnabled)' in edge
+    assert 'existingLicense.payment_method !== "cash"' in edge
 
 
 
@@ -340,3 +340,28 @@ def test_offline_lease_public_key_pem_uses_real_line_breaks():
     assert '.join("\\\\n")' not in edge
     assert '"-----BEGIN PUBLIC KEY-----\\n"' in edge
     assert '"\\n-----END PUBLIC KEY-----"' in edge
+
+
+def test_owner_manual_cash_license_is_allowed_when_public_sales_are_disabled():
+    edge = (ROOT / "supabase/functions/ses-merkezi-desktop/index.ts").read_text("utf-8")
+    win_html = (ROOT / "ui/index.html").read_text("utf-8")
+    android_html = (ROOT.parent / "android/app/src/main/assets/ui/index.html").read_text("utf-8")
+    win_js = (ROOT / "ui/app.js").read_text("utf-8")
+    android_js = (ROOT.parent / "android/app/src/main/assets/ui/app.js").read_text("utf-8")
+
+    create = edge[edge.index('if (action === "license_create")'):edge.index('if (action === "license_payment_update")')]
+    payment_update = edge[edge.index('if (action === "license_payment_update")'):edge.index('if (action === "license_activate")')]
+    purchase_submit = edge[edge.index('if (action === "purchase_submit")'):edge.index('if (action === "purchase_list")')]
+
+    assert 'await requireOwner(user.id);' in create
+    assert 'paymentMethod !== "cash" && !publicSalesEnabled' in create
+    assert 'paymentMethod === "bank_transfer" && paymentReference.length < 3' in create
+    assert 'existingLicense.payment_method !== "cash"' in payment_update
+    assert '.eq("created_by", user.id)' in payment_update
+    assert 'STAGEPULSE_SALES_ENABLED' in purchase_submit
+    assert 'cash" selected>Elden nakit' in win_html
+    assert 'cash" selected>Elden nakit' in android_html
+    assert 'Elden nakit tahsilatını gerçekten aldığını doğruluyor musun?' in win_js
+    assert 'Elden nakit tahsilatını gerçekten aldığını doğruluyor musun?' in android_js
+    assert 'Elden nakit tahsilatı kaydedildi.' in win_js
+    assert 'Elden nakit tahsilatı kaydedildi.' in android_js
