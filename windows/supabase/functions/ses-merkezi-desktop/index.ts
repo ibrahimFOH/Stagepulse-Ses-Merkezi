@@ -484,7 +484,7 @@ Deno.serve(async (req: Request) => {
         count("sesm_purchase_requests"),
         count("sesm_session_events", q => q.gte("created_at", new Date(Date.now() - 30 * 86400000).toISOString())),
         admin.from("sesm_license_keys").select("id,label,customer_name,customer_email,customer_phone,plan_code,payment_status,payment_method,payment_reference,license_kind,is_active,expires_at,max_activations,created_at").order("created_at", {ascending:false}).limit(12),
-        admin.from("sesm_students").select("user_id,email,phone,display_name,is_active,created_at,license_id,application_status,application_note,email_verified_at,reviewed_at").order("created_at", {ascending:false}).limit(100),
+        admin.from("sesm_students").select("user_id,email,phone,display_name,is_active,created_at,license_id,application_status,application_note,email_verified_at,reviewed_at").order("created_at", {ascending:false}).limit(1000),
         admin.from("sesm_purchase_requests").select("id,customer_name,customer_email,amount,currency,status,created_at,transfer_reference").order("created_at", {ascending:false}).limit(12),
         admin.from("sesm_audit_events").select("id,actor_user_id,action,subject_user_id,license_id,details,created_at").order("created_at", {ascending:false}).limit(20),
         admin.from("sesm_session_events").select("id,user_id,event_type,app_id,platform,user_agent,created_at").order("created_at", {ascending:false}).limit(20),
