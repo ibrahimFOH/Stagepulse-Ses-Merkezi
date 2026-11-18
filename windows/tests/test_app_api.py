@@ -855,5 +855,5 @@ def test_student_application_lifecycle_and_phone_license_are_wired():
     assert 'data-student-application="approved"' in windows_ui
     assert 'data-student-application="rejected"' in windows_ui
     assert 'adminMetricPendingStudents' in windows_ui
-    assert 'customer_phone' in windows_ui and 'customer_phone' in android_ui
+    assert 'manualLicenseCustomerPhone' in windows_ui and 'customer_phone' in android_ui
 
