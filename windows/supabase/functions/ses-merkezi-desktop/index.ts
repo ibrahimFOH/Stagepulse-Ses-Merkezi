@@ -331,7 +331,33 @@ Deno.serve(async (req: Request) => {
       if (error || !data?.user) {
         return fail("STUDENT_SIGNUP_UNAVAILABLE", 503);
       }
-      return reply({ ok: true, user_id: data.user.id });
+
+      // Öğrenci profili kayıt anında oluşturulur; lisans daha sonra etkinleştirilse bile
+      // yönetim panelinde bekleyen öğrenci olarak görünür. Lisans aktivasyonu aynı satırı
+      // sesm_activate_license RPC'si üzerinden lisansla tamamlar.
+      const teacherUserId = await getOwnerUserId();
+      if (!teacherUserId) {
+        await admin.auth.admin.deleteUser(data.user.id);
+        return fail("STUDENT_ENROLLMENT_UNAVAILABLE", 503);
+      }
+      const { error: profileError } = await admin.from("sesm_students").insert({
+        user_id: data.user.id,
+        teacher_user_id: teacherUserId,
+        license_id: null,
+        email: "",
+        display_name: displayName,
+        is_active: true,
+      });
+      if (profileError) {
+        console.error("Student signup profile creation failed", profileError.message);
+        await admin.auth.admin.deleteUser(data.user.id);
+        return fail("STUDENT_PROFILE_CREATE_FAILED", 503);
+      }
+      await audit(teacherUserId, "student_registered", data.user.id, null, {
+        phone: normalizedPhone,
+        profile_status: "awaiting_license",
+      });
+      return reply({ ok: true, user_id: data.user.id, profile_created: true, profile_status: "awaiting_license" });
     }
     const { user, token } = await requireUser(req);
     // Kullanıcı ve IP birlikte sınırlandırılır; ortak NAT kullanan hesaplar birbirini kilitlemez.
