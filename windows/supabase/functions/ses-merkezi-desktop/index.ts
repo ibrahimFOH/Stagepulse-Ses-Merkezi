@@ -520,6 +520,7 @@ Deno.serve(async (req: Request) => {
         const reason = String(updateError?.message ?? "");
         if (reason.includes("STUDENT_NOT_FOUND")) return fail("STUDENT_NOT_FOUND", 404);
         if (reason.includes("STUDENT_EMAIL_NOT_VERIFIED")) return fail("STUDENT_EMAIL_NOT_VERIFIED", 409);
+        if (reason.includes("STUDENT_PHONE_VERIFICATION_NOTE_REQUIRED")) return fail("STUDENT_PHONE_VERIFICATION_NOTE_REQUIRED", 409);
         if (reason.includes("STUDENT_HAS_LINKED_LICENSE")) return fail("STUDENT_HAS_LINKED_LICENSE", 409);
         if (reason.includes("FORBIDDEN_OWNER_ONLY")) return fail("FORBIDDEN_OWNER_ONLY", 403);
         console.error("Atomic student application review failed", updateError?.message ?? "missing student");
