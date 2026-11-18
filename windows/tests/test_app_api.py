@@ -846,7 +846,10 @@ def test_student_application_lifecycle_and_phone_license_are_wired():
     kotlin = (root / "android" / "app" / "src" / "main" / "java" / "com" / "stagepulse" / "sesmerkezi" / "MainActivity.kt").read_text(encoding="utf-8")
 
     assert 'if (action === "student_application_update")' in edge
-    assert 'application_status: applicationStatus' in edge
+    assert 'p_application_status: applicationStatus' in edge
+    assert 'admin.rpc("sesm_review_student_application"' in edge
+    assert 'sesm_try_link_manual_license' in (root / "supabase" / "migrations" / "20261118151500_sesm_atomic_owner_student_application_review.sql").read_text(encoding="utf-8")
+    assert "v_application_status<>'approved'" in (root / "supabase" / "migrations" / "20261118151500_sesm_atomic_owner_student_application_review.sql").read_text(encoding="utf-8")
     assert 'email_verified_at' in edge
     assert 'customer_phone: customerPhone' in edge
     assert 'phone: normalizedPhone' in edge
