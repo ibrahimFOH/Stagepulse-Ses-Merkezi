@@ -1498,7 +1498,7 @@ async function refreshLicenseList(){
  }catch(err){host.innerHTML='';status.textContent='Lisans listesi alınamadı: '+err.message;}finally{if(refresh)refresh.disabled=false;}
 }
 
-function commerceApi(){return accountApi();}
+function commerceApi(){return api();}
 async function refreshFullPackageStore(){
  const apiClient=commerceApi();if(!apiClient)return;
  try{const result=await apiClient.store_get(),s=result.settings||{};applyMeasurementFeatureSettings(s.measurement_settings||{advanced_rta_enabled:true,microphone_correction_enabled:true});
