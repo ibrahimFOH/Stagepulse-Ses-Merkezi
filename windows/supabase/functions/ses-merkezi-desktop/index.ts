@@ -580,7 +580,7 @@ Deno.serve(async (req: Request) => {
     if (action === "license_list") {
       await requireOwner(user.id);
       const { data: licenses, error } = await admin.from("sesm_license_keys")
-        .select("id,label,plan_code,bundle_code,max_activations,expires_at,is_active,created_at,notes,customer_name,customer_email,payment_method,payment_status,amount,currency,payment_reference")
+        .select("id,label,plan_code,bundle_code,max_activations,expires_at,is_active,created_at,notes,customer_name,customer_email,customer_phone,payment_method,payment_status,amount,currency,payment_reference")
         .eq("created_by", user.id).order("created_at", { ascending: false }).limit(500);
       if (error) return fail("LICENSE_LIST_FAILED", 500);
       const ids = (licenses ?? []).map((lic: any) => lic.id);
