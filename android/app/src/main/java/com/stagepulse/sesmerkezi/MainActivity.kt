@@ -1029,6 +1029,7 @@ class MainActivity : Activity() {
                 val password = payload.optString("password")
                 val displayName = payload.optString("display_name").trim().take(120)
                 if (password.length < 8 || password.length > 256) throw IllegalArgumentException("Şifre en az 8, en fazla 256 karakter olmalı.")
+                if (displayName.length < 2) throw IllegalArgumentException("Öğrenci adı en az 2 karakter olmalı.")
                 val session = if (phone != null) {
                     if (displayName.length < 2) throw IllegalArgumentException("Öğrenci adı en az 2 karakter olmalı.")
                     callPublicSesEdge("student_signup", JSONObject().put("phone", phone)
@@ -1039,7 +1040,7 @@ class MainActivity : Activity() {
                 } else {
                     val realEmail = authIdentityPayload(rawIdentity).getString("email")
                     requestSupabase("POST", "/auth/v1/signup", JSONObject().put("email", realEmail)
-                        .put("password", password).put("data", JSONObject().put("display_name", displayName)))
+                        .put("password", password).put("data", JSONObject().put("display_name", displayName).put("account_type", "student")))
                 }
                 if (session.optString("access_token").isBlank() || session.optString("refresh_token").isBlank()) {
                     return JSONObject().put("ok", true).put("session_created", false)
@@ -1115,6 +1116,13 @@ class MainActivity : Activity() {
             "admin_dashboard" -> return callSesEdge("admin_dashboard", JSONObject().put("platform", "android"))
             "session_event" -> return callSesEdge("session_event", JSONObject().put("event_type", payload.optString("event_type")).put("platform", "android"))
             "teacher_students" -> return callSesEdge("teacher_students")
+            "student_application_update" -> return callSesEdge(
+                "student_application_update",
+                JSONObject()
+                    .put("student_user_id", payload.optString("student_user_id"))
+                    .put("application_status", payload.optString("application_status"))
+                    .put("application_note", payload.optString("application_note"))
+            )
             "progress_get" -> return callSesEdge("progress_get", JSONObject().put("student_user_id", payload.optString("student_user_id")))
             "progress_mark" -> return callSesEdge(
                 "progress_mark",
