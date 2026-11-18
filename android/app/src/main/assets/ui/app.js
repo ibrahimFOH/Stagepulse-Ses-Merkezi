@@ -1714,11 +1714,20 @@ function bindAdminStudentActions(items){
   const studentId=button.dataset.studentId||'',nextStatus=button.dataset.studentApplication||'';
   if(!studentId||!['approved','rejected'].includes(nextStatus))return;
   let note='';
+  const student=(items||[]).find(item=>item.user_id===studentId);
   if(nextStatus==='rejected'){
    const supplied=prompt('Başvuru notu (isteğe bağlı):');
    if(supplied===null)return;
    note=supplied.trim().slice(0,1000);
    if(!confirm('Bu öğrenci başvurusunu reddetmek istiyor musun?'))return;
+  }else if(student&&!student.email){
+   const supplied=prompt('Telefon numarasını ve başvuru sahibini nasıl doğruladın? Bu not zorunludur.');
+   if(!supplied||!supplied.trim()){
+    if(status)status.textContent='Telefonla açılan başvuru için doğrulama notu gerekli.';
+    return;
+   }
+   note=('Telefon doğrulaması: '+supplied.trim()).slice(0,1000);
+   if(!confirm('Telefon numarasının başvuru sahibine ait olduğunu doğruladın mı? Başvuruyu onaylıyor musun?'))return;
   }else if(!confirm('Bu öğrenci başvurusunu onaylamak istiyor musun?'))return;
   const bridge=adminStudentApplicationBridge();
   if(!bridge||typeof bridge.student_application_update!=='function'){
