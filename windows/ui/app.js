@@ -1524,7 +1524,7 @@ function initFullPackageCommerce(){
  const paymentReferenceContainer=paymentReferenceField?.closest(".field");
  const syncManualPaymentReference=()=>{
   const isBankTransfer=paymentMethodField?.value==="bank_transfer";
-  if(paymentReferenceContainer)paymentReferenceContainer.hidden=!isBankTransfer;
+  if(paymentReferenceContainer)paymentReferenceContainer.classList.toggle("hidden",!isBankTransfer);
   if(paymentReferenceField)paymentReferenceField.required=isBankTransfer&&paymentStatusField?.value==="paid";
  };
  paymentMethodField?.addEventListener("change",syncManualPaymentReference);
