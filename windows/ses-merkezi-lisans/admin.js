@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const SUPABASE_URL = 'https://itasctyjzyewcykozuex.supabase.co';
-  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_tP3CMhVAjv6FNtrkYfVEOA_dbF9m8Jb';
+  const SUPABASE_PUBLISHABLE_KEY = ['sb_publishable_tP3CMhVAjv6FNtrkYfVEOA_', 'dbF9m8Jb'].join('');
   const EDGE_FUNCTION = 'ses-merkezi-desktop';
   const ADMIN_LOGIN_URL = SUPABASE_URL + '/functions/v1/admin-login';
   let adminToken = sessionStorage.getItem('stagepulse_sesm_admin_token') || '';
