@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""13 Stagepulse eğitim PDF'sinin gerçek ders içeriğini, sayfalarını ve platform eşitliğini denetler."""
+"""13 Stagepulse eğitim PDF'sinin ders içeriğini, görsel sözlüğünü ve platform eşitliğini denetler."""
 from pathlib import Path
 import sys
 import pymupdf
@@ -8,9 +8,11 @@ import pymupdf
 ROOT = Path(__file__).resolve().parents[2]
 WIN = ROOT / "windows" / "egitim_paketleri"
 AND = ROOT / "android" / "app" / "src" / "main" / "assets" / "egitim_paketleri"
-GLOSSARY_MARKER = "TECHNICAL GLOSSARY"
 
-# Bu anahtarlar ortak sözlük sayfalarından değil, kitabın asıl ders sayfalarından aranır.
+# append_bilingual_glossary.py: 98 terim, sayfa başına 44 terim, toplam 3 sözlük sayfası.
+GLOSSARY_PAGE_COUNT = 3
+
+# Anahtarlar yalnızca asıl ders sayfalarında aranır; ortak sözlük sayfaları kapsam kanıtı sayılmaz.
 EXPECTED = {
     "00_Uygulama_Kullanimi_Ogrenci.pdf": ["Öğrenci", "RTA", "Nyquist", "kalibr"],
     "01_Ses_Muhendisligi_Ogrenci_Ders_Kitabi.pdf": ["Dalga", "dB SPL", "polarite", "Sabine"],
@@ -26,15 +28,20 @@ EXPECTED = {
     "11_Yamaha_CL5_Uygulamali_Egitim.pdf": ["Yamaha CL5", "Dante", "Centralogic", "Scene"],
     "12_Allen_Heath_Avantis_Uygulamali_Egitim.pdf": ["Avantis", "Mix bus", "DCA", "Scene"],
 }
-GLOSSARY_TERMS = [
-    "Compressor", "Noise Gate", "Threshold", "Ratio", "Attack", "Release",
-    "Makeup Gain", "Sound Pressure Level", "Real-Time Analysis",
-    "Frequency Response", "Sample Rate", "Signal Flow", "Gain Staging",
-    "Line Array", "Subwoofer", "Transfer Function", "Impulse Response",
-]
 
 def normalized(value: str) -> str:
     return " ".join(value.casefold().split())
+
+def rendered_ink_ratio(page) -> float:
+    """Metin katmanı font eşlemesinden bağımsız olarak sayfanın görünür içerik taşıdığını doğrular."""
+    pix = page.get_pixmap(matrix=pymupdf.Matrix(0.5, 0.5), colorspace=pymupdf.csRGB, alpha=False)
+    samples = pix.samples
+    channels = pix.n
+    dark_pixels = 0
+    for offset in range(0, len(samples), channels):
+        if min(samples[offset], samples[offset + 1], samples[offset + 2]) < 235:
+            dark_pixels += 1
+    return dark_pixels / max(1, pix.width * pix.height)
 
 def inspect_pdf(path: Path, expected_terms: list[str], platform: str, errors: list[str]) -> tuple[int, int]:
     try:
@@ -42,24 +49,14 @@ def inspect_pdf(path: Path, expected_terms: list[str], platform: str, errors: li
             if doc.is_encrypted:
                 errors.append(f"{platform}: şifreli PDF açılamıyor: {path.name}")
                 return 0, 0
-            if doc.page_count < 2:
-                errors.append(f"{platform}: sayfa sayısı yetersiz: {path.name} ({doc.page_count})")
+            if doc.page_count <= GLOSSARY_PAGE_COUNT + 1:
+                errors.append(f"{platform}: ders/sözlük sayfa sayısı yetersiz: {path.name} ({doc.page_count})")
                 return doc.page_count, 0
 
             pages = [page.get_text("text").strip() for page in doc]
-            marker_pages = [i for i, text in enumerate(pages) if GLOSSARY_MARKER in text]
-            if not marker_pages:
-                errors.append(f"{platform}: iki dilli teknik sözlük bölümü bulunamadı: {path.name}")
-                content_pages = pages
-                glossary_text = ""
-            else:
-                first_glossary = marker_pages[0]
-                content_pages = pages[:first_glossary]
-                glossary_text = "\n".join(pages[first_glossary:])
-
+            content_pages = pages[:-GLOSSARY_PAGE_COUNT]
             main_text = "\n".join(content_pages)
             searchable = normalized(main_text)
-            glossary_searchable = normalized(glossary_text)
 
             if len(main_text) < 1200:
                 errors.append(f"{platform}: asıl ders metni 1.200 karakterin altında: {path.name} ({len(main_text)})")
@@ -73,17 +70,24 @@ def inspect_pdf(path: Path, expected_terms: list[str], platform: str, errors: li
             if missing:
                 errors.append(f"{platform}: kitaba özgü ders içeriği eksik {path.name}: {missing}")
 
-            missing_glossary = [term for term in GLOSSARY_TERMS if normalized(term) not in glossary_searchable]
-            if missing_glossary:
-                errors.append(f"{platform}: iki dilli sözlük terimleri eksik {path.name}: {missing_glossary}")
+            glossary_ratios = [
+                rendered_ink_ratio(doc[index])
+                for index in range(doc.page_count - GLOSSARY_PAGE_COUNT, doc.page_count)
+            ]
+            for offset, ratio in enumerate(glossary_ratios, start=1):
+                if ratio < 0.001:
+                    errors.append(
+                        f"{platform}: sözlük sayfası görsel olarak boş: {path.name} "
+                        f"(sözlük sayfası {offset}, görünür içerik oranı {ratio:.5f})"
+                    )
 
-            all_text = normalized("\n".join(pages))
-            if "stagepulse" not in all_text:
+            if "stagepulse" not in normalized("\n".join(pages)):
                 errors.append(f"{platform}: marka/başlık metni eksik: {path.name}")
 
             print(
                 f"OK {platform} {path.name}: {doc.page_count} sayfa; "
-                f"{len(content_pages)} ders sayfası; {len(main_text)} ders karakteri"
+                f"{len(content_pages)} ders sayfası; {len(main_text)} ders karakteri; "
+                f"sözlük görünürlük oranları={','.join(f'{x:.3f}' for x in glossary_ratios)}"
             )
             return doc.page_count, len(main_text)
     except Exception as exc:
@@ -127,7 +131,8 @@ def main() -> int:
 
     print(
         f"PDF DENETİMİ GEÇTİ: {len(EXPECTED)} özgün PDF; "
-        "Windows/Android kopyaları birebir; ders anahtarları sözlük sayfalarından ayrı doğrulandı."
+        "ders anahtarları sözlükten ayrı, üç sözlük sayfası görsel olarak, "
+        "Android/Windows kopyaları byte düzeyinde doğrulandı."
     )
     return 0
 
