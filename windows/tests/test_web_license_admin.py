@@ -14,7 +14,10 @@ def test_mobile_web_panel_has_secure_login_and_core_actions():
     assert 'id="licenseList"' in html and 'id="auditList"' in html
     assert 'stagepulse_sesm_admin_token' in js
     assert 'loginWithCustomCredentials' in js
-    assert 'ADMIN_LOGIN_URL' in js and '/functions/v1/license-admin' in js
+    assert 'ADMIN_LOGIN_URL' in js and '/functions/v1/admin-login' in js
+    assert 'data.session?.access_token' in js and 'data.session?.refresh_token' in js
+    assert 'stagepulse_sesm_admin_refresh' in js and 'refreshAdminSession' in js
+    assert 'itasctyjzyewcykozuex.supabase.co' in js and 'mtjcqqrogjqaxkagwkti' not in js
     assert 'signInWithPassword' not in js
     assert "context" in js and ("context.role !== 'owner'" in js or "c.role!=='owner'" in js)
     for action in ('license_list', 'license_create', 'license_payment_update', 'license_revoke', 'license_activations', 'activation_revoke', 'license_extend', 'audit_list'):
