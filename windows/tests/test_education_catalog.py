@@ -152,6 +152,7 @@ def test_bilingual_terminology_is_global_and_shared_by_windows_android():
 
 
 def test_student_progress_modules_match_server_and_database_contract():
+    # Bu test, UI ve Edge Function sözleşmesini canlı DB migration'ıyla birlikte korur.
     repo = ROOT.parent
     import re
     ui = (ROOT / "ui/app.js").read_text("utf-8")
