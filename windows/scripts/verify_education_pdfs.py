@@ -8,7 +8,7 @@ import pymupdf
 ROOT = Path(__file__).resolve().parents[2]
 WIN = ROOT / "windows" / "egitim_paketleri"
 AND = ROOT / "android" / "app" / "src" / "main" / "assets" / "egitim_paketleri"
-GLOSSARY_MARKER = "TERİM SÖZLÜĞÜ / TECHNICAL GLOSSARY"
+GLOSSARY_MARKER = "TECHNICAL GLOSSARY"
 
 # Bu anahtarlar ortak sözlük sayfalarından değil, kitabın asıl ders sayfalarından aranır.
 EXPECTED = {
