@@ -8,6 +8,7 @@ on:
     paths:
       - "android/**"
       - "windows/**"
+      - "!windows/scripts/verify_education_pdfs.py"
       - "README.md"
       - "!android/**/*.md"
       - "!windows/**/*.md"
