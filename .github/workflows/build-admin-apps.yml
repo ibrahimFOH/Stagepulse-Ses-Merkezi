@@ -1,0 +1,109 @@
+name: Stagepulse Usta Öğretmen Yönetim Paneli APK + EXE
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "admin-app/**"
+      - ".github/workflows/build-admin-apps.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stagepulse-admin-build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  android:
+    name: Android yönetim APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: JavaScript ve kaynak eşitliğini doğrula
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check admin-app/android/app/src/main/assets/app.js
+          cmp admin-app/android/app/src/main/assets/app.js admin-app/desktop/assets/app.js
+          cmp admin-app/android/app/src/main/assets/index.html admin-app/desktop/assets/index.html
+          cmp admin-app/android/app/src/main/assets/style.css admin-app/desktop/assets/style.css
+      - name: Android ve Windows yönetim sürümlerini doğrula
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          gradle = Path("admin-app/android/app/build.gradle").read_text()
+          desktop = Path("admin-app/desktop/main.py").read_text()
+          av = re.search(r"versionName\\s+'([^']+)'", gradle)
+          ac = re.search(r"versionCode\\s+(\\d+)", gradle)
+          dv = re.search(r'APP_VERSION\\s*=\\s*"([^"]+)"', desktop)
+          if not av or not ac or not dv or av.group(1) != dv.group(1):
+              raise SystemExit("Android/Windows yönetim sürümleri eşleşmiyor.")
+          m = re.fullmatch(r"(\\d+)\\.(\\d+)\\.(\\d+)", av.group(1))
+          expected = int(m.group(1))*10000 + int(m.group(2))*100 + int(m.group(3)) if m else -1
+          if expected != int(ac.group(1)):
+              raise SystemExit("Android versionCode sürümle eşleşmiyor.")
+          print("Yönetim sürümü doğrulandı:", av.group(1))
+          PY
+      - name: Yönetim APK derle
+        run: gradle -p admin-app/android --no-daemon clean assembleDebug --stacktrace
+      - name: APK boyutunu doğrula
+        run: |
+          test -s admin-app/android/app/build/outputs/apk/debug/app-debug.apk
+          test "$(stat -c%s admin-app/android/app/build/outputs/apk/debug/app-debug.apk)" -gt 100000
+      - uses: actions/upload-artifact@v4
+        name: Android yönetim APK artifact
+        with:
+          name: Stagepulse-Usta-Ogretmen-Yonetim-Android-3.9.1
+          path: admin-app/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
+  windows:
+    name: Windows yönetim EXE
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: x64
+      - name: Python bağımlılıklarını kur
+        run: python -m pip install --upgrade pip; python -m pip install -r admin-app/desktop/requirements.txt
+        shell: pwsh
+      - name: Python kaynaklarını doğrula
+        run: python -m compileall -q admin-app/desktop
+      - name: Yönetim EXE derle
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name Stagepulse-UstaOgretmen-Yonetim-3.9.1 --add-data "admin-app/desktop/assets;assets" admin-app/desktop/main.py
+          if ($LASTEXITCODE -ne 0) { throw "PyInstaller başarısız oldu." }
+          $exe = "dist/Stagepulse-UstaOgretmen-Yonetim-3.9.1.exe"
+          if (-not (Test-Path $exe) -or (Get-Item $exe).Length -lt 1000000) { throw "Yönetim EXE çıktısı eksik veya beklenenden küçük." }
+          Get-FileHash -Algorithm SHA256 $exe
+      - uses: actions/upload-artifact@v4
+        name: Windows yönetim EXE artifact
+        with:
+          name: Stagepulse-Usta-Ogretmen-Yonetim-Windows-3.9.1
+          path: dist/Stagepulse-UstaOgretmen-Yonetim-3.9.1.exe
+          if-no-files-found: error
+          retention-days: 30
