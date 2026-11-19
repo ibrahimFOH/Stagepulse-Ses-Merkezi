@@ -15,6 +15,8 @@ def test_mobile_web_panel_has_secure_login_and_core_actions():
     assert 'stagepulse_sesm_admin_token' in js
     assert 'loginWithCustomCredentials' in js
     assert 'ADMIN_LOGIN_URL' in js and '/functions/v1/admin-login' in js
+    assert 'window.supabase' not in js and 'getClient()' not in js
+    assert 'cdn.jsdelivr.net/npm/@supabase/supabase-js' not in html
     assert 'data.session?.access_token' in js and 'data.session?.refresh_token' in js
     assert 'stagepulse_sesm_admin_refresh' in js and 'refreshAdminSession' in js
     assert 'itasctyjzyewcykozuex.supabase.co' in js and 'mtjcqqrogjqaxkagwkti' not in js
