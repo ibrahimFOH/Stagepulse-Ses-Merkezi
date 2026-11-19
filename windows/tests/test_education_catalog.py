@@ -149,3 +149,21 @@ def test_bilingual_terminology_is_global_and_shared_by_windows_android():
         assert term in glossary
     assert "MutationObserver" in win_script
     assert "data-no-bilingual" in win_script
+
+
+def test_student_progress_modules_match_server_and_database_contract():
+    repo = ROOT.parent
+    import re
+    ui = (ROOT / "ui/app.js").read_text("utf-8")
+    edge = (ROOT / "supabase/functions/ses-merkezi-desktop/index.ts").read_text("utf-8")
+    migration = repo / "supabase/migrations/20261119083000_sesm_progress_protocol_module.sql"
+    ui_block = re.search(r"const progressModules = \\[(.*?)\\n\\];", ui, re.S)
+    server_block = re.search(r"const MODULES = new Set\\(\\[(.*?)\\]\\);", edge)
+    assert ui_block and server_block
+    ui_ids = set(re.findall(r"\\['([^']+)'\\s*,", ui_block.group(1)))
+    server_ids = set(re.findall(r'"([^"]+)"', server_block.group(1)))
+    assert ui_ids == server_ids
+    assert "protocol" in ui_ids
+    assert migration.is_file()
+    sql = migration.read_text("utf-8")
+    assert "'protocol'::text" in sql
