@@ -160,7 +160,8 @@ def test_private_source_actions_are_scoped_and_manually_runnable():
     assert 'workflow_dispatch:' in windows and 'pull_request:' in windows
     assert 'branches: [main]' in windows
     assert 'push:' in windows
-    assert not (ROOT.parent / '.github/workflows/build-admin-apps.yml').exists()
+    admin_build = (ROOT.parent / '.github/workflows/build-admin-apps.yml').read_text('utf-8')
+    assert 'assembleDebug' in admin_build and 'PyInstaller' in admin_build
     assert 'push:' in release and 'workflow_dispatch:' in release
 
 def test_stagepulse_release_version_is_consistent_across_platforms():
