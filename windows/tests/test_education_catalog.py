@@ -158,10 +158,10 @@ def test_student_progress_modules_match_server_and_database_contract():
     ui = (ROOT / "ui/app.js").read_text("utf-8")
     edge = (ROOT / "supabase/functions/ses-merkezi-desktop/index.ts").read_text("utf-8")
     migration = repo / "supabase/migrations/20261119083000_sesm_progress_protocol_module.sql"
-    ui_block = re.search(r"const progressModules = \\[(.*?)\\n\\];", ui, re.S)
-    server_block = re.search(r"const MODULES = new Set\\(\\[(.*?)\\]\\);", edge)
+    ui_block = re.search(r"const progressModules = \[(.*?)\n\];", ui, re.S)
+    server_block = re.search(r"const MODULES = new Set\(\[(.*?)\]\);", edge)
     assert ui_block and server_block
-    ui_ids = set(re.findall(r"\\['([^']+)'\\s*,", ui_block.group(1)))
+    ui_ids = set(re.findall(r"\['([^']+)'\s*,", ui_block.group(1)))
     server_ids = set(re.findall(r'"([^"]+)"', server_block.group(1)))
     assert ui_ids == server_ids
     assert "protocol" in ui_ids
