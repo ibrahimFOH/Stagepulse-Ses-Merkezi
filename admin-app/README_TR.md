@@ -3,8 +3,8 @@
 Bu ayrı uygulama Stagepulse Ses Mühendisliği Merkezi'nin sahibi/usta öğretmeni için tasarlanmıştır. Öğrenci uygulamasından ayrıdır.
 
 ## Gerçek sunucu bağlantıları
-- Yönetici girişi: `license-admin` özel yönetici oturum token'ı.
-- Yönetim verileri: `ses-merkezi-desktop` Edge Function.
+- Yönetici girişi: `admin-login` Edge Function; kullanıcı adı veya e-posta ve parola ile doğrulanmış Supabase oturumu döndürür.
+- Yönetim verileri: `ses-merkezi-desktop` Edge Function; istekler Supabase oturum erişim belirteciyle yetkilendirilir.
 - Yetki: sunucu tarafında sabit Stagepulse owner kimliği ve `org_memberships` içindeki aktif owner rolü tekrar doğrulanır.
 - Lisanslar: `sesm_license_keys`, `sesm_activations`.
 - Öğrenciler: `sesm_students`.
@@ -27,4 +27,4 @@ Bu ayrı uygulama Stagepulse Ses Mühendisliği Merkezi'nin sahibi/usta öğretm
 Bu özellikler varmış gibi gösterilmez.
 
 ## Derleme
-GitHub Actions `Stagepulse Yönetim Paneli EXE + APK` workflow'u Windows EXE ve Android debug APK üretir. Android debug APK test içindir. Dağıtım için release keystore ile ayrıca imzalanmalıdır.
+GitHub Actions `Stagepulse Usta Öğretmen Yönetim Paneli APK + EXE` workflow'u Windows EXE ve Android debug APK üretir. Android APK debug anahtarıyla imzalanır ve test/kurum içi dağıtım içindir; mağaza veya herkese açık üretim dağıtımı için release keystore ile imzalanmalıdır. Windows masaüstü sürümü, CORS izin listesiyle eşleşen `127.0.0.1:5173` yerel arayüz sunucusunu kullanır.
