@@ -50,12 +50,12 @@ jobs:
           from pathlib import Path
           gradle = Path("admin-app/android/app/build.gradle").read_text()
           desktop = Path("admin-app/desktop/main.py").read_text()
-          av = re.search(r"versionName\\s+'([^']+)'", gradle)
-          ac = re.search(r"versionCode\\s+(\\d+)", gradle)
-          dv = re.search(r'APP_VERSION\\s*=\\s*"([^"]+)"', desktop)
+          av = re.search(r"versionName\s+'([^']+)'", gradle)
+          ac = re.search(r"versionCode\s+(\d+)", gradle)
+          dv = re.search(r'APP_VERSION\s*=\s*"([^"]+)"', desktop)
           if not av or not ac or not dv or av.group(1) != dv.group(1):
               raise SystemExit("Android/Windows yönetim sürümleri eşleşmiyor.")
-          m = re.fullmatch(r"(\\d+)\\.(\\d+)\\.(\\d+)", av.group(1))
+          m = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)", av.group(1))
           expected = int(m.group(1))*10000 + int(m.group(2))*100 + int(m.group(3)) if m else -1
           if expected != int(ac.group(1)):
               raise SystemExit("Android versionCode sürümle eşleşmiyor.")
