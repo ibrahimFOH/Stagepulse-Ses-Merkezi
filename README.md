@@ -1,6 +1,6 @@
 # Stagepulse Ses Merkezi
 
-Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasından oluşan Türkçe ses mühendisliği platformudur. Yönetici hesabı ve yetkileri ana uygulama içindeki giriş/oturum akışıyla yönetilir. Son kullanıcı paketleri ayrı Stagepulse-Releases deposunda üretilir.
+Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasından oluşan Türkçe ses mühendisliği platformudur. Ana uygulamadaki yönetim erişimi korunur; ayrıca `admin-app/` altında sahibi/usta öğretmeni için bağımsız Android Yönetim APK'sı ve Windows Yönetim EXE'si bulunur. Son kullanıcı kararlı paketleri ayrı Stagepulse-Releases deposunda üretilir.
 
 ## 4.0.3 Sistem tasarım araçları ve mühendislik güncellemeleri
 
@@ -47,9 +47,11 @@ Kaynak sürümü 4.1.0'dır. Aşağıdaki sürüm bilgileri kaynak ağacını ta
 |---|---:|---|
 | Windows Ses Merkezi | 4.1.0 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
 | Android Ses Merkezi | 4.1.0 (40100) | android/app/build.gradle |
-| Yönetici girişi | Ana uygulama içinde | Ana uygulamanın kimlik doğrulama ve yetki kontrolü |
+| Yönetici erişimi (ana uygulama) | 4.1.0 | Ana uygulamanın kimlik doğrulama ve yetki kontrolü |
+| Bağımsız Android Yönetim | 4.1.0 (40100) | admin-app/android/app/build.gradle |
+| Bağımsız Windows Yönetim | 4.1.0 | admin-app/desktop/main.py |
 
-4.1.0 kaynak sürümüdür. Windows EXE ve imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır; indirme manifesti ve SHA-256 dosyaları da aynı sürümle üretilir. Android APK kalıcı Stagepulse keystore ile imzalanmıştır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Yönetici hesabı girişi ana uygulamanın içindedir; ayrı yönetici EXE/APK derlenmez veya yayımlanmaz.
+4.1.0 kaynak sürümüdür. Windows EXE ve imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır; indirme manifesti ve SHA-256 dosyaları da aynı sürümle üretilir. Android APK kalıcı Stagepulse keystore ile imzalanmıştır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Ana uygulamadaki yönetim erişimi korunur. Buna ek olarak bağımsız Yönetim APK ve EXE, `.github/workflows/build-admin-apps.yml` iş akışında ayrı artifact olarak üretilir. Android yönetim APK'sı debug anahtarıyla imzalanır ve test/kurum içi dağıtım içindir; mağaza veya genel üretim dağıtımı için release keystore gerekir.
 
 ## Uygulama ekranları ve araç envanteri (4.0.3)\n\nArayüzün tüm sayfalarında ve öğrenci PDF kitaplığındaki 13 kitapta teknik terimler Türkçe ad + İngilizce karşılık biçiminde gösterilir; PDF'lerde ortak terim sözlüğü de bulunur.
 
@@ -85,7 +87,7 @@ Eğitim sistemi dokuz dal içerir: Canlı Ses/FOH/Monitör, RF/Kablosuz Mikrofon
 
 - windows/: Windows uygulaması, Python ses motorları, eğitim belgeleri, testler ve kurucu.
 - android/: Kotlin ana uygulaması, WebView arayüzü, çevrimdışı eğitim içeriği, Android köprüsü ve Android kalite denetimleri.
-- admin-app/: Önceki ayrı yönetim istemcisi kaynakları; kararlı yayın iş akışına dahil değildir.
+- admin-app/: Bağımsız Usta Öğretmen Yönetim Android/Windows istemcileri; kendi APK + EXE CI iş akışına sahiptir.
 - shared/: Platformlar arası ortak çalışma notları.
 
 Stagepulse ana web sitesi içeriği bu çalışma kapsamında değiştirilmedi.

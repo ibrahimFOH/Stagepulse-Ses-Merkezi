@@ -9,7 +9,7 @@ from pathlib import Path
 
 import webview
 
-APP_VERSION = "3.9.1"
+APP_VERSION = "4.1.0"
 HOST = "127.0.0.1"
 PORT = 5173
 
