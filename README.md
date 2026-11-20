@@ -192,3 +192,5 @@ OAA bağımsız bir karşılaştırma aracıdır; EBU tarafından sertifikaland�
 - Web sitesi gizlilik ve çerez politikaları: https://stagepulse.com.tr/gizlilik.html ve https://stagepulse.com.tr/cerezler.html
 
 Uygulamanın yerel ses analizi, hesap/lisans, öğrenci ilerlemesi, satın alma bildirimi ve isteğe bağlı Groq aktarımı ayrı veri akışlarıdır. Uygulama içindeki AI onayı yalnızca seçilen AI sağlayıcısına istem gönderimi içindir; tüm veri işlemleri için genel rıza değildir. Yurt dışı veri aktarım mekanizması ve veri saklama süreleri, gerçek hizmet sağlayıcı sözleşmeleri ve proje ayarlarıyla ayrıca doğrulanmalıdır.
+
+<!-- stable-release-trigger:4.1.0 -->
