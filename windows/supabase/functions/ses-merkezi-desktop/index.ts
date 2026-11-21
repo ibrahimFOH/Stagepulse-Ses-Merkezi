@@ -617,10 +617,41 @@ Deno.serve(async (req: Request) => {
         .select("id,device_hash,activated_at,last_seen_at,is_active")
         .eq("license_id", licenseId).order("activated_at", { ascending: false }).limit(100);
       if (error) return fail("LICENSE_ACTIVATION_LIST_FAILED", 500);
-      return reply({ ok: true, activations: (rows ?? []).map((row: any) => ({
-        id: row.id, device_hint: String(row.device_hash ?? "").slice(0, 8).toUpperCase(),
-        activated_at: row.activated_at, last_seen_at: row.last_seen_at, is_active: !!row.is_active,
-      })) });
+      const { data: coreLicenses, error: coreLicenseError } = await admin.from("license_core")
+        .select("id").eq("legacy_system", "ses-merkezi").eq("legacy_license_id", licenseId);
+      if (coreLicenseError) return fail("LICENSE_CORE_LIST_FAILED", 500);
+      const coreIds = (coreLicenses ?? []).map((item: any) => item.id);
+      const coreDevices = coreIds.length
+        ? await admin.from("license_core_devices")
+            .select("license_id,user_id,device_hash,app_id,is_active,last_seen_at")
+            .in("license_id", coreIds).limit(100)
+        : { data: [], error: null };
+      if (coreDevices.error) return fail("LICENSE_CORE_DEVICE_LIST_FAILED", 500);
+      const devices = new Map<string, any>();
+      for (const row of rows ?? []) {
+        const hash = String(row.device_hash ?? "");
+        if (!hash) continue;
+        devices.set(hash, {
+          id: row.id, device_hint: hash.slice(0, 8).toUpperCase(),
+          platform: "legacy", activated_at: row.activated_at,
+          last_seen_at: row.last_seen_at, is_active: !!row.is_active,
+        });
+      }
+      for (const row of coreDevices.data ?? []) {
+        const hash = String(row.device_hash ?? "");
+        if (!hash) continue;
+        const old = devices.get(hash);
+        devices.set(hash, {
+          id: old?.id ?? null, device_hint: hash.slice(0, 8).toUpperCase(),
+          platform: row.app_id === "ses-merkezi-android" ? "android" : row.app_id === "ses-merkezi" ? "windows" : "unknown",
+          activated_at: old?.activated_at ?? row.last_seen_at,
+          last_seen_at: row.last_seen_at ?? old?.last_seen_at ?? null,
+          is_active: !!row.is_active || !!old?.is_active,
+          can_revoke: !!old?.id,
+        });
+      }
+      return reply({ ok: true, activations: [...devices.values()]
+        .sort((a: any, b: any) => Date.parse(b.last_seen_at ?? b.activated_at ?? "") - Date.parse(a.last_seen_at ?? a.activated_at ?? "")) });
     }
     if (action === "activation_revoke") {
       await requireOwner(user.id);
