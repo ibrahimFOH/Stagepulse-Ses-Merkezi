@@ -1,4 +1,4 @@
-/* Stagepulse - özgün yerel mühendislik araçları, sürüm 4.1.0 · ortak Android/Windows kaynak
+/* Stagepulse - özgün yerel mühendislik araçları, sürüm 4.1.1 · ortak Android/Windows kaynak
    Dış kütüphane, CDN veya çevrimiçi hesaplama servisi kullanmaz. */
 (function () {
   'use strict';
