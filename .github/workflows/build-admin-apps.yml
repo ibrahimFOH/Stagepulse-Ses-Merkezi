@@ -71,7 +71,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         name: Android yönetim APK artifact
         with:
-          name: Stagepulse-Usta-Ogretmen-Yonetim-Android-4.1.0
+          name: Stagepulse-Usta-Ogretmen-Yonetim-Android-4.1.1
           path: |
             admin-app/android/app/build/outputs/apk/debug/app-debug.apk
             admin-app/android/app/build/outputs/apk/debug/app-debug.apk.sha256
@@ -98,18 +98,18 @@ jobs:
       - name: Yönetim EXE derle
         shell: pwsh
         run: |
-          python -m PyInstaller --noconfirm --clean --onefile --windowed --name Stagepulse-UstaOgretmen-Yonetim-4.1.0 --add-data "admin-app/desktop/assets;assets" admin-app/desktop/main.py
+          python -m PyInstaller --noconfirm --clean --onefile --windowed --name Stagepulse-UstaOgretmen-Yonetim-4.1.1 --add-data "admin-app/desktop/assets;assets" admin-app/desktop/main.py
           if ($LASTEXITCODE -ne 0) { throw "PyInstaller başarısız oldu." }
-          $exe = "dist/Stagepulse-UstaOgretmen-Yonetim-4.1.0.exe"
+          $exe = "dist/Stagepulse-UstaOgretmen-Yonetim-4.1.1.exe"
           if (-not (Test-Path $exe) -or (Get-Item $exe).Length -lt 1000000) { throw "Yönetim EXE çıktısı eksik veya beklenenden küçük." }
           $hash = (Get-FileHash -Algorithm SHA256 $exe).Hash.ToLower()
           "$hash  $(Split-Path -Leaf $exe)" | Out-File -Encoding ascii "$exe.sha256"
       - uses: actions/upload-artifact@v4
         name: Windows yönetim EXE artifact
         with:
-          name: Stagepulse-Usta-Ogretmen-Yonetim-Windows-4.1.0
+          name: Stagepulse-Usta-Ogretmen-Yonetim-Windows-4.1.1
           path: |
-            dist/Stagepulse-UstaOgretmen-Yonetim-4.1.0.exe
-            dist/Stagepulse-UstaOgretmen-Yonetim-4.1.0.exe.sha256
+            dist/Stagepulse-UstaOgretmen-Yonetim-4.1.1.exe
+            dist/Stagepulse-UstaOgretmen-Yonetim-4.1.1.exe.sha256
           if-no-files-found: error
           retention-days: 30
