@@ -23,7 +23,8 @@ Bu ayrı uygulama Stagepulse Ses Mühendisliği Merkezi'nin sahibi/usta öğretm
 ## Henüz olmayan özellikler
 - Ayrı öğrenci hesabı oluşturma/silme ve parola sıfırlama yönetimi için yönetici API'si henüz yok.
 - Sınav/soru bankası/otomatik notlandırma için tablo ve API henüz yok.
-- Eğitim PDF'lerini panelden düzenleme/yükleme/yayınlama akışı henüz yok.
+- Eğitim PDF yönetimi: yönetici paneli 4.1.2 ile yükleme, metadata düzenleme, sunucu kataloğunda yayınlama, silme ve kullanım istatistikleri bağlandı. Öğrenci uygulamasındaki PDF ekranına sunucu kataloğunun eklenmesi ayrıca gerekir.
+- Sınav yönetimi: yönetici paneli 4.1.2 ile sınav oluşturma/düzenleme, soru ekleme/silme, yayımlama ve öğrenci sonuçlarını görüntüleme bağlandı. Öğrenci uygulamasında sınav ekranı ayrıca entegre edilmelidir.
 Bu özellikler varmış gibi gösterilmez.
 
 ## Sürüm
