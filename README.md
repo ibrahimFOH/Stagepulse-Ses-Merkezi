@@ -41,17 +41,17 @@ Stagepulse Ses Merkezi; Windows masaüstü uygulaması ve Android uygulamasında
 
 ## Platform sürümleri
 
-Kaynak sürümü 4.1.0'dır. Aşağıdaki sürüm bilgileri kaynak ağacını tanımlar; tek başına Release deposunda imzalı kurulumların yayımlandığını veya fiziksel cihaz kabul testlerinin tamamlandığını göstermez.
+Kaynak sürümü 4.1.1'dır. Aşağıdaki sürüm bilgileri kaynak ağacını tanımlar; tek başına Release deposunda imzalı kurulumların yayımlandığını veya fiziksel cihaz kabul testlerinin tamamlandığını göstermez.
 
 | Bileşen | Kaynak sürümü | Sürümün yönetildiği yer |
 |---|---:|---|
-| Windows Ses Merkezi | 4.1.0 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
-| Android Ses Merkezi | 4.1.0 (40100) | android/app/build.gradle |
-| Yönetici erişimi (ana uygulama) | 4.1.0 | Ana uygulamanın kimlik doğrulama ve yetki kontrolü |
-| Bağımsız Android Yönetim | 4.1.0 (40100) | admin-app/android/app/build.gradle |
-| Bağımsız Windows Yönetim | 4.1.0 | admin-app/desktop/main.py |
+| Windows Ses Merkezi | 4.1.1 | windows/Merkez.py ve windows/EXE_OLUSTUR.ps1 |
+| Android Ses Merkezi | 4.1.1 (40101) | android/app/build.gradle |
+| Yönetici erişimi (ana uygulama) | 4.1.1 | Ana uygulamanın kimlik doğrulama ve yetki kontrolü |
+| Bağımsız Android Yönetim | 4.1.1 (40101) | admin-app/android/app/build.gradle |
+| Bağımsız Windows Yönetim | 4.1.1 | admin-app/desktop/main.py |
 
-4.1.0 kaynak sürümüdür. Windows EXE ve imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır; indirme manifesti ve SHA-256 dosyaları da aynı sürümle üretilir. Android APK kalıcı Stagepulse keystore ile imzalanmıştır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Ana uygulamadaki yönetim erişimi korunur. Buna ek olarak bağımsız Yönetim APK ve EXE, `.github/workflows/build-admin-apps.yml` iş akışında ayrı artifact olarak üretilir. Android yönetim APK'sı debug anahtarıyla imzalanır ve test/kurum içi dağıtım içindir; mağaza veya genel üretim dağıtımı için release keystore gerekir.
+4.1.1 kaynak sürümüdür. Windows EXE ve imzalı Android APK, Windows/Android kalite kontrolleri yeşil olduktan sonra `Stagepulse-Releases` deposunda kararlı sürüm olarak yayımlanır; indirme manifesti ve SHA-256 dosyaları da aynı sürümle üretilir. Android APK kalıcı Stagepulse keystore ile imzalanmıştır. Windows EXE şu an Authenticode kod imzası taşımamaktadır; Windows SmartScreen uyarısı görülebilir. Ana uygulamadaki yönetim erişimi korunur. Buna ek olarak bağımsız Yönetim APK ve EXE, `.github/workflows/build-admin-apps.yml` iş akışında ayrı artifact olarak üretilir. Android yönetim APK'sı debug anahtarıyla imzalanır ve test/kurum içi dağıtım içindir; mağaza veya genel üretim dağıtımı için release keystore gerekir.
 
 ## Uygulama ekranları ve araç envanteri (4.0.3)\n\nArayüzün tüm sayfalarında ve öğrenci PDF kitaplığındaki 13 kitapta teknik terimler Türkçe ad + İngilizce karşılık biçiminde gösterilir; PDF'lerde ortak terim sözlüğü de bulunur.
 
@@ -195,4 +195,4 @@ OAA bağımsız bir karşılaştırma aracıdır; EBU tarafından sertifikaland�
 
 Uygulamanın yerel ses analizi, hesap/lisans, öğrenci ilerlemesi, satın alma bildirimi ve isteğe bağlı Groq aktarımı ayrı veri akışlarıdır. Uygulama içindeki AI onayı yalnızca seçilen AI sağlayıcısına istem gönderimi içindir; tüm veri işlemleri için genel rıza değildir. Yurt dışı veri aktarım mekanizması ve veri saklama süreleri, gerçek hizmet sağlayıcı sözleşmeleri ve proje ayarlarıyla ayrıca doğrulanmalıdır.
 
-<!-- stable-release-trigger:4.1.0 -->
+<!-- stable-release-trigger:4.1.1 -->
