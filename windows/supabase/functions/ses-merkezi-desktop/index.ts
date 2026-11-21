@@ -573,12 +573,34 @@ Deno.serve(async (req: Request) => {
         ? await admin.from("sesm_activations").select("license_id,device_hash,is_active").in("license_id", ids)
         : { data: [], error: null };
       if (activations.error) return fail("LICENSE_ACTIVATION_LIST_FAILED", 500);
+
+      // Shared licensing is the canonical device registry for newer Android/Windows builds.
+      // Merge it with legacy activations by device hash so the UI never reports 0/N
+      // merely because a device was registered through license_core instead.
+      const coreLicenses = ids.length
+        ? await admin.from("license_core").select("id,legacy_license_id")
+            .eq("legacy_system", "ses-merkezi").in("legacy_license_id", ids)
+        : { data: [], error: null };
+      if (coreLicenses.error) return fail("LICENSE_CORE_LIST_FAILED", 500);
+      const coreIds = (coreLicenses.data ?? []).map((item: any) => item.id);
+      const coreDevices = coreIds.length
+        ? await admin.from("license_core_devices").select("license_id,device_hash,is_active").in("license_id", coreIds)
+        : { data: [], error: null };
+      if (coreDevices.error) return fail("LICENSE_CORE_DEVICE_LIST_FAILED", 500);
+
+      const coreToLegacy = new Map<string, string>();
+      for (const item of coreLicenses.data ?? []) coreToLegacy.set(item.id, item.legacy_license_id);
       const counts = new Map<string, Set<string>>();
+      const addDevice = (licenseId: string, deviceHash: string) => {
+        if (!counts.has(licenseId)) counts.set(licenseId, new Set<string>());
+        counts.get(licenseId)!.add(deviceHash);
+      };
       for (const item of activations.data ?? []) {
-        if (item.is_active) {
-          if (!counts.has(item.license_id)) counts.set(item.license_id, new Set<string>());
-          counts.get(item.license_id)!.add(item.device_hash);
-        }
+        if (item.is_active && item.device_hash) addDevice(item.license_id, item.device_hash);
+      }
+      for (const item of coreDevices.data ?? []) {
+        const legacyId = coreToLegacy.get(item.license_id);
+        if (item.is_active && item.device_hash && legacyId) addDevice(legacyId, item.device_hash);
       }
       return reply({ ok: true, licenses: (licenses ?? []).map((lic: any) => ({
         ...lic, active_activations: counts.get(lic.id)?.size ?? 0,
