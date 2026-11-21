@@ -28,7 +28,7 @@ Bu özellikler varmış gibi gösterilmez.
 
 ## Sürüm
 
-Yönetim uygulamasının Android ve Windows sürümü ana Ses Merkezi ile birlikte `4.1.0` olarak tutulur. Android `versionCode` değeri `40100` olmalıdır. Android paket kimliği `com.stagepulse.yonetim` olarak ana uygulamadan ayrıdır.
+Yönetim uygulamasının Android ve Windows sürümü ana Ses Merkezi ile birlikte `4.1.1` olarak tutulur. Android `versionCode` değeri `40101` olmalıdır. Android paket kimliği `com.stagepulse.yonetim` olarak ana uygulamadan ayrıdır.
 
 ## Derleme
 GitHub Actions `Stagepulse Usta Öğretmen Yönetim Paneli APK + EXE` workflow'u Windows EXE ve Android debug APK üretir. Android APK debug anahtarıyla imzalanır ve test/kurum içi dağıtım içindir; mağaza veya herkese açık üretim dağıtımı için release keystore ile imzalanmalıdır. Windows masaüstü sürümü, CORS izin listesiyle eşleşen `127.0.0.1:5173` yerel arayüz sunucusunu kullanır.
